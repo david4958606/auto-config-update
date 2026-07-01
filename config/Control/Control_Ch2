@@ -1,0 +1,10 @@
+<Ch2 class="PVD" type="instance">
+    <Vacuum class="FuncVacuum" type="instance">
+        <setHighVacPump type="method">./TurboPumpMain</setHighVacPump>
+        <TurboPumpMain class="PhyTurboPump" type="instance">
+            <setOnoffSp type="method">/IO/Ch2/TurboPump/OnoffDO</setOnoffSp>
+            <setSpeedSp type="method">/IO/Ch2/TurboPump/PumpSpeedDO</setSpeedSp>
+        </TurboPumpMain>
+    </Vacuum>
+    <!-- Doesn't have PorcessLogger, should skip-->
+</Ch2>

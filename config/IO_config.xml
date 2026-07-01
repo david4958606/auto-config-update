@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE IAP [
+
+<!ENTITY IO_Ch1 SYSTEM "./IOBridge/IO_Ch1">
+<!ENTITY IO_Ch2 SYSTEM "./IOBridge/IO_Ch2">
+<!ENTITY IO_Ch3 SYSTEM "./IOBridge/IO_Ch3">
+<!ENTITY IO_Ch4 SYSTEM "./IOBridge/IO_Ch4">
+<!ENTITY IO_Motor SYSTEM "./IOBridge/IO_Motor">
+
+
+]>
+
+<IO>
+    &IO_Ch1;
+    &IO_Ch2;
+    &IO_Ch3;
+    &IO_Ch4;
+    &IO_Motor;
+</IO>

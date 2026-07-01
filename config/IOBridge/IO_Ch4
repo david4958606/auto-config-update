@@ -1,0 +1,12 @@
+<Ch4>
+    <DryPump>
+        <OnoffDO dataType="I" accessMode="RW" alias="">
+            <Bd>210</Bd>
+            <Ch>1</Ch>
+            <Min>0</Min>
+            <Max>1</Max>
+            <DescriptorList>Off:0,On:1</DescriptorList>
+            <Unit></Unit>
+        </OnoffDO>
+    </DryPump>
+</Ch4>

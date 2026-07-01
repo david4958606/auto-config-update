@@ -1,0 +1,41 @@
+id: turbopump-setspeed-2026
+description: 为分子泵增加 setSpeedSp 方法用于设置转速(rpm)
+version: 1
+
+# ── 自适应锚点：靠"是什么(class)"定位，不靠"叫什么(标签名)" ──
+anchor:
+  # 在 Control 里定位分子泵：匹配 class，节点标签名可以是任意值
+  # 若不同机台连 class 都不同，这里可写成列表，逐个尝试
+  pump_class: PhyTurboPump
+
+  # 不写死 /IO/{ch}/TurboPump —— 从泵已有的某个方法引用反推 IO 容器路径，
+  # 腔室号、容器名都来自机台自己的配置，天然自洽
+  io_container_from: setOnoffSp        # 取其值 /IO/Ch?/TurboPump/OnoffDO，去掉末段
+
+# ── 适用性谓词：满足才装，不满足自动跳过 ──
+applies_when: ".//*[@class='PhyTurboPump']/setOnoffSp"
+
+# ── 参数：有默认值，可被 machines/<Ch>.yaml 逐台覆盖 ──
+params:
+  method_name: setSpeedSp
+  io_data_name: SpeedDO                # Ch2 想叫 PumpSpeedDO → 在机台清单里覆盖这一项
+
+# ── 改动一：Control 泵节点下新增方法，指向新 IO 数据（路径由锚点拼出） ──
+control_add_method:
+  name: "{method_name}"
+  value: "{io_container}/{io_data_name}"
+
+# ── 改动二：IO 容器下新增一个 data 节点 ──
+io_add_data:
+  name: "{io_data_name}"
+  attrs:
+    dataType: I
+    accessMode: RW
+    alias: ""
+  # 全机台相同的语义参数，直接写死
+  fields:
+    Min: "0"
+    Max: "20000"
+    Unit: rpm
+  # 机台特有的物理接线地址，工具不臆测：缺失则由校验标红，可由机台清单提供
+  hardware_fields: [Bd, Ch]

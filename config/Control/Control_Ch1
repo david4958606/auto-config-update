@@ -1,0 +1,13 @@
+<Ch1 class="PVD" type="instance">
+    <Vacuum class="FuncVacuum" type="instance">
+        <setHighVacPump type="method">./PhyTurboPump</setHighVacPump>
+        <PhyTurboPump class="PhyTurboPump" type="instance">
+            <setOnoffSp type="method">/IO/Ch1/TurboPump/OnoffDO</setOnoffSp>
+            <setSpeedSp type="method">/IO/Ch1/TurboPump/SpeedDO</setSpeedSp>
+        </PhyTurboPump>
+    </Vacuum>
+    <ProcessLogger class="ProcessLogger" type="instance" alias="">
+        <!-- Should add a new addDataEx method call here-->
+        <addDataEx type="method">/IO/Ch1/Ped/CurPosDI,PedCurPos,1</addDataEx>
+    </ProcessLogger>
+</Ch1>

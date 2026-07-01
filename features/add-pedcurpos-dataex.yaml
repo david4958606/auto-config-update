@@ -1,0 +1,51 @@
+id: add-pedcurpos-dataex
+description: 增加 PedCurPos 工艺数据（建 Ped 对象 → 接 setCurPosVp → 加 PedCurPos 日志、删旧 PinCurPos 日志）
+version: 1
+
+# ── 语义约定 ───────────────────────────────────────────────────────────
+# steps 按顺序执行（后一步可依赖前一步的产物，如步2依赖步1建出的 <Ped>）。
+# 每步：
+#   1) anchor —— 一条 class 路径，逐层 descendant 定位。
+#      * leaf(最后一层)可命中"同一 class 的多个实例"(如多个 PhyGauge)，
+#        则对每个实例各执行一次(fan-out)——绝不静默只取第一个。
+#      * where(可选) 在 leaf 命中多个时筛出子集；缺省 = 全部实例。
+#   2) {类名} 占位符在"每个实例的作用域内"自动绑定成【该实例的标签名】
+#      (如 PhyChuck→Ped/Ped01, PhyGauge→Gauge01/Gauge02)。
+#   3) require = 守卫+绑定(不满足则跳过该实例)；bind = 纯绑定(不做存在性要求)。
+#   4) 动作区分类型：add-node(对象/实例节点) / add-method(方法调用) / remove-method。
+#      均幂等：已达目标即 no-op。
+
+steps:
+  # ── 步 1：在 CVD 腔室下建一个 Chuck 对象节点 ──
+  - name: 建 Ped 对象
+    anchor: CVD
+    add-node:
+      - tag: Ped
+        class: PhyChuck
+        attrs: { type: instance, alias: "" }   # → <Ped class="PhyChuck" type="instance" alias=""/>
+
+  # ── 步 2：给 Chuck 接 setCurPosVp，指向 IO 的 CurPosDI ──
+  # PhyChuck 一腔一般仅一个；但同样的写法天然支持"同类多实例"：
+  # 若把 anchor 换成 CVD/PhyGauge 且腔内有 Gauge01/Gauge02，会各接一次，
+  # {PhyGauge} 自动取各自标签 → /IO/Ch?/Gauge01/... 、/IO/Ch?/Gauge02/...
+  - name: 接 setCurPosVp
+    anchor: CVD/PhyChuck
+    # where:                    # ← 同类多实例时才需要；按标签精确筛(glob)，取代原 require-tag-contains 的子串匹配
+    #   tag-glob: "Ped*"        #   缺省不写 = 对所有 PhyChuck 实例执行
+    add-method:
+      - name: setCurPosVp
+        value: "/IO/{CVD}/{PhyChuck}/CurPosDI"   # {PhyChuck}=该实例标签(Ped 或 Ped01)
+
+  # ── 步 3：ProcessLogger 里加 PedCurPos 日志、删旧的 PinCurPos 日志 ──
+  - name: 调整 ProcessLogger 日志项
+    anchor: CVD/ProcessLogger
+    require:
+      - exist: { PedCurPos: "/IO/{CVD}/Ped/CurPosDI" }   # 守卫+绑定：IO 里必须已有该 data(在 IO_Motor)，否则跳过
+    bind:
+      - PinCurPos: "/IO/{CVD}/Pin/CurPosDI"              # 纯绑定：删除项不要求它还存在，故用 bind 而非 require
+    add-method:
+      - name: addDataEx
+        value: "{PedCurPos},PedCurPos,1"
+    remove-method:
+      - name: addDataEx
+        value: "{PinCurPos},PinCurPos,1"

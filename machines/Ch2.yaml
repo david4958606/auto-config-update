@@ -1,0 +1,6 @@
+# 仅当某台/某腔室"与机型不同"时才需要这种文件 —— 稀疏的例外，不是常态。
+# 这里只有 Ch2 这一条真异常：它的 IO 数据要叫 PumpSpeedDO（其余全走机型默认）
+features:
+  turbopump-setspeed-2026:
+    params:
+      io_data_name: PumpSpeedDO

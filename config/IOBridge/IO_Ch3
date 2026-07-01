@@ -1,0 +1,19 @@
+<Ch3>
+    <TurboPump>
+        <OnoffDO dataType="I" accessMode="RW" alias="">
+            <Bd>201</Bd>
+            <Ch>5</Ch>
+            <Min>0</Min>
+            <Max>1</Max>
+            <DescriptorList>Off:0,On:1</DescriptorList>
+            <Unit/>
+        </OnoffDO>
+        <SpeedDO dataType="I" accessMode="RW" alias="">
+            <Bd>201</Bd>
+            <Ch>6</Ch>
+            <Min>0</Min>
+            <Max>20000</Max>
+            <Unit>rpm</Unit>
+        </SpeedDO>
+    </TurboPump>
+</Ch3>

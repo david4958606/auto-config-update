@@ -1,0 +1,15 @@
+<Ch1>
+    <Ped>
+        <CurPosDI dataType="I" accessMode="R" alias="">
+            <!-- define of data-->
+        </CurPosDI>
+    </Ped>
+</Ch1>
+
+<Ch4>
+    <Ped>
+        <CurPosDI dataType="I" accessMode="R" alias="">
+            <!-- define of data-->
+        </CurPosDI>
+    </Ped>
+</Ch4>

@@ -1,0 +1,13 @@
+<Ch4 class="CVD" type="instance">
+    <Vacuum class="FuncVacuum" type="instance">
+        <setRoughPump type="method">./PhyDryPump</setRoughPump>
+        <PhyDryPump class="PhyDryPump" type="instance">
+            <setOnoffSp type="method">/IO/Ch4/DryPump/OnoffDO</setOnoffSp>
+        </PhyDryPump>
+    </Vacuum>
+    <ProcessLogger class="ProcessLogger" type="instance" alias="">
+        <!-- Not in a PVD class, should skip-->
+        <addDataEx type="method">/IO/Ch4/Pin/CurPosDI,PinCurPos,1</addDataEx>
+        <addDataEx type="method">/IO/Ch4/Ped/CurPosDI,PedCurPos,1</addDataEx>
+    </ProcessLogger>
+</Ch4>

@@ -1,0 +1,9 @@
+<Ch3 class="PVD" type="instance">
+    <Vacuum class="FuncVacuum" type="instance">
+        <setHighVacPump type="method">./PhyTurboPump</setHighVacPump>
+        <PhyTurboPump class="PhyTurboPump" type="instance">
+            <setOnoffSp type="method">/IO/Ch3/TurboPump/OnoffDO</setOnoffSp>
+            <setSpeedSp type="method">/IO/Ch3/TurboPump/SpeedDO</setSpeedSp>
+        </PhyTurboPump>
+    </Vacuum>
+</Ch3>
