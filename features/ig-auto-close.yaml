@@ -10,6 +10,7 @@ steps:
       - tag: IonGauge
         class: PhyGauge
         attrs: { type: instance, alias: "/Control/{ITO}Exports/IonGauge" }   # → <IonGauge class="PhyGauge" type="instance" alias="/Control/Ch1Exports/IonGauge">
+        include-entity: "Simulated*{ITO}"   # 从 Control_config.xml 已声明实体里按 glob 解析真名(Simulated_Ch1 / SimulatedFlag_Ch1)并内嵌为 &...;
 
   # ── 步 2：配置 IG 规的信号点 ──
   - name: 配置 IG 规

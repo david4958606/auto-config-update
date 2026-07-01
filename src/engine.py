@@ -15,7 +15,8 @@ from . import ops
 from .anchor import resolve_anchors
 from .feature import Skip, resolve_bindings
 from .model import (CONTROL_MASTER, build_indexes, fragment_files,
-                    load_control_fragment, save_control_fragment)
+                    load_control_fragment, resolve_entity_name,
+                    save_control_fragment)
 
 
 def _run_step(step, croot, indexes, chamber_binds, edits, log) -> None:
@@ -44,6 +45,15 @@ def _run_step(step, croot, indexes, chamber_binds, edits, log) -> None:
             attrs = {k: str(v).format(**tags) for k, v in (nd.get("attrs") or {}).items()}
             results.append(ops.add_node(node, nd["tag"], nd["class"], attrs))
             chamber_binds[nd["tag"]] = "./" + nd["tag"]   # 登记对象引用，供后续步骤 {标签}
+            # include-entity：按 glob 从 Control_config.xml 实际声明里解析实体真名并内嵌
+            if nd.get("include-entity"):
+                target = node.find(nd["tag"])             # 新建或既有的目标节点
+                ent_name = resolve_entity_name(nd["include-entity"].format(**tags), croot)
+                if ent_name and target is not None:
+                    results.append(ops.add_entity_ref(target, ent_name))
+                else:
+                    log(f"  步[{name}] {inst}: ⚠ include-entity 未在 Control_config.xml "
+                        f"找到匹配 {nd['include-entity'].format(**tags)} 的实体")
         for m in step.get("add-method", []) or []:
             val = m["value"].format(**tags) if m.get("value") is not None else None
             results.append(ops.add_method(node, m["name"], val))

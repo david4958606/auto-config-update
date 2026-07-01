@@ -12,6 +12,7 @@
 """
 from __future__ import annotations
 
+import fnmatch
 from pathlib import Path
 
 from lxml import etree
@@ -42,6 +43,27 @@ def fragment_files(master_path: Path):
     root = etree.parse(str(master_path), FRAG_PARSER).getroot()   # 不展开 → 正文保留实体引用节点
     return [(ent.name, (base / urls[ent.name]).resolve())
             for ent in root.iter(etree.Entity) if ent.name in urls]
+
+
+def declared_entities(master_path: Path = CONTROL_MASTER):
+    """master 里声明的全部实体名(含腔室片段与共享实体，如 Simulated_Ch1)。"""
+    return [e.name for e in _dtd(master_path).iterentities()]
+
+
+def resolve_entity_name(pattern: str, chamber_root=None):
+    """按 glob 从"实际声明的实体名"里解析出真名(如 Simulated_Ch1 / SimulatedFlag_Ch1)。
+
+    无匹配 → None；多匹配 → 优先该腔室已用到的(最贴合实际)，否则取最短名。
+    """
+    matches = fnmatch.filter(declared_entities(), pattern)
+    if not matches:
+        return None
+    if len(matches) > 1 and chamber_root is not None:
+        used = {e.name for e in chamber_root.iter(etree.Entity)}
+        preferred = [m for m in matches if m in used]
+        if preferred:
+            return sorted(preferred, key=len)[0]
+    return sorted(matches, key=len)[0]
 
 
 def _entity_doctype(master_path: Path) -> str:

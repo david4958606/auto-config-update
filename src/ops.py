@@ -30,11 +30,24 @@ def _real_depth(el) -> int:
 
 
 def _append_indented(parent, el):
-    """把 el 追加为 parent 末子，并维持既有缩进风格(4 空格/层)。"""
+    """把 el 追加为 parent 末子，并维持既有缩进风格(4 空格/层)。
+
+    若末子是实体引用(如 &Simulated_Ch1;)，则把新节点插到它【前面】，
+    让实体引用始终保持在最后一位——与既有实例节点的书写惯例一致。
+    """
     d = _real_depth(parent)
     child_indent = "\n" + "    " * (d + 1)   # 子节点行首缩进
     close_indent = "\n" + "    " * d         # parent 闭合标签行首缩进
     kids = list(parent)
+    if kids and kids[-1].tag is etree.Entity:
+        prev = kids[-2] if len(kids) > 1 else None
+        if prev is not None:
+            prev.tail = child_indent
+        else:
+            parent.text = child_indent
+        el.tail = child_indent               # 后面还跟着实体引用
+        kids[-1].addprevious(el)             # 插到实体引用之前
+        return
     if kids:
         kids[-1].tail = child_indent
     else:
@@ -54,6 +67,17 @@ def add_node(parent, tag: str, cls: str, attrs: dict | None = None):
         el.set(k, "" if v is None else str(v))
     _append_indented(parent, el)
     return True, f"新增对象 <{tag} class={cls}>", ("insert", parent, el)
+
+
+def add_entity_ref(parent, name: str):
+    """在 parent 内确保存在实体引用 &name;(如 &Simulated_Ch1;)；已存在即幂等。
+    序列化时天然写回为 &name;(前提：该实体在 Control_config.xml 里已声明)。"""
+    for c in parent:
+        if c.tag is etree.Entity and c.name == name:
+            return False, f"实体引用 &{name}; 已存在", None
+    ent = etree.Entity(name)
+    _append_indented(parent, ent)
+    return True, f"新增实体引用 &{name};", ("insert", parent, ent)
 
 
 def add_method(anchor, name: str, value: str | None = None):
