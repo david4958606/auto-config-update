@@ -1,0 +1,463 @@
+<Ch1 class="ITO" type="instance" alias="/Control/Ch1Exports/Ch1">
+        &Simulated_Ch1;
+    
+    <enableITO type="method"/>
+    <exportState type="method">/IO/Ch1Exports/State</exportState>
+    <addSlotItem type="method">1,Slot1,/IO/Ch1Exports/Slot1</addSlotItem>
+    <addAlarmFilter type="method">/Control/Ch1,ERROR</addAlarmFilter>
+    <exportAlarmCounter type="method">/IO/Ch1Exports/AlarmCounter</exportAlarmCounter>
+    <setProcStateChangeDelay type="method">2</setProcStateChangeDelay>
+    
+    <exportTransEnv type="method">/IO/Ch1Exports/TransEnv</exportTransEnv>
+    <exportTransMode type="method">/IO/Ch1Exports/TransMode</exportTransMode>
+    <exportTransSlot type="method">/IO/Ch1Exports/TransSlot</exportTransSlot>
+    <exportLotID type="method">/IO/Ch1Exports/LotID</exportLotID>
+    <exportMaterialID type="method">/IO/Ch1Exports/MaterialID</exportMaterialID>
+    <exportMaterialName type="method">/IO/Ch1Exports/MaterialName</exportMaterialName>
+    <exportMaterialNameID type="method">/IO/Ch1Exports/MaterialNameID</exportMaterialNameID>
+    <exportProcState type="method">/IO/Ch1Exports/ProcState</exportProcState>
+    <exportRcpBarcode type="method">/IO/Ch1Exports/RcpBarcode</exportRcpBarcode>
+    <exportRcpCatalog type="method">/IO/Ch1Exports/RcpCatalog</exportRcpCatalog>
+    <exportRecipeName type="method">/IO/Ch1Exports/RecipeName</exportRecipeName>
+    <exportRecipeShortName type="method">/IO/Ch1Exports/RecipeShortName</exportRecipeShortName>
+    <exportRcpTotalStep type="method">/IO/Ch1Exports/RcpTotalStep</exportRcpTotalStep>
+    <exportRcpStepCounter type="method">/IO/Ch1Exports/RcpStepCounter</exportRcpStepCounter>
+    <exportRcpStepName type="method">/IO/Ch1Exports/RcpStepName</exportRcpStepName>
+    <exportRcpStepTime type="method">/IO/Ch1Exports/RcpStepTime</exportRcpStepTime>
+    <exportRcpStepTimer type="method">/IO/Ch1Exports/RcpStepTimer</exportRcpStepTimer>
+    <exportRcpStepState type="method">/IO/Ch1Exports/RcpStepState</exportRcpStepState>
+    <exportRcpStepStartTime type="method">/IO/Ch1Exports/RcpStepStartTime</exportRcpStepStartTime>
+    <exportRcpStepEndType type="method">/IO/Ch1Exports/RcpStepEndType</exportRcpStepEndType>
+    <exportRcpRecovStepIndex type="method">/IO/Ch1Exports/RcpRecovStepIndex</exportRcpRecovStepIndex>
+    <exportProcPressureReadyTime type="method">/IO/Ch1Exports/ProcPressureReadyTime</exportProcPressureReadyTime>
+    <exportMaterialSrcPort type="method">/IO/Ch1Exports/MaterialSrcPort</exportMaterialSrcPort>
+    <exportMaterialSrcSlot type="method">/IO/Ch1Exports/MaterialSrcSlot</exportMaterialSrcSlot>
+    <!--<exportMatIncrement type="method">/IO/Ch1Exports/MatIncrement</exportMatIncrement>-->
+    <exportPMacroCurStep type="method">/IO/Ch1Exports/PMacroCurStep</exportPMacroCurStep>
+    <exportPMacroTotalStep type="method">/IO/Ch1Exports/PMacroTotalStep</exportPMacroTotalStep>
+    <exportPMacroStepName type="method">/IO/Ch1Exports/PMacroStepName</exportPMacroStepName>
+    <exportProcTime type="method">/IO/Ch1Exports/ProcTime</exportProcTime>
+    <exportWaterValves type="method">/IO/Ch1Exports/WaterValves</exportWaterValves>
+    <exportCurRoute type="method">/IO/Ch1Exports/CurRoute</exportCurRoute>
+    <exportNextRoute type="method">/IO/Ch1Exports/NextRoute</exportNextRoute>
+    <addTriggerPendingOfflineAlarmID type="method">/Control/Ch1/VInterlocks/CryoPumpRegen/Alarm</addTriggerPendingOfflineAlarmID>
+
+    <setVacuum type="method">./Vacuum</setVacuum>
+    <!--setSharedRoughPump type="method">../SystemDryPump</setSharedRoughPump-->
+    <setFullScaleVacGauge type="method">/IO/Ch1/IG/PressureAI</setFullScaleVacGauge>
+    <setSource type="method">./Source</setSource>
+    <setRF type="method">./RF</setRF>
+    <!-- <setHeater type="method">./Heater</setHeater> -->
+    <setShutter type="method">./PhyShutter</setShutter>
+    <!--setArGas2 type="method">./Vacuum/BPGasLine</setArGas2-->
+    <setArGas21 type="method">./Vacuum/Ar21GasLine</setArGas21>
+    <setO2Gas type="method">./Vacuum/O2GasLine</setO2Gas>
+    <!--setN2Gas type="method">./Vacuum/N2GasLine</setN2Gas-->
+    <!--setBacksideGasLine type="method">./Vacuum/BPGasLine</setBacksideGasLine-->
+    <setChuck type="method">./Chuck</setChuck>
+    <!--setFastPumpValve type="method">./Vacuum/V13</setFastPumpValve-->
+    <!--setSlowPumpValve type="method">./Vacuum/V13</setSlowPumpValve-->
+    <setGateValve type="method">./Vacuum/GateValve</setGateValve>
+    <setMaterialCounter type="method">./WaferCounter</setMaterialCounter>
+    <setSrcDcPwrVp type="method">/IO/Ch1SrcDC/ActPowerAI</setSrcDcPwrVp>
+    <setRfFwdPwrVp type="method">/IO/EquipmentRack/Ch1/RF/ForwardPowerAI</setRfFwdPwrVp>
+    <setRfRefPwrVp type="method">/IO/EquipmentRack/Ch1/RF/ReflectedPowerAI</setRfRefPwrVp>    
+    <!--setArGas2FlowVp type="method">/IO/Ch1/BsMFC/GasFlowAI</setArGas2FlowVp-->
+    <setArGas21FlowVp type="method">/IO/Ch1/Ar21MFC/GasFlowAI</setArGas21FlowVp>
+    <setO2GasFlowVp type="method">/IO/Ch1/O2MFC/GasFlowAI</setO2GasFlowVp>
+    <!--setN2GasFlowVp type="method">/IO/Ch1/N2MFC/GasFlowAI</setN2GasFlowVp-->
+    <!--setProcPressureVp type="method">/IO/Ch1Exports/GaugePressure</setProcPressureVp-->
+    <!--setBacksideFlowVp type="method">/IO/Ch1/BsMFC/GasFlowAI</setBacksideFlowVp-->
+    <!--setBsPressureVp type="method">/IO/Ch1/BG/PressureAI</setBsPressureVp-->
+    <exportCurProcType type="method">/IO/Ch1Exports/CurProcType</exportCurProcType>
+    <exportNextProcType type="method">/IO/Ch1Exports/NextProcType</exportNextProcType>
+    <exportIdleTimer type="method">/IO/Ch1Exports/IdleTimeCounter</exportIdleTimer>
+   <!-- <addWaterVlv type="method">MainWaterVlv,./MainWaterVlv</addWaterVlv>
+    <addWaterVlv type="method">HeaterWaterVlv,./HeaterWaterVlv</addWaterVlv>
+    <addWaterVlv type="method">AdapterWaterVlv,./AdapterWaterVlv</addWaterVlv>
+    <addWaterVlv type="method">ChamberWaterVlv,./ChamberWaterVlv</addWaterVlv>
+    <addWaterVlv type="method">TargetWaterVlv,./TargetWaterVlv</addWaterVlv> -->
+
+    <!-- <addWaterVlv type="method">HeaterCoolVlv,./HeaterCoolVlv</addWaterVlv> -->
+    <exportAboutToClean type="method">/IO/Ch1Exports/AboutToClean</exportAboutToClean>
+    
+    <setTargetVoltVp type="method">/IO/Ch1SrcDC/ActVoltageAI</setTargetVoltVp>
+    <!--<addDoor type="method">1,./Vacuum/SlotValve</addDoor> -->
+    <addDoor type="method">2,./Vacuum/SlotValve</addDoor>
+
+    <addAccessEnCond type="method">2,(/IO/Platform/Plc/Ch1/VTRExtendEnDI == Enabled)</addAccessEnCond>
+    <addCloseDoorCheckVps type="method">2,/IO/Platform/Plc/Ch1/SvCloseEnDI,/IO/Platform/Plc/Ch1/VTRExSensorDI</addCloseDoorCheckVps>
+    <enableHandoff type="method">2</enableHandoff>    
+
+    <enableTransTrack type="method">2</enableTransTrack>
+    <ProcessLogger class="ProcessLogger" type="instance" alias="">
+      <setDbTable type="method">mysql,ch1</setDbTable>
+         <addLotID type="method">/IO/Ch1Exports/LotID</addLotID>
+         <addMaterialName type="method">IO/Ch1Exports/MaterialName</addMaterialName>
+         <addRecipeName type="method">/IO/Ch1Exports/RecipeName</addRecipeName>
+         <addRcpTotalStep type="method">/IO/Ch1Exports/RcpTotalStep</addRcpTotalStep>
+         <addRcpStepName type="method">/IO/Ch1Exports/RcpStepName</addRcpStepName>
+         <addRcpStepTime type="method">/IO/Ch1Exports/RcpStepTime</addRcpStepTime>
+        <addRcpStepStartTime type="method">/IO/Ch1Exports/RcpStepStartTime</addRcpStepStartTime>
+        <addRcpStepStartTimeAsSeconds type="method">/Control/Ch1/RcpStepStartSecond</addRcpStepStartTimeAsSeconds>
+        <addRcpStepElapsedTime type="method">/IO/Ch1Exports/RcpStepElapsedTime</addRcpStepElapsedTime>   
+         <addRcpStepCounter type="method">/IO/Ch1Exports/RcpStepCounter</addRcpStepCounter>
+         <!--addRcpBarcode type="method">/IO/Ch1Exports/RcpBarcode</addRcpBarcode>
+         <addRcpCatalog type="method">/IO/Ch1Exports/RcpCatalog</addRcpCatalog-->
+
+         <addDataEx type="method">/IO/Ch1SrcDC/ActPowerAI,SrcPwr,1</addDataEx>
+         <addDataEx type="method">/IO/Ch1SrcDC/ActVoltageAI,SrcVolt,1</addDataEx>
+         <addDataEx type="method">/IO/Ch1SrcDC/ActCurrentAI,SrcCur,10</addDataEx>
+         <!-- <addDataEx type="method">/IO/Ch1SrcDC/ImArcDI,ImArc,1</addDataEx>
+         <addDataEx type="method">/IO/Ch1SrcDC/dUArcDI,dUArc,1</addDataEx>
+         <addDataEx type="method">/IO/Ch1SrcDC/UxIArcDI,UxIArc,1</addDataEx>
+         <addDataEx type="method">/IO/Ch1SrcDC/ArcsPerSecAI,ArcsPerSec,1</addDataEx> -->
+           <addDataEx type="method">/IO/Ch1SrcDC/MicroArcDI,SrcDcMicroArc,1</addDataEx>
+            <addDataEx type="method">/IO/Ch1SrcDC/HardArcDI,SrcDcHardArc,1</addDataEx>
+         <addDataEx type="method">/IO/EquipmentRack/Ch1/RF/ForwardPowerAI,RFFwdPwr,1</addDataEx>
+         <addDataEx type="method">/IO/EquipmentRack/Ch1/RF/ReflectedPowerAI,RFRfPwr,1</addDataEx>
+         <addDataEx type="method">/IO/Ch1/Match/C1PosAI,C1,1</addDataEx>
+         <addDataEx type="method">/IO/Ch1/Match/C2PosAI,C2,1</addDataEx>
+
+         <addDataEx type="method">/IO/Ch1/PG/PressureAI,PG,0.0001</addDataEx>
+         <addDataEx type="method">/IO/Ch1/IG/PressureAI,IG,0.0001</addDataEx>
+         
+         <addDataEx type="method">/IO/Ch1/Ar21MFC/GasFlowAI,Ar1,0.1</addDataEx>
+         <addDataEx type="method">/IO/Ch1/O2MFC/GasFlowAI,O2,0.1</addDataEx>
+         <!--addDataEx type="method">/IO/Ch1/N2MFC/GasFlowAI,N2,0.1</addDataEx-->
+         <!--addDataEx type="method">/IO/Ch1/BsMFC/GasFlowAI,Bs,0.1</addDataEx-->
+
+        <addDataEx type="method">/IO/Motor/Ch1/Ped/CurPosDI,PedPos,1</addDataEx>
+        <addDataEx type="method">/IO/Ch1/CryoPump/Stage2TempAI,Stage2Temp,1</addDataEx>
+        <addDataEx type="method">/SETUP/Ch1Counter/CryoPumpCounter,CryoPumpCounter,1</addDataEx>
+        <addDataEx type="method">/SETUP/Ch1Counter/TargetLifeCounter,Target,1</addDataEx>
+                  
+         <!--setAsync type="method"></setAsync-->
+        &Simulated_Ch1;
+    </ProcessLogger>
+    
+    <setProcessLogger type="method">./ProcessLogger</setProcessLogger>
+    <ZMESLogger class="ProcessLogger" type="instance" alias="">
+      <setDbTable type="method">mysql,zmes</setDbTable>
+         <addLotID type="method">/IO/Ch1Exports/LotID</addLotID>
+         <addMaterialName type="method">IO/Ch1Exports/MaterialName</addMaterialName>
+         <addRecipeName type="method">/IO/Ch1Exports/RecipeName</addRecipeName>
+        <addRcpStepStartTime type="method">/IO/Ch1Exports/RcpStepStartTime</addRcpStepStartTime>
+        <addRcpStepStartTimeAsSeconds type="method">/Control/Ch1/RcpStepStartSecond</addRcpStepStartTimeAsSeconds>
+        <addRcpStepElapsedTime type="method">/IO/Ch1Exports/RcpStepElapsedTime</addRcpStepElapsedTime>   
+         <addRcpStepName type="method">/IO/Ch1Exports/RcpStepName</addRcpStepName>
+         <addSingleValueData type="method">/IO/Ch1Exports/ProcPressureReadyTime,ProcPressureReadyTime</addSingleValueData>
+         <!-- <addSingleValueData type="method">/IO/Ch1Exports/ProcStartProcess,ProcStartPressure</addSingleValueData> -->
+         <addSingleValueData type="method">/IO/Ch1Exports/CryoPump_Stage2TempAI,Stage2Temp</addSingleValueData>
+         <addSingleValueData type="method">/SETUP/Ch1Counter/TargetLifeCounter,TargetLifeCounter</addSingleValueData>
+         <addSingleValueData type="method">/SETUP/Ch1Counter/CryoPumpCounter,CryoPumpCounter</addSingleValueData>
+         <addSingleValueData type="method">/IO/Motor/Ch1/Rotation/DestSpeedDO,MagentSpeed</addSingleValueData>
+         <addSingleValueData type="method">/IO/Ch1/PG/PressureAI,ProcPressure</addSingleValueData>
+         <addSingleValueData type="method">/IO/Ch1SrcDC/ActPowerAI,DCPower</addSingleValueData>
+         <addSingleValueData type="method">/IO/Ch1SrcDC/ActCurrentAI,DCCurrent</addSingleValueData>
+         <addSingleValueData type="method">/IO/Ch1SrcDC/ActVoltageAI,DCVoltage</addSingleValueData>
+         <addSingleValueData type="method">/IO/EquipmentRack/Ch1/RF/ForwardPowerAI,RFForwardPower</addSingleValueData>
+         <addSingleValueData type="method">/IO/EquipmentRack/Ch1/RF/ReflectedPowerAI,RFReflectedPower</addSingleValueData>
+         <addSingleValueData type="method">/IO/Ch1/O2MFC/GasFlowAI,O2GasFlow</addSingleValueData>
+         <!--addSingleValueData type="method">/IO/Ch1/N2MFC/GasFlowAI,N2GasFlow</addSingleValueData-->
+         <addSingleValueData type="method">/IO/Ch1/Ar21MFC/GasFlowAI,ArGasFlow</addSingleValueData>
+         <setStartCondition type="method">(/IO/Ch1Exports/ProcState==Processing)</setStartCondition>
+         <setStopCondition type="method">(/IO/Ch1Exports/ProcState==Idle)</setStopCondition>
+
+         <addCondTrigger type="method">(((/IO/Ch1Exports/RcpStepTimer &gt;= /SETUP/Control/Ch1/ZMESDcDepTriggerTime) &amp;&amp; (/IO/Ch1Exports/RcpStepName == /SETUP/Control/Ch1/ZMESDcDepStepName)),1)</addCondTrigger>
+
+        &Simulated_Ch1;
+    </ZMESLogger>
+    <RF class="FuncRF" type="instance" alias="/Control/Ch1Exports/RF">
+        <setRFGenerator type="method">./RFGenerator</setRFGenerator>
+        <setMatch type="method">./Match</setMatch>
+        <setActChambPowerVp type="method">./ActForwardPower</setActChambPowerVp>
+        <!--setCoilCoverVp type="method">/IO/Ch1/RFGenerator/CoilCoverStateSensor</setCoilCoverVp-->            
+        <setPIBCoverVp type="method">/IO/Ch1/Plc/HeaterCoverBoxClosedDI</setPIBCoverVp>                        
+        &Simulated_Ch1;
+        
+        <ActForwardPower type="data" dataType="D" accessMode="RW" simulated="" alias="/IO/Ch1Exports/RF_ForwardPowerAI">
+            <Bd/>
+            <Ch/>
+            <DescriptorList/>
+            &Simulated_Ch1;
+        </ActForwardPower>
+        
+        <RFGenerator class="PhyRfGenerator" type="instance" alias="/Control/Ch1Exports/RFGenerator">
+            <setOnoffSp type="method">/IO/EquipmentRack/Ch1/RF/OnoffDO</setOnoffSp>
+            <setPowerSp type="method">/IO/EquipmentRack/Ch1/RF/PowerAO</setPowerSp>
+            <setPowerVp type="method">/IO/EquipmentRack/Ch1/RF/ForwardPowerAI</setPowerVp>
+            <!--setOnoffVp type="method">/IO/Ch1/RF/OnoffDI</setOnoffVp-->
+            <setOverTempSensor type="method">/IO/EquipmentRack/Ch1/RF/OverTempDI</setOverTempSensor>
+            &Simulated_Ch1;
+        </RFGenerator>
+        
+        <Match class="PhyMatch" type="instance" alias="/Control/Ch1Exports/Match">
+            <setC1Sp type="method">/IO/Ch1/Match/C1PosAO</setC1Sp>
+            <setC2Sp type="method">/IO/Ch1/Match/C2PosAO</setC2Sp>
+            <setC1Vp type="method">/IO/Ch1/Match/C1PosAI</setC1Vp>
+            <setC2Vp type="method">/IO/Ch1/Match/C2PosAI</setC2Vp>
+            <setC1PresetSp type="method">/IO/Ch1/Match/C1PrePosAO</setC1PresetSp>
+            <setC2PresetSp type="method">/IO/Ch1/Match/C2PrePosAO</setC2PresetSp>
+            <setPresetEnableSp type="method">/IO/Ch1/Match/PresetEnDO</setPresetEnableSp>
+            <setComModeSp type="method">/IO/Ch1/Match/ComModeDO</setComModeSp>
+            <setMatchModeSp type="method">/IO/Ch1/Match/MatchModeDO</setMatchModeSp>
+            <setSafetyStatusVp type="method">/IO/Ch1/Plc/MatchSafetyDI</setSafetyStatusVp>
+            &Simulated_Ch1;
+        </Match>
+    </RF>
+    <PhyShutter class="PhyShutterLifterITO" type="instance" alias="/Control/Ch1Exports/Shutter">
+        <setDestPosSp type="method">/IO/Motor/Ch1/Shutter/DestPosDO</setDestPosSp>
+        <setHaltSp type="method">/IO/Motor/Ch1/Shutter/StopDO</setHaltSp>
+        <setCurPosVp type="method">/IO/Motor/Ch1/Shutter/CurPosDI</setCurPosVp>
+        <setDestPosReachedVp type="method">/IO/Motor/Ch1/Shutter/DestReachedDI</setDestPosReachedVp>
+        <setOriginalPtSp type="method">/IO/Motor/Ch1/Shutter/HomeDO</setOriginalPtSp>
+        <setOriginalPtVp type="method">/IO/Motor/Ch1/Shutter/OriginPtDI</setOriginalPtVp>
+        <setDiskOuterSensor type="method">/IO/Ch1/Plc/DiskGarageDI</setDiskOuterSensor>
+        <exportDiskInGarage type="method">/IO/Ch1Exports/DiskInGarage</exportDiskInGarage>
+        <exportBladeInGarage type="method">/IO/Ch1Exports/BladeInGarage</exportBladeInGarage>
+        <setSlotData type="method">/IO/Ch1Exports/Slot1</setSlotData>
+        &Simulated_Ch1;
+    </PhyShutter>
+    <Chuck class="FuncChuckITO" type="instance" alias="/Control/Ch1Exports/Chuck">
+        <setPin type="method">./Pin</setPin>
+        <setPedestal type="method">./PedestalLifter</setPedestal>
+        <setShutter type="method">../PhyShutter</setShutter>
+        <setCurrentPosData type="method">ChuckCurPos,/IO/Ch1Exports/ChuckCurPos</setCurrentPosData>
+        <setMarathonCycleData type="method">ChuckMarathonCycle,/IO/Ch1Exports/ChuckMarathonCycle</setMarathonCycleData>
+        <setMarathonCounterData type="method">ChuckMarathonCounter,/IO/Ch1Exports/ChuckMarathonCounter</setMarathonCounterData>
+        <setSlotValve type="method">../Vacuum/SlotValve</setSlotValve>
+        
+        <setMaterialPresentState type="method">/IO/Ch1Exports/Slot1</setMaterialPresentState>
+        
+        &Simulated_Ch1;
+        
+        <Pin class="PhyLifter" type="instance" alias="/Control/Ch1Exports/Pin">
+            <setDestPosSp type="method">/IO/Motor/Ch1/Pin/DestPosDO</setDestPosSp>
+            <setHaltSp type="method">/IO/Motor/Ch1/Pin/StopDO</setHaltSp>
+            <setCurPosVp type="method">/IO/Motor/Ch1/Pin/CurPosDI</setCurPosVp>
+            <setDestPosReachedVp type="method">/IO/Motor/Ch1/Pin/DestReachedDI</setDestPosReachedVp>
+            <setOriginalPtSp type="method">/IO/Motor/Ch1/Pin/HomeDO</setOriginalPtSp>
+            <setOriginalPtVp type="method">/IO/Motor/Ch1/Pin/OriginPtDI</setOriginalPtVp>
+            &Simulated_Ch1;
+        </Pin>
+        <PedestalLifter class="PhyLifter" type="instance" alias="/Control/Ch1Exports/PedestalLifter">
+            <setDestPosSp type="method">/IO/Motor/Ch1/Ped/DestPosDO</setDestPosSp>
+            <setHaltSp type="method">/IO/Motor/Ch1/Ped/StopDO</setHaltSp>
+            <setCurPosVp type="method">/IO/Motor/Ch1/Ped/CurPosDI</setCurPosVp>
+            <setDestPosReachedVp type="method">/IO/Motor/Ch1/Ped/DestReachedDI</setDestPosReachedVp>
+            <setOriginalPtSp type="method">/IO/Motor/Ch1/Ped/HomeDO</setOriginalPtSp>
+            <setOriginalPtVp type="method">/IO/Motor/Ch1/Ped/OriginPtDI</setOriginalPtVp>
+            &Simulated_Ch1;
+        </PedestalLifter>
+    </Chuck>
+    <Source class="FuncSource" type="instance" alias="/Control/Ch1Exports/Source">
+        <setSourceMagnet type="method">./SourceMagnet</setSourceMagnet>
+        <setSourceDC type="method">./SourceDC</setSourceDC>                            
+        <!-- <setSetup type="method">Ch1TargetLife</setSetup>
+        <setCfgMaxTargetLife type="method">/SETUP/Control/Ch1/TargetLifeMaxCounter</setCfgMaxTargetLife>
+        <setLidCloseVp type="method">/IO/Ch1/Plc/LidClosedDI</setLidCloseVp> -->
+        <setTargetWaterFlowVp type="method">/IO/Ch1/Plc/TargetWaterFlowDI</setTargetWaterFlowVp>
+        &Simulated_Ch1;
+        
+        <SourceMagnet class="PhySourceMagnet" type="instance" alias="/Control/Ch1Exports/SourceMagnet">
+            <!-- <setRotationStartSp type="method">/IO/Motor/Ch1/Rotation/StartDO</setRotationStartSp> -->
+            <setRotationSpeedSp type="method">/IO/Motor/Ch1/Rotation/DestSpeedDO</setRotationSpeedSp>
+            <setHaltSp type="method">/IO/Motor/Ch1/Rotation/StopDO</setHaltSp>
+            <!--setCurRotationSpeedVp type="method">/IO/Ch1/Rotation/CurSpeedAI</setCurRotationSpeedVp-->
+            <setActRotationSpeedSp type="method">./ActRotationSpeed</setActRotationSpeedSp>            
+            <setDestSpeedMatchedFlagVp type="method">/IO/Ch1/Plc/RotationDI</setDestSpeedMatchedFlagVp>                        
+            <setReductionRate type="method">1.0</setReductionRate>
+            &Simulated_Ch1;
+            
+            <ActRotationSpeed type="data" dataType="I" accessMode="RW" simulated="" alias="/IO/Ch1Exports/MagnetActRotateSpeed">
+                 <Bd/>
+                 <Ch/>
+                 <DescriptorList/>
+            </ActRotationSpeed>
+            &Simulated_Ch1;
+        </SourceMagnet>
+        <SourceDC class="PhySourceDC" type="instance" alias="/Control/Ch1Exports/SourceDC">
+            <setOnoffSp type="method">/IO/Ch1SrcDC/OnoffDO</setOnoffSp>
+           <!-- <setOnoffVp type="method">/IO/Ch1SrcDC/OnoffDI</setOnoffVp>-->
+            <setPowerSp type="method">/IO/Ch1SrcDC/PowerAO</setPowerSp>
+            <setPowerVp type="method">/IO/Ch1SrcDC/ActPowerAI</setPowerVp>
+            &Simulated_Ch1;
+        </SourceDC>
+    </Source>
+    <Vacuum class="FuncVacuum" type="instance" alias="/Control/Ch1Exports/Vacuum">
+        <addGasLine type="method">./Ar21GasLine</addGasLine>
+        <!--addGasLine type="method">./BPGasLine</addGasLine-->
+        <addGasLine type="method">./O2GasLine</addGasLine>
+        <!--addGasLine type="method">./N2GasLine</addGasLine-->
+        <addSlotVlv type="method">./SlotValve</addSlotVlv>
+        
+        <addSpecialVlv type="method">./V2</addSpecialVlv>
+        
+        <setFastVentVlv type="method">./V41</setFastVentVlv>
+        <setSlowVentVlv type="method">./V42</setSlowVentVlv>
+        
+        <setFastRoughVlv type="method">./V13</setFastRoughVlv>
+        <setSlowRoughVlv type="method">./V13</setSlowRoughVlv>
+
+        <setHighVacVlv type="method">./GateValve</setHighVacVlv>
+        <setHighVacPump type="method">./CryoPump</setHighVacPump>    
+        <!--setIsolationVlv type="method">./V6</setIsolationVlv-->    
+
+        <setRoughPump type="method">../../SystemDryPump</setRoughPump>    
+        
+        <setVacuumGauge type="method">/IO/Ch1/IG/PressureAI</setVacuumGauge>    
+        <setCyclePurgeCounter type="method">./CyclePurgeCounter</setCyclePurgeCounter>
+        <setCyclePurgeTotal type="method">./CyclePurgeTotal</setCyclePurgeTotal>
+        <setRorCounter type="method">./RateOfRise</setRorCounter>                        
+        &Simulated_Ch1;
+        
+        <setCurRateOfRise type="method">./CurRateOfRise</setCurRateOfRise>
+        <CurRateOfRise type="data" dataType="D" accessMode="RW" simulated="" alias="/IO/Ch1Exports/CurRateOfRise">
+            <Bd/>
+            <Ch/>
+            <Min>0.0</Min>
+            <Max/>
+            &Simulated_Ch1;
+        </CurRateOfRise>
+        
+        <RateOfRise class="RorCounter" type="instance" alias="">
+            <setSetup type="method">Ch1Counter</setSetup>
+            &Simulated_Ch1;
+        </RateOfRise>
+        <CyclePurgeCounter type="data" dataType="I" accessMode="RW" simulated="" alias="/IO/Ch1Exports/CyclePurgeCounter">
+            <Bd/>
+            <Ch/>
+            <Min>0</Min>
+            <Max>9999</Max>
+            &Simulated_Ch1;
+        </CyclePurgeCounter>
+        
+        <CyclePurgeTotal type="data" dataType="I" accessMode="RW" simulated="" alias="/IO/Ch1Exports/CyclePurgeTotal">
+            <Bd/>
+            <Ch/>
+            <Min>0</Min>
+            <Max>9999</Max>
+            &Simulated_Ch1;
+        </CyclePurgeTotal>
+        
+        <Ar21GasLine class="FuncGasLine" type="instance" alias="/Control/Ch1Exports/Ar21GasLine">
+            <setMFC type="method">./Ar21MFC</setMFC>
+            <setPrimaryValve type="method">./V21</setPrimaryValve>
+            <!--setSecondaryValve type="method"></setSecondaryValve-->
+            <setFinalValve type="method">../V2</setFinalValve>    
+            &Simulated_Ch1;
+            
+            <Ar21MFC class="PhyMFC" type="instance" alias="/Control/Ch1Exports/MFC21">
+                <setSp type="method">/IO/Ch1/Ar21MFC/GasFlowAO</setSp>
+                &Simulated_Ch1;
+            </Ar21MFC>
+            
+            <V21 class="PhyValve" type="instance" alias="/Control/Ch1Exports/V21">
+                <setSp type="method">/IO/Ch1/Plc/V21DO</setSp>
+                <setVp type="method">/IO/Ch1/Plc/V21DI</setVp>
+                &Simulated_Ch1;
+            </V21>
+        </Ar21GasLine>
+        <O2GasLine class="FuncGasLine" type="instance" alias="/Control/Ch1Exports/O2GasLine">
+            <setMFC type="method">./O2MFC</setMFC>
+            <setPrimaryValve type="method">./V3</setPrimaryValve>
+            <!--setSecondaryValve type="method"></setSecondaryValve-->
+            <setFinalValve type="method">../V2</setFinalValve>    
+            &Simulated_Ch1;
+            
+            <O2MFC class="PhyMFC" type="instance" alias="/Control/Ch1Exports/MFC3">
+                <setSp type="method">/IO/Ch1/O2MFC/GasFlowAO</setSp>
+                 &Simulated_Ch1;
+            </O2MFC>
+            
+            <V3 class="PhyValve" type="instance" alias="/Control/Ch1Exports/V3">
+                <setSp type="method">/IO/Ch1/Plc/V3DO</setSp>
+                <setVp type="method">/IO/Ch1/Plc/V3DI</setVp>
+                &Simulated_Ch1;
+            </V3>
+        </O2GasLine>
+        <V2 class="PhyValve" type="instance" alias="/Control/Ch1Exports/V2">
+            <setSp type="method">/IO/Ch1/Plc/V2DO</setSp>
+            <setVp type="method">/IO/Ch1/Plc/V2DI</setVp>
+            &Simulated_Ch1;
+        </V2>
+            
+        <V41 class="PhyValve" type="instance" alias="/Control/Ch1Exports/V41FastVentValve">
+            <setSp type="method">/IO/Ch1/Plc/V41DO</setSp>
+            <setVp type="method">/IO/Ch1/Plc/V41DI</setVp>
+            &Simulated_Ch1;
+        </V41>
+        
+        <V42 class="PhyValve" type="instance" alias="/Control/Ch1Exports/V42SlowVentValve">
+            <setSp type="method">/IO/Ch1/Plc/V42DO</setSp>
+            <setVp type="method">/IO/Ch1/Plc/V42DI</setVp>
+            &Simulated_Ch1;
+        </V42>
+        
+        <V13 class="PhyValve" type="instance" alias="/Control/Ch1Exports/V13FastRoughValve">
+            <setSp type="method">/IO/Ch1/Plc/V13DO</setSp>
+            <setVp type="method">/IO/Ch1/Plc/V13DI</setVp>
+            &Simulated_Ch1;
+        </V13>
+        <PgValve class="PhyGaugeValve" type="instance" alias="/Control/Ch1Exports/PgValve">
+            <!-- <setSp type="method">/IO/Ch1/Plc/PgValveDO</setSp>
+            <setVp type="method">/IO/Ch1/Plc/PgValveDI</setVp> -->
+            <setBaseGauge type="method">/IO/Ch1/IG/PressureAI</setBaseGauge>
+            <setProtectedGauge type="method">/IO/Ch1/PG/PressureAI</setProtectedGauge>
+            <setProtectedGaugeVlvSp type="method">/IO/Ch1/Plc/PgValveDO</setProtectedGaugeVlvSp>
+            <setVacGauge type="method">/IO/Ch1Exports/GaugePressure</setVacGauge> 
+            &Simulated_Ch1;
+        </PgValve> 
+
+        <GaugePressure type="data" dataType="D" accessMode="R" simulated="true" alias="/IO/Ch1Exports/GaugePressure">
+            <Bd/>
+            <Ch/>
+            <Min>0.0</Min>
+            <Max/>
+            <Accuracy>0.00000001</Accuracy>
+        </GaugePressure> 
+
+        <DrainValve class="PhyValve" type="instance" alias="/Control/Ch1Exports/DrainValve">
+            <setSp type="method">/IO/Ch1/Plc/DrainWaterVlvDO</setSp>
+            <setVp type="method">/IO/Ch1/Plc/DrainWaterVlvDI</setVp>
+            &Simulated_Ch1;
+        </DrainValve>
+
+        <SlotValve class="PhySlotValve" type="instance" alias="/Control/Ch1Exports/SlotValve">
+             <setOpenSp type="method">/IO/Platform/Plc/Ch1/SvOpenDO</setOpenSp>
+             <setCloseSp type="method">/IO/Platform/Plc/Ch1/SvCloseDO</setCloseSp>    
+             <setOpenSensor type="method">/IO/Platform/Plc/Ch1/SvOpenDI</setOpenSensor>
+             <setCloseSensor type="method">/IO/Platform/Plc/Ch1/SvClosedDI</setCloseSensor> 
+            &Simulated_Ch1;
+        </SlotValve>
+        <GateValve class="PhyGateValve" type="instance" alias="/Control/Ch1Exports/GateValve">
+            <setOpenSp type="method">/IO/Ch1/Plc/GateVlvOpenDO</setOpenSp>
+            <setCloseSp type="method">/IO/Ch1/Plc/GateVlvCloseDO</setCloseSp>
+            <setMidOpenSp type="method">/IO/Ch1/Plc/GateVlvMidDO</setMidOpenSp>
+            <setOpenSensor type="method">/IO/Ch1/Plc/GateVlvOpenDI</setOpenSensor>
+            <setCloseSensor type="method">/IO/Ch1/Plc/GateVlvClosedDI</setCloseSensor>
+            <setMidOpenSensor type="method">/IO/Ch1/Plc/GateVlvMidDI</setMidOpenSensor>
+            &Simulated_Ch1;
+        </GateValve>
+        
+        <CryoPump class="PhyCryoPump" type="instance" alias="/Control/Ch1Exports/CryoPump">
+            <setRegenSp type="method">/IO/Ch1/CryoPump/RegenDO</setRegenSp>
+            <setRegenStateVp type="method">/IO/Ch1/CryoPump/RegenStateSI</setRegenStateVp>
+            <setRegenErrorVp type="method">/IO/Ch1/CryoPump/RegenErrCodeSI</setRegenErrorVp>
+            <setSecStageTempVp type="method">/IO/Ch1/CryoPump/Stage2TempAI</setSecStageTempVp> 
+            <setPurgeTimeSp type="method">./ExtendedPurgeTimeDO</setPurgeTimeSp>
+
+            <ExtendedPurgeTimeDO type="data" dataType="I" accessMode="RW" simulated="" alias="/IO/Ch1Exports/ExtendedPurgeTimeDO">
+                <Bd/>
+                <Ch/>
+                <Min>0</Min>
+                <Max/>
+                &Simulated_Ch1;
+            </ExtendedPurgeTimeDO>
+
+            &Simulated_Ch1;
+        </CryoPump>
+    </Vacuum>
+</Ch1>
+

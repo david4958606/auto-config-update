@@ -1,0 +1,29 @@
+功能 ig-auto-close v1 | 模式=apply
+
+[Ch1] (Control_Ch1)
+  步[建 IonGauge 对象] Ch1(class=ITO): ✎ 新增对象 <IonGauge class=PhyGauge>
+  步[建 IonGauge 对象] Ch1(class=ITO): ✎ 新增实体引用 &Simulated_Ch1;
+  步[配置 IG 规] IonGauge(class=PhyGauge): ✎ 新增方法 setOnOffSp(/IO/Ch1/IG/OnOffDI)
+  步[配置 IG 规] IonGauge(class=PhyGauge): ✎ 新增方法 setModeVp(/IO/Ch1/IG/ControlModeDI)
+  步[配置 IG 规] IonGauge(class=PhyGauge): ✎ 新增方法 setModeSp(/IO/Ch1/IG/ControlModeDO)
+  步[配置 IG 规] IonGauge(class=PhyGauge): ✎ 新增方法 enableModeSwitch()
+  步[在 ITO 中添加相关方法] Ch1(class=ITO): ✎ 新增方法 enableTurnOffIonGaugeInProcess()
+  步[在 ITO 中添加相关方法] Ch1(class=ITO): ✎ 新增方法 setIonGauge(./IonGauge)
+  步[在 ITO 中添加setPgValve] Ch1(class=ITO): /Control/Ch1/Vacuum/PgValve 命中于 Control_Ch1（绑定 {PgValve}）
+  步[在 ITO 中添加setPgValve] Ch1(class=ITO): ✎ 新增方法 setPgValve(./Vacuum/PgValve)
+[Ch1] ✎ 已写回 Control_Ch1（9 处编辑，其余字节不动）
+[Ch2] (Control_Ch2)
+  步[建 IonGauge 对象] 跳过：anchor ITO 无匹配
+  步[配置 IG 规] 跳过：anchor ITO/PhyGauge 无匹配
+  步[在 ITO 中添加相关方法] 跳过：anchor ITO 无匹配
+  步[在 ITO 中添加setPgValve] 跳过：anchor ITO 无匹配
+[Ch3] (Control_Ch3)
+  步[建 IonGauge 对象] 跳过：anchor ITO 无匹配
+  步[配置 IG 规] 跳过：anchor ITO/PhyGauge 无匹配
+  步[在 ITO 中添加相关方法] 跳过：anchor ITO 无匹配
+  步[在 ITO 中添加setPgValve] 跳过：anchor ITO 无匹配
+[Ch4] (Control_Ch4)
+  步[建 IonGauge 对象] 跳过：anchor ITO 无匹配
+  步[配置 IG 规] 跳过：anchor ITO/PhyGauge 无匹配
+  步[在 ITO 中添加相关方法] 跳过：anchor ITO 无匹配
+  步[在 ITO 中添加setPgValve] 跳过：anchor ITO 无匹配
