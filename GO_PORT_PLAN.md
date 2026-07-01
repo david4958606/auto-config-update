@@ -6,16 +6,37 @@
   直接拷到工控机运行，零依赖、零安装。
 - 目标机：**CentOS 6 / 内核 2.6.32 / glibc 2.12**。
 
-### 版本与工具链结论（已核实）
+### 版本与工具链结论（已核实 + 已定）
+
+目标机实测：`uname` = `2.6.32-754.el6.i686` → **32 位 x86**。
 
 | 事项 | 结论 |
 |------|------|
-| Go 版本 | **必须用 Go 1.23.x 或更早** —— Go 1.23 是最后一个支持内核 2.6.32 的版本，1.24+ 要求内核 3.2。选 **go1.23.x**（最新的仍兼容版本）。 |
-| glibc 2.12 | **无关**。`CGO_ENABLED=0` 的纯 Go 二进制是完全静态的，不链接 libc，只依赖内核 syscall ABI。 |
-| 关键陷阱 | 语言等级 `go 1.23` 不够——**构建用的工具链本身**也必须是 1.23.x。用 1.24 工具链即便设 `go 1.23`，产出的 runtime 仍需内核 3.2。安装 go1.23.x SDK 或设 `GOTOOLCHAIN=go1.23.x`。 |
-| 构建命令 | `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o addex .` |
-| 待确认 | 工控机是 **amd64 还是 386(32 位)**？CentOS6 有 i686 版。定了才能定 `GOARCH`（`amd64`/`386`）。 |
-| 验证 | `file addex` 应显示 *statically linked*；在 2.6.32 容器或真机上跑 `plan/apply` 对拍。 |
+| Go 版本 | **必须 Go 1.23.x 或更早** —— 1.23 是最后一个支持内核 2.6.32 的版本，1.24+ 要求 3.2。选 **go1.23.x**。 |
+| GOARCH / GOOS | **`386`**（i686，32 位）/ `linux`。 |
+| glibc 2.12 | **无关**。`CGO_ENABLED=0` 纯 Go 二进制完全静态，不链接 libc，只依赖内核 syscall ABI。 |
+| 关键陷阱 | 语言等级 `go 1.23` 不够——**构建工具链本身**也必须是 1.23.x（1.24 工具链即便降级语言，runtime 仍需内核 3.2）。装 go1.23.x SDK 或设 `GOTOOLCHAIN=go1.23.x`。 |
+| GO386 | 默认 `sse2`。若这台 i686 CPU 老到不支持 SSE2（奔三/早期赛扬），加 `GO386=softfloat`。el6 硬件一般都有 SSE2，大概率无需。 |
+| 验证 | `file addex` 应显示 *statically linked*；在 2.6.32 真机跑 `plan/apply` 与 Python 对拍。 |
+
+### 两种构建方式（都要 `CGO_ENABLED=0`）
+
+**A. 交叉编译**（日常出包，在现代 mac/linux 上）
+```bash
+CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -trimpath -ldflags="-s -w" -o addex .
+```
+
+**B. 工控机本机编译**（已确认需要支持）
+```bash
+# 一次性装工具链：linux-386 预编译工具链本身就是支持 2.6.32 的 Go 程序，可直接在机器上跑
+curl -LO https://go.dev/dl/go1.23.x.linux-386.tar.gz
+tar -C /usr/local -xzf go1.23.x.linux-386.tar.gz && export PATH=/usr/local/go/bin:$PATH
+go version                 # 能打印即证明工具链在 2.6.32 上可用
+# 出包（本机已是 linux/386，无需再设 GOOS/GOARCH）
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o addex .
+```
+- `CGO_ENABLED=0` → 本机**无需 gcc / glibc-devel**（纯 Go 编译不调 C 工具链）。
+- 依赖(`yaml.v3`)提前 `go mod vendor` 进仓库，本机可**离线**构建。
 
 > 为什么值得重写而不是打包 Python：CentOS6 自带 Python 2.6，lxml 需针对老 glibc 编译，
 > PyInstaller 在 2.6.32 上打包脆弱。Go 纯静态二进制是这个部署场景最干净的路径。
@@ -172,13 +193,16 @@ Python 版**保留到第 4 步全绿**，一直当对拍 oracle；确认无误�
 
 ---
 
-## 7. 待你拍板的开放问题
+## 7. 已定决策（原开放问题）
 
-1. **CPU 架构**：工控机是 x86-64(`amd64`) 还是 32 位(`386`)？决定 `GOARCH`。
-2. **构建机**：在哪台机器出包？（在现代 mac/linux 上装 go1.23.x 交叉编译最省事，产物照样跑 2.6.32。）
-3. **CLI 是否保持一致**：沿用 `plan/apply --feature --chamber` 即可？还是要加 `--config-dir` 等？
-4. **Python 去留**：Go 通过全部对拍后，Python 版是删除，还是留在 `legacy/` 作参考？
-5. **交付形态**：只要 `addex` 一个二进制，还是要连 `features/*.yaml`、`config/` 一起打个发布包？
+1. **架构**：`386`（i686，32 位）。 ✅
+2. **构建**：交叉编译 + **支持工控机本机编译**（见上方“两种构建方式”）。 ✅
+3. **CLI**：**暂沿用现状** `plan/apply --feature --chamber`，之后再动。 ✅
+   - ⚠ 一处必须调整的行为：Python 把 `config/` 定位在“脚本所在目录”。二进制单独交付、
+     config 由用户另备 → Go 版把 **`config/` 按当前工作目录(CWD)解析**（用户 `cd` 到含
+     `config/`、`features/` 的目录再跑）。`--feature` 仍收路径。`--config-dir` 留作日后轻松加。
+4. **Python 去留**：全部对拍通过后移到 **`legacy/`**（或留旧分支）。移植期间**保留**当 oracle。 ✅
+5. **交付形态**：**只交付 `addex` 一个二进制**；`features/*.yaml`、`config/` 由用户准备，不打进包。 ✅
 
 ## 8. 一句话小结
 
