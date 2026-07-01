@@ -1,0 +1,43 @@
+id: ig-auto-close
+description: IG规在工艺中自动关闭灯丝功能
+version: 1
+
+steps:
+  # ── 步 1：在 ITO 腔室下建一个  PhyGauge 对象节点 ──
+  - name: 建 IonGauge 对象
+    anchor: ITO
+    add-node:
+      - tag: IonGauge
+        class: PhyGauge
+        attrs: { type: instance, alias: "/Control/{ITO}Exports/IonGauge" }   # → <IonGauge class="PhyGauge" type="instance" alias="/Control/Ch1Exports/IonGauge">
+
+  # ── 步 2：配置 IG 规的信号点 ──
+  - name: 配置 IG 规
+    anchor: ITO/PhyGauge
+    where:                    # ← 同类多实例时才需要；按标签精确筛(glob)，取代原 require-tag-contains 的子串匹配
+      tag-glob: "IonGauge"    #   匹配 IonGauge
+    add-method:
+      - name: setOnOffSp
+        value: "/IO/{ITO}/IG/OnOffDI"   # <setOnOffVp type="method">/IO/Ch1/IG/OnOffDI</setOnOffVp>
+      - name: setModeVp
+        value: "/IO/{ITO}/IG/ControlModeDI"
+      - name: setModeSp
+        value: "/IO/{ITO}/IG/ControlModeDO"
+      - name: enableModeSwitch # value 为空，<enableModeSwitch type="method" />
+
+  # ── 步 3：在 ITO  ──
+  - name: 在 ITO 中添加相关方法
+    anchor: ITO
+    add-method:
+      - name: enableTurnOffIonGaugeInProcess # <enableTurnOffIonGaugeInProcess type="method" />
+      - name: setIonGauge
+        value: "{IonGauge}" # 应该变成 <setIonGauge type="method">./IonGauge</setIonGauge>，必须有点
+  
+  # ── 步 4：如果存在 PgValve 就配置方法 ──
+  - name: 在 ITO 中添加setPgValve
+    anchor: ITO
+    require:
+      - exist: { PgValve: "/Control/{ITO}/Vacuum/PgValve" }
+    add-method:
+      - name: setPgValve
+        value: "./Vacuum/PgValve"
