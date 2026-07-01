@@ -18,15 +18,15 @@ from .model import (CONTROL_MASTER, build_indexes, fragment_files,
                     load_control_fragment, save_control_fragment)
 
 
-def _run_step(step, croot, indexes, chamber_binds, log) -> bool:
+def _run_step(step, croot, indexes, chamber_binds, edits, log) -> None:
+    """执行单个 step；把产生的编辑记录追加到 edits。"""
     name = step.get("name", "?")
     class_path = [c for c in step["anchor"].split("/") if c]
     anchors = resolve_anchors(croot, class_path, step.get("where"))
     if not anchors:
         log(f"  步[{name}] 跳过：anchor {step['anchor']} 无匹配")
-        return False
+        return
 
-    changed = False
     for node, atags in anchors:
         inst = f"{node.tag}(class={node.get('class')})"
         tags = {**chamber_binds, **atags}     # 并入跨步对象引用；anchor 绑定优先
@@ -50,11 +50,10 @@ def _run_step(step, croot, indexes, chamber_binds, log) -> bool:
         for m in step.get("remove-method", []) or []:
             results.append(ops.remove_method(node, m["name"], m["value"].format(**tags)))
 
-        for did, msg in results:
+        for did, msg, edit in results:
             log(f"  步[{name}] {inst}: {'✎' if did else '·'} {msg}")
-        if any(did for did, _ in results):
-            changed = True
-    return changed
+            if edit:
+                edits.append(edit)
 
 
 def apply_feature(feature: dict, selected: list[str] | None, write: bool, log=print):
@@ -62,18 +61,17 @@ def apply_feature(feature: dict, selected: list[str] | None, write: bool, log=pr
     want = set(selected) if selected else None
 
     for _name, fpath in fragment_files(CONTROL_MASTER):
-        croot = load_control_fragment(fpath)
+        croot, text, offset = load_control_fragment(fpath)
         chamber = croot.tag
         if want and chamber not in want:
             continue
 
         log(f"[{chamber}] ({fpath.name})")
         chamber_binds: dict = {}
-        changed = False
+        edits: list = []
         for step in feature.get("steps", []):
-            if _run_step(step, croot, indexes, chamber_binds, log):
-                changed = True
+            _run_step(step, croot, indexes, chamber_binds, edits, log)
 
-        if changed and write:
-            save_control_fragment(croot, fpath)
-            log(f"[{chamber}] ✎ 已写回 {fpath.name}")
+        if edits and write:
+            save_control_fragment(text, offset, edits, fpath)
+            log(f"[{chamber}] ✎ 已写回 {fpath.name}（{len(edits)} 处编辑，其余字节不动）")

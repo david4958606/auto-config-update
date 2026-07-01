@@ -52,20 +52,23 @@ def _entity_doctype(master_path: Path) -> str:
     return "<!DOCTYPE _frag [\n" + "\n".join(decls) + "\n]>"
 
 
-# ── Control 片段：实体保留式加载 / 原地回写 ─────────────────────────
+# ── Control 片段：实体保留式加载 / 外科式原地回写 ───────────────────
 def load_control_fragment(path: Path):
     """加载一个 Control 片段(单腔室根)，保留内部 &实体; 与原格式。
-    返回其腔室根元素(可直接编辑)。"""
+
+    返回 (腔室根元素, 原文, 行偏移)：
+      原文/行偏移供外科式写盘把 sourceline 映射回原文件行(减去 DOCTYPE+<_frag> 前缀)。
+    """
     text = Path(path).read_text(encoding="utf-8")
-    doc = f"{_entity_doctype(CONTROL_MASTER)}\n<_frag>{text}</_frag>"
-    wrapper = etree.fromstring(doc.encode("utf-8"), FRAG_PARSER)
-    return wrapper[0]                      # 片段是单根：<_frag> 下唯一的腔室元素
+    prefix = f"{_entity_doctype(CONTROL_MASTER)}\n<_frag>"
+    wrapper = etree.fromstring(f"{prefix}{text}</_frag>".encode("utf-8"), FRAG_PARSER)
+    return wrapper[0], text, prefix.count("\n")
 
 
-def save_control_fragment(chamber_el, path: Path):
-    """回写腔室根元素：元素级序列化天然保留 &实体; 且不带 DOCTYPE/包裹层。"""
-    text = etree.tostring(chamber_el, encoding="unicode")
-    path.write_text(text + "\n", encoding="utf-8")
+def save_control_fragment(original_text: str, offset: int, edits: list, path: Path):
+    """外科式回写：只在插入/删除点改动原文，其余字节逐字保留。"""
+    from .splice import render
+    path.write_text(render(original_text, offset, edits), encoding="utf-8")
 
 
 # ── 只读逻辑视图：/IO/... 与 /Control/... 通用解析 ──────────────────
