@@ -459,5 +459,14 @@
             &Simulated_Ch1;
         </CryoPump>
     </Vacuum>
+    <IonGauge class="PhyGauge" type="instance" alias="/Control/Ch1Exports/IonGauge">
+        <setOnOffSp type="method">/IO/Ch1/IG/OnOffDI</setOnOffSp>
+        <setModeVp type="method">/IO/Ch1/IG/ControlModeDI</setModeVp>
+        <setModeSp type="method">/IO/Ch1/IG/ControlModeDO</setModeSp>
+        <enableModeSwitch type="method"/>
+    </IonGauge>
+    <enableTurnOffIonGaugeInProcess type="method"/>
+    <setIonGauge type="method">./IonGauge</setIonGauge>
+    <setPgValve type="method">./Vacuum/PgValve</setPgValve>
 </Ch1>
 
