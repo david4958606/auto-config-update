@@ -10,4 +10,7 @@
         <addDataEx type="method">/IO/Ch4/Pin/CurPosDI,PinCurPos,1</addDataEx>
         <addDataEx type="method">/IO/Ch4/Ped/CurPosDI,PedCurPos,1</addDataEx>
     </ProcessLogger>
+    <Ped class="PhyChuck" type="instance" alias="">
+        <setCurPosVp type="method">/IO/Ch4/Ped/CurPosDI</setCurPosVp>
+    </Ped>
 </Ch4>
