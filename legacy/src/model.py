@@ -17,7 +17,8 @@ from pathlib import Path
 
 from lxml import etree
 
-ROOT = Path(__file__).resolve().parent.parent
+# legacy/src/model.py → 仓库根需多退一层(legacy/src → legacy → repo)，仍指向共享 config/。
+ROOT = Path(__file__).resolve().parent.parent.parent
 CONFIG_DIR = ROOT / "config"
 CONTROL_MASTER = CONFIG_DIR / "Control" / "Control_config.xml"
 IO_MASTER = CONFIG_DIR / "IO_config.xml"
