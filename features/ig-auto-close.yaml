@@ -18,14 +18,14 @@ steps:
       tag-glob: "IonGauge"    #   匹配 IonGauge
     add-method:
       - name: setOnOffSp
-        value: "/IO/{ITO}/IG/OnOffDI"   # <setOnOffVp type="method">/IO/Ch1/IG/OnOffDI</setOnOffVp>
+        value: "/IO/{ITO}/IG/OnOffDI"   # <setOnOffSp type="method">/IO/Ch1/IG/OnOffDI</setOnOffSp>
       - name: setModeVp
         value: "/IO/{ITO}/IG/ControlModeDI"
       - name: setModeSp
         value: "/IO/{ITO}/IG/ControlModeDO"
       - name: enableModeSwitch # value 为空，<enableModeSwitch type="method" />
 
-  # ── 步 3：在 ITO  ──
+  # ── 步 3：在 ITO 腔室根上添加 IG 相关方法(引用步1建的 IonGauge) ──
   - name: 在 ITO 中添加相关方法
     anchor: ITO
     add-method:
