@@ -8,3 +8,13 @@ wheels/
 
 # Virtual environments
 .venv
+
+# 备份 / 临时文件
+*.old
+*.bak
+*~
+* - 复制*
+*.py.txt
+
+# 本地设置
+.claude/settings.local.json

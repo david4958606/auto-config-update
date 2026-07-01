@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <!DOCTYPE IAP [
-
+<!ENTITY Simulated_Ch1 SYSTEM "../Simulated_Ch1">
 <!ENTITY Control_Ch1 SYSTEM "./Control_Ch1">
 <!ENTITY Control_Ch2 SYSTEM "./Control_Ch2">
 <!ENTITY Control_Ch3 SYSTEM "./Control_Ch3">

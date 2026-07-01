@@ -1,9 +1,0 @@
-id: add-pedcurpos-dataex
-description: 为分子泵增加 setSpeedSp 方法用于设置转速(rpm)
-version: 1
-
-anchor: # 加在什么地方
-  Control-class: PVD/ProcessLogger #PVD类下的ProcessLogger类中
-param: # 加什么
-  method: addDataEx
-  value: "/IO/{PVD}/Ped/CurPos,PedCurPos,1" #{PVD}能自动替换成标签，比如Ch1
