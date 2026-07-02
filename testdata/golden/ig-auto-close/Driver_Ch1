@@ -1,0 +1,31 @@
+<Ch1>
+    <PG type="instance" class="DnVacuumGauge" simulated="">
+        <setAIChannelNum type="method">1</setAIChannelNum>
+        <setAOChannelNum type="method">6</setAOChannelNum>
+        <setInt type="method" comment="params: full-scale,max-pressure(Torr),GaugeType">32767,780,3</setInt>
+        &Simulated_Ch1;
+        <init type="method" />
+    </PG>
+    <IG type="instance" class="DnVacuumGauge" simulated="">
+        <setAIChannelNum type="method">1</setAIChannelNum>
+        <setAOChannelNum type="method">6</setAOChannelNum>
+        <setInt type="method" comment="params: full-scale,max-pressure(Torr),GaugeType">32767,780,3</setInt>
+        &Simulated_Ch1;
+        <addExplicitMsgDI type="method" comment="DisplayIgOnOff (OFF:0,ON:1)">4101,0E|31|02|5D,8E|0</addExplicitMsgDI>
+        <addExplicitMsgDI type="method" comment="ControlMode state (Auto:0,Manual:1)">4102,0E|31|02|64,8E|0</addExplicitMsgDI>
+        <addExplicitMsgDO type="method" comment="TurnIgOnOff (OFF:0,ON:1)">4901,62|31|02|00,E2|0</addExplicitMsgDO>
+        <addExplicitMsgDO type="method" comment="ControlMode (Auto:0,Manual:1)">4902,32|31|02|00,B2|0</addExplicitMsgDO>
+        <init type="method" />
+    </IG>
+</Ch1>
+
+<Ch1 type="instance" class="DeviceNet" simulated="">
+    <setNodeNum type="method">100</setNodeNum>
+    <setPollInterval type="method">100</setPollInterval>
+    <setBegScanWaitTime type="method">5000</setBegScanWaitTime>
+    <setScannerName type="method">/dev/SSTDN3PCU2_0001A</setScannerName>
+    <setFirmware type="method">/home/naura/tools/sstdn3pcu2/DnScan.ss3</setFirmware>
+    <loadFirmwareAnyway type="method" />
+    <setBaudRate type="method">125</setBaudRate>
+    <printChannelMap type="method" />
+</Ch1>

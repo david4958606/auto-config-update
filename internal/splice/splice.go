@@ -32,7 +32,12 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 			if e.Parent.Synthetic {
 				continue // 父是合成节点，文本已在祖先渲染里
 			}
-			at := e.Parent.CloseStart
+			// 缺省插到父闭合标签前(追加)；指定 before 且其为原节点时，改插到该兄弟节点所在行之前。
+			anchorOff := e.Parent.CloseStart
+			if e.Before != nil && e.Before.Start >= 0 {
+				anchorOff = e.Before.Start
+			}
+			at := insertOffset(src, anchorOff)
 			block := xmldoc.Render(e.Child, xmldoc.RealDepth(e.Parent)+1) + "\n"
 			if _, ok := insertText[at]; !ok {
 				insertOrder = append(insertOrder, at)
@@ -60,6 +65,22 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 		out = next
 	}
 	return out
+}
+
+// insertOffset 给出定位点 anchorOff(父闭合标签起点，或某兄弟节点起点)之前的插入点。
+// 若 anchorOff 独占一行(其前只有缩进空白)，则把插入点上移到该行行首，让原缩进留给该行、
+// 新子节点各自成行且缩进正确；否则(与内容同行，如内联元素)退回到 anchorOff 原位插入。
+func insertOffset(src []byte, anchorOff int) int {
+	ls := 0
+	if i := strings.LastIndexByte(string(src[:anchorOff]), '\n'); i >= 0 {
+		ls = i + 1
+	}
+	for _, b := range src[ls:anchorOff] {
+		if b != ' ' && b != '\t' {
+			return anchorOff // 同行有内容 → 不上移
+		}
+	}
+	return ls
 }
 
 // lineSpan 把 [start,end) 扩展到"整行"：左到上一个换行之后，右到覆盖该节点的行尾换行之后。

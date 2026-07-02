@@ -19,6 +19,7 @@ type Edit struct {
 	Kind    EditKind
 	Parent  *Node   // Insert 用
 	Child   *Node   // Insert 用
+	Before  *Node   // Insert 用(可选)：插到该既有兄弟节点之前；nil = 父闭合标签之前(追加)
 	Targets []*Node // Delete 用
 }
 
@@ -74,6 +75,19 @@ func AppendChild(parent, child *Node) {
 	parent.Children = append(parent.Children, child)
 }
 
+// InsertBefore 把 child 插到 parent.Children 中 ref 之前；ref 不在其中则退化为 AppendChild。
+func InsertBefore(parent, child, ref *Node) {
+	child.Parent = parent
+	for i, c := range parent.Children {
+		if c == ref {
+			tail := append([]*Node{child}, parent.Children[i:]...)
+			parent.Children = append(parent.Children[:i:i], tail...)
+			return
+		}
+	}
+	AppendChild(parent, child)
+}
+
 // NewElement 造一个合成元素节点。
 func NewElement(tag string) *Node {
 	return &Node{Tag: tag, Synthetic: true, Start: -1, End: -1, CloseStart: -1}
@@ -100,7 +114,7 @@ func (n *Node) hasElementChildren() bool {
 //	实体            → &Name;
 //	有子节点        → <tag attrs>\n  子...\n</tag>
 //	仅文本          → <tag attrs>text</tag>
-//	空              → <tag attrs/>
+//	空              → <tag attrs/>(PairedEmpty=true 时改为 <tag attrs></tag>)
 func Render(n *Node, depth int) string {
 	indent := strings.Repeat("    ", depth)
 	if n.IsEntity {
@@ -121,6 +135,9 @@ func Render(n *Node, depth int) string {
 	}
 	if n.Text != "" {
 		return indent + open + ">" + escapeText(n.Text) + "</" + n.Tag + ">"
+	}
+	if n.PairedEmpty {
+		return indent + open + "></" + n.Tag + ">"
 	}
 	return indent + open + "/>"
 }

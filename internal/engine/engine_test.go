@@ -97,6 +97,18 @@ func TestGoldenParity(t *testing.T) {
 				}
 			}
 
+			// 可选：IOBridge/Driver、IO 片段(仅涉及该域的 feature 才有 golden)。
+			for _, frag := range []string{"Driver_Ch1", "IO_Ch1"} {
+				golden := filepath.Join("../../testdata/golden", f, frag)
+				if _, err := os.Stat(golden); err != nil {
+					continue
+				}
+				got := readGolden(t, filepath.Join(work, "config", "IOBridge", frag))
+				if want := readGolden(t, golden); got != want {
+					t.Errorf("写盘 %s 不一致\n--- got ---\n%s\n--- want ---\n%s", frag, got, want)
+				}
+			}
+
 			// 幂等：第二次 apply 零改动。
 			if got, want := run(t, work, featurePath, true), stripHeader(readGolden(t, "../../testdata/golden/"+f+".apply2.txt")); got != want {
 				t.Errorf("幂等 apply2 输出不一致\n--- got ---\n%s\n--- want ---\n%s", got, want)

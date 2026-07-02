@@ -1,0 +1,65 @@
+<Ch1>
+    <TurboPump>
+        <OnoffDO dataType="I" accessMode="RW" alias="">
+            <Bd>201</Bd>
+            <Ch>5</Ch>
+            <Min>0</Min>
+            <Max>1</Max>
+            <DescriptorList>Off:0,On:1</DescriptorList>
+            <Unit/>
+        </OnoffDO>
+        <SpeedDO dataType="I" accessMode="RW" alias="">
+            <Bd>201</Bd>
+            <Ch>6</Ch>
+            <Min>0</Min>
+            <Max>20000</Max>
+            <Unit>rpm</Unit>
+        </SpeedDO>
+    </TurboPump>
+    <IG>
+        <DnStatusDI dataType="I" accessMode="R" alias="/IO/Ch1Exports/IG_DnStatusDI">
+            <Bd>100</Bd>
+            <Ch>4999</Ch>
+            <DescriptorList>Normal:2,Timeout:3,Unknown</DescriptorList>
+            <Unit></Unit>
+            &Simulated_Ch1;
+        </DnStatusDI>
+        <PressureAI dataType="D" accessMode="R" alias="/IO/Ch1Exports/IG_PressureAI">
+            <Bd>100</Bd>
+            <Ch>4000</Ch>
+            <Min></Min>
+            <Max></Max>
+            <Accuracy>1e-10</Accuracy>
+            <Unit>Torr</Unit>
+            &Simulated_Ch1;
+        </PressureAI>
+        <OnOffDI dataType="I" accessMode="R" simulated="" alias="/IO/Ch1Exports/IG_OnOffDI">
+            <Bd>100</Bd>
+            <Ch>4101</Ch>
+            <DescriptorList>OFF:0,ON:1</DescriptorList>
+            &Simulated_Ch1;
+        </OnOffDI>
+        <ControlModeDI dataType="I" accessMode="R" simulated="" alias="/IO/Ch1Exports/IG_ControlModeDI">
+            <Bd>100</Bd>
+            <Ch>4102</Ch>
+            <DescriptorList>Auto:0,Manual:1</DescriptorList>
+            &Simulated_Ch1;
+        </ControlModeDI>
+        <OnOffDO dataType="I" accessMode="RW" simulated="" alias="/IO/Ch1Exports/IG_OnOffDO">
+            <Bd>100</Bd>
+            <Ch>4901</Ch>
+            <Min>0</Min>
+            <Max>1</Max>
+            <DescriptorList>OFF:0,ON:1</DescriptorList>
+            &Simulated_Ch1;
+        </OnOffDO>
+        <ControlModeDO dataType="I" accessMode="RW" simulated="" alias="/IO/Ch1Exports/IG_ControlModeDO">
+            <Bd>100</Bd>
+            <Ch>4902</Ch>
+            <Min>0</Min>
+            <Max>1</Max>
+            <DescriptorList>Auto:0,Manual:1</DescriptorList>
+            &Simulated_Ch1;
+        </ControlModeDO>
+    </IG>
+</Ch1>

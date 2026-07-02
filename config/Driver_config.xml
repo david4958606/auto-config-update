@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE IAP [
+
+    <!ENTITY Simulated_Ch1 SYSTEM "./Simulated_Ch1">
+    <!ENTITY Simulated_Ch2 SYSTEM "./Simulated_Ch2">
+    <!ENTITY Simulated_Ch3 SYSTEM "./Simulated_Ch3">
+    <!ENTITY Simulated_Ch4 SYSTEM "./Simulated_Ch4">
+
+    <!ENTITY Driver_Ch1 SYSTEM "./IOBridge/Driver_Ch1">
+]>
+
+<IOBridge>
+    &Driver_Ch1;
+</IOBridge>

@@ -460,7 +460,9 @@
         </CryoPump>
     </Vacuum>
     <IonGauge class="PhyGauge" type="instance" alias="/Control/Ch1Exports/IonGauge">
-        <setOnOffSp type="method">/IO/Ch1/IG/OnOffDI</setOnOffSp>
+        <setOnOffSp type="method">/IO/Ch1/IG/OnOffDO</setOnOffSp>
+        <enableOnoff type="method"/>
+        <setOnOffVp type="method">/IO/Ch1/IG/OnOffDI</setOnOffVp>
         <setModeVp type="method">/IO/Ch1/IG/ControlModeDI</setModeVp>
         <setModeSp type="method">/IO/Ch1/IG/ControlModeDO</setModeSp>
         <enableModeSwitch type="method"/>

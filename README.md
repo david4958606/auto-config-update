@@ -4,16 +4,30 @@
 "结构化、有语义"的事，变成对解析后 XML 树的**声明式补丁**，并**外科式回写**——只动
 插入/删除点，其余字节逐字保留。设计背景见 [PLAN.md](PLAN.md)。
 
-## 运行
+## 构建
+
+依赖已 vendor 进仓库，可**离线纯静态**编译(见 [build.sh](build.sh))：
 
 ```bash
-uv run addex.py plan  --feature features/ig-auto-close.yaml            # dry-run，不写盘
-uv run addex.py apply --feature features/ig-auto-close.yaml            # 写盘
-uv run addex.py plan  --feature features/... --chamber Ch1 --chamber Ch4  # 指定腔室
+./build.sh          # 交叉编译 linux/386 静态二进制 -> auto-config-update-32(目标机 CentOS6/内核2.6.32)
+./build.sh native   # 本机二进制 -> auto-config-update(自测用)
+```
+
+约束：工具链须为 Go **1.23.x**(1.24+ 的 runtime 要内核 3.2)；`CGO_ENABLED=0` → 纯静态、无需 gcc/glibc；`GOPROXY=off` 离线可构建。
+
+## 运行
+
+`config/`、`features/` 按**当前工作目录**解析，需在含二者的目录下运行(下文以本机产物 `auto-config-update` 为例)：
+
+```bash
+./auto-config-update plan  --feature features/ig-auto-close.yaml       # dry-run，不写盘
+./auto-config-update apply --feature features/ig-auto-close.yaml       # 写盘
+./auto-config-update plan  --feature features/... --chamber Ch1 Ch4    # 指定腔室(可连续多个)
 ```
 
 - `plan` 与 `apply` 打印完全一致的**语义 diff**，区别只在 `apply` 会落盘。
 - 每行前缀：`✎` = 有改动，`·` = 已达目标(幂等 no-op)——每个声明的动作都出一行，不静默省略。
+- `--chamber` 缺省=全部腔室；限定时可**连续指定**多个(`--chamber Ch1 Ch4`)，也兼容重复写法(`--chamber Ch1 --chamber Ch4`)。
 
 ## Feature 怎么写（`steps` 有序列表）
 
@@ -108,18 +122,21 @@ master 与其它片段不动。
 
 ## 目录
 
-- `addex.py` —— 瘦入口(`uv run addex.py ...`)
-- `src/` —— 引擎(分层)：
-  - `model` 解析/寻址：master+实体装配、逻辑 IO/Control 视图、实体保留式片段读写
+- `main.go` —— CLI 入口(`plan` / `apply`；本机产物 `auto-config-update`)
+- `internal/` —— 引擎(分层)：
+  - `xmldoc` 按**字节偏移**解析 XML、实体容忍(声明不展开)、供外科回写的编辑记录
+  - `config` 解析/寻址：master+实体装配、逻辑 IO/Control 视图、实体真名解析
   - `anchor` class 路径定位 + 同类多实例 fan-out + `where` 筛选
-  - `ops` 幂等原语：`add_node` / `add_method` / `remove_method` / `add_entity_ref`
+  - `ops` 幂等原语：`add-node` / `add-method` / `remove-method` / `add-entity-ref`
   - `feature` 功能 YAML 加载 + `require`/`bind` 变量绑定
-  - `splice` 外科式文本拼接写盘
+  - `splice` 外科式**字节**拼接写盘(用 xmldoc 给出的精确偏移)
   - `engine` steps 编排：逐腔室、逐步、逐实例执行并落盘
-  - `cli` `plan` / `apply`
 - `features/*.yaml` —— 功能定义：`ig-auto-close`(建对象+配信号+跨步引用+条件)、
   `add-pedcurpos-dataex`(加/删日志项)
 - `config/` —— 演示夹具(Ch1 是较完整的真实 ITO 腔室)
+- `build.sh` —— 出包脚本(离线纯静态单二进制)
+- `legacy/` —— Python 原版(`addex.py` + `src/`)，保留作**逐字节对拍 oracle**
 
-> 注：`models/`、`machines/`、`features/turbopump-setspeed.yaml` 是已移除的旧引擎
-> `upgrade.py` 的配套(分层覆盖那套写法)，新引擎 `addex.py` 不再使用，保留仅作参考。
+> 移植计划见 [GO_PORT_PLAN.md](GO_PORT_PLAN.md)。Go 引擎的 `plan`/`apply` 输出与写盘结果
+> 以 `legacy/` 的 Python 产物为金标准逐字节对拍(见 `internal/engine/engine_test.go` 与
+> `testdata/golden/`)。

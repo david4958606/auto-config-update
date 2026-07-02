@@ -22,3 +22,5 @@ wheels/
 # Go 构建产物(交付形态为二进制，但由 build.sh 现编，不入库)
 /addex
 /addex-*
+/auto-config-update
+/auto-config-update-*

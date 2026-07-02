@@ -2,43 +2,109 @@ id: ig-auto-close
 description: IG规在工艺中自动关闭灯丝功能
 version: 1
 
+# 用 {} 表示节点的类，用 ${} 表示节点名称
 steps:
-  # ── 步 1：在 ITO 腔室下建一个  PhyGauge 对象节点 ──
+  ### Control_ChXXX ###
   - name: 建 IonGauge 对象
-    anchor: ITO
+    anchor: /Control/{ITO} # 定位更精确，匹配 /Control/Ch1
     add-node:
       - tag: IonGauge
         class: PhyGauge
-        attrs: { type: instance, alias: "/Control/{ITO}Exports/IonGauge" }   # → <IonGauge class="PhyGauge" type="instance" alias="/Control/Ch1Exports/IonGauge">
-        include-entity: "Simulated*{ITO}"   # 从 Control_config.xml 已声明实体里按 glob 解析真名(Simulated_Ch1 / SimulatedFlag_Ch1)并内嵌为 &...;
+        attrs: { type: instance, alias: "/Control/${ITO}Exports/IonGauge" }   # → <IonGauge class="PhyGauge" type="instance" alias="/Control/Ch1Exports/IonGauge">
+        include-entity: "Simulated*{ITO}"
 
-  # ── 步 2：配置 IG 规的信号点 ──
   - name: 配置 IG 规
-    anchor: ITO/PhyGauge
+    anchor: /Control/{ITO}/{PhyGauge}
     where:                    # ← 同类多实例时才需要；按标签精确筛(glob)，取代原 require-tag-contains 的子串匹配
       tag-glob: "IonGauge"    #   匹配 IonGauge
     add-method:
       - name: setOnOffSp
-        value: "/IO/{ITO}/IG/OnOffDI"   # <setOnOffSp type="method">/IO/Ch1/IG/OnOffDI</setOnOffSp>
+        value: "/IO/${ITO}/IG/OnOffDO"   # <setOnOffVp type="method">/IO/Ch1/IG/OnOffDI</setOnOffVp>
+      - name: enableOnoff
+      - name: setOnOffVp
+        value: "/IO/${ITO}/IG/OnOffDI"   # <setOnOffVp type="method">/IO/Ch1/IG/OnOffDI</setOnOffVp>
       - name: setModeVp
-        value: "/IO/{ITO}/IG/ControlModeDI"
+        value: "/IO/${ITO}/IG/ControlModeDI"
       - name: setModeSp
-        value: "/IO/{ITO}/IG/ControlModeDO"
+        value: "/IO/${ITO}/IG/ControlModeDO"
       - name: enableModeSwitch # value 为空，<enableModeSwitch type="method" />
 
-  # ── 步 3：在 ITO 腔室根上添加 IG 相关方法(引用步1建的 IonGauge) ──
   - name: 在 ITO 中添加相关方法
-    anchor: ITO
+    anchor: /Control/{ITO}
     add-method:
       - name: enableTurnOffIonGaugeInProcess # <enableTurnOffIonGaugeInProcess type="method" />
       - name: setIonGauge
-        value: "{IonGauge}" # 应该变成 <setIonGauge type="method">./IonGauge</setIonGauge>，必须有点
-  
-  # ── 步 4：如果存在 PgValve 就配置方法 ──
+        value: "./IonGauge"
+
   - name: 在 ITO 中添加setPgValve
-    anchor: ITO
+    anchor: /Control/{ITO}
     require:
-      - exist: { PgValve: "/Control/{ITO}/Vacuum/PgValve" }
+      - exist: { PgValve: "/Control/${ITO}/Vacuum/PgValve" }
     add-method:
       - name: setPgValve
         value: "./Vacuum/PgValve"
+
+  ### Driver_ChXXX ###
+  - name: 配置 IG Driver
+    anchor: /IOBridge/${ITO}/{DnVacuumGauge} # IOBridge 的第二级没有class，只能靠tag匹配，文件名是Driver，顶层节点是 IOBridge
+    where:
+      tag-glob: "IG" # /IO/Ch1/IG
+      before-method:
+        name: init
+    add-method:
+      - name: addExplicitMsgDI
+        attrs: { comment: "DisplayIgOnOff (OFF:0,ON:1)" }
+        value: "4101,0E|31|02|5D,8E|0"
+      - name: addExplicitMsgDI
+        attrs: { comment: "ControlMode state (Auto:0,Manual:1)" }
+        value: "4102,0E|31|02|64,8E|0"
+      - name: addExplicitMsgDO
+        attrs: { comment: "TurnIgOnOff (OFF:0,ON:1)" }
+        value: "4901,62|31|02|00,E2|0"
+      - name: addExplicitMsgDO
+        attrs: { comment: "ControlMode (Auto:0,Manual:1)" }
+        value: "4902,32|31|02|00,B2|0"
+  ### IO_ChXXX ###
+  - name: 配置 IG IO
+    anchor: /IO/${ITO}/IG
+    add-io:
+      - name: OnOffDI
+        attrs: { dataType: "I", accessMode: "R", simulated: "", alias: "/IO/${ITO}Exports/IG_OnOffDI" }
+        Bd: auto
+        Ch: 4101
+        DescriptorList:
+          - name: OFF
+            value: 0
+          - name: ON
+            value: 1
+      - name: ControlModeDI
+        attrs: { dataType: "I", accessMode: "R", simulated: "", alias: "/IO/${ITO}Exports/IG_ControlModeDI" }
+        Bd: auto
+        Ch: 4102
+        DescriptorList:
+          - name: Auto
+            value: 0
+          - name: Manual
+            value: 1
+      - name: OnOffDO
+        attrs: { dataType: "I", accessMode: "RW", simulated: "", alias: "/IO/${ITO}Exports/IG_OnOffDO" }
+        Bd: auto
+        Ch: 4901
+        Min: 0
+        Max: 1
+        DescriptorList:
+          - name: OFF
+            value: 0
+          - name: ON
+            value: 1
+      - name: ControlModeDO
+        attrs: { dataType: "I", accessMode: "RW", simulated: "", alias: "/IO/${ITO}Exports/IG_ControlModeDO" }
+        Bd: auto
+        Ch: 4902
+        Min: 0
+        Max: 1
+        DescriptorList:
+          - name: Auto
+            value: 0
+          - name: Manual
+            value: 1

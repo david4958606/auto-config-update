@@ -25,15 +25,24 @@ type Match struct {
 	Tags map[string]string
 }
 
-// findByClass 返回 node 子树里 class==cls 的元素。includeSelf 决定是否含 node 本身。
-func findByClass(node *xmldoc.Node, cls string, includeSelf bool) []*xmldoc.Node {
+// Seg 是 anchor 路径的一段。
+//   - ByName=false：按 class 匹配(Match=类名)；命中后把 Bind 绑成该实例标签名。
+//   - ByName=true ：按 tag 名匹配(Match=已解析的标签名，如 ${ITO}→Ch1)；IOBridge 等无 class 的层用它。
+type Seg struct {
+	ByName bool
+	Match  string // 目标：类名(class 段)或标签名(name 段)
+	Bind   string // 命中后绑定的变量名 → 该实例标签
+}
+
+// findBy 返回 node 子树里满足 pred 的元素。includeSelf 决定是否含 node 本身。
+func findBy(node *xmldoc.Node, includeSelf bool, pred func(*xmldoc.Node) bool) []*xmldoc.Node {
 	var out []*xmldoc.Node
 	var walk func(n *xmldoc.Node, self bool)
 	walk = func(n *xmldoc.Node, self bool) {
 		if n.Removed {
 			return
 		}
-		if self && !n.IsEntity && n.Class() == cls {
+		if self && !n.IsEntity && pred(n) {
 			out = append(out, n)
 		}
 		for _, c := range n.Children {
@@ -44,26 +53,38 @@ func findByClass(node *xmldoc.Node, cls string, includeSelf bool) []*xmldoc.Node
 	return out
 }
 
+func matchSeg(node *xmldoc.Node, s Seg, includeSelf bool) []*xmldoc.Node {
+	if s.ByName {
+		return findBy(node, includeSelf, func(n *xmldoc.Node) bool { return n.Tag == s.Match })
+	}
+	// 裸名段默认按 class 匹配；某些层(如 IO 的 <IG>)无 class，class 无果时回退按 tag 名匹配。
+	hits := findBy(node, includeSelf, func(n *xmldoc.Node) bool { return n.Class() == s.Match })
+	if len(hits) == 0 {
+		hits = findBy(node, includeSelf, func(n *xmldoc.Node) bool { return n.Tag == s.Match })
+	}
+	return hits
+}
+
 // Resolve 返回全部匹配。leaf 多实例 → 多条；无匹配 → 空。
-func Resolve(root *xmldoc.Node, classPath []string, where *Where) []Match {
-	if len(classPath) == 0 {
+func Resolve(root *xmldoc.Node, segs []Seg, where *Where) []Match {
+	if len(segs) == 0 {
 		return nil
 	}
-	// 第一层：从根(含自身)找该 class。
+	// 第一层：从根(含自身)匹配。
 	var frontier []Match
-	for _, n := range findByClass(root, classPath[0], true) {
-		frontier = append(frontier, Match{Node: n, Tags: map[string]string{classPath[0]: n.Tag}})
+	for _, n := range matchSeg(root, segs[0], true) {
+		frontier = append(frontier, Match{Node: n, Tags: map[string]string{segs[0].Bind: n.Tag}})
 	}
-	// 其余层：在上一层节点的子孙里继续找(逐层可各自 fan-out)。
-	for _, cls := range classPath[1:] {
+	// 其余层：在上一层节点的子孙里继续匹配(逐层可各自 fan-out)。
+	for _, s := range segs[1:] {
 		var next []Match
 		for _, m := range frontier {
-			for _, child := range findByClass(m.Node, cls, false) {
+			for _, child := range matchSeg(m.Node, s, false) {
 				t := make(map[string]string, len(m.Tags)+1)
 				for k, v := range m.Tags {
 					t[k] = v
 				}
-				t[cls] = child.Tag
+				t[s.Bind] = child.Tag
 				next = append(next, Match{Node: child, Tags: t})
 			}
 		}

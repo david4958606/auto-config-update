@@ -38,12 +38,21 @@ type Step struct {
 	AddNode      []AddNodeSpec `yaml:"add-node"`
 	AddMethod    []MethodSpec  `yaml:"add-method"`
 	RemoveMethod []MethodSpec  `yaml:"remove-method"`
+	AddIO        []AddIOSpec   `yaml:"add-io"`
 }
 
-// WhereSpec 是 leaf 谓词。
+// WhereSpec 是 leaf 谓词 + 可选的插入定位。
+//   - tag-glob / attr：筛选命中哪个 leaf 实例。
+//   - before-method：定位指令(不参与筛选)——本步的 add-method 插到该既有方法之前，而非追加末尾。
 type WhereSpec struct {
-	TagGlob string            `yaml:"tag-glob"`
-	Attr    map[string]string `yaml:"attr"`
+	TagGlob      string            `yaml:"tag-glob"`
+	Attr         map[string]string `yaml:"attr"`
+	BeforeMethod *MethodPos        `yaml:"before-method"`
+}
+
+// MethodPos 以方法名指定一个既有方法作为插入定位点。
+type MethodPos struct {
+	Name string `yaml:"name"`
 }
 
 // AddNodeSpec 描述一个 add-node 动作。
@@ -59,10 +68,59 @@ func (a *AddNodeSpec) AttrPairs() []xmldoc.Attr {
 	return mapPairs(&a.Attrs)
 }
 
+// AddIOSpec 描述一个 add-io 动作：在 anchor(如 <IG>)下建一个 IO 点位。
+// 点位形如 <name attrs...><Bd>..</Bd><Ch>..</Ch><DescriptorList>..</DescriptorList>[<Unit>..</Unit>][&Simulated_ChN;]</name>。
+type AddIOSpec struct {
+	Name           string     `yaml:"name"`
+	Attrs          yaml.Node  `yaml:"attrs"`          // 保留书写顺序；含 simulated 时同时追加实体引用
+	Bd             yaml.Node  `yaml:"Bd"`             // "auto"=自适应推断，否则取字面值
+	Ch             yaml.Node  `yaml:"Ch"`             // 字面值(整数标量，取 .Value)
+	Min            yaml.Node  `yaml:"Min"`            // Kind==0=未配不加；否则 <Min>值</Min>(空串→<Min></Min>)
+	Max            yaml.Node  `yaml:"Max"`            // Kind==0=未配不加；否则 <Max>值</Max>(空串→<Max></Max>)
+	DescriptorList []DescItem `yaml:"DescriptorList"` // 渲染成 <DescriptorList>name:value,...</DescriptorList>
+	Unit           *string    `yaml:"Unit"`           // nil=未配不加；否则 <Unit>值</Unit>(空串→<Unit/>)
+}
+
+// DescItem 是 DescriptorList 的一项(name:value)。
+type DescItem struct {
+	Name  string    `yaml:"name"`
+	Value yaml.Node `yaml:"value"`
+}
+
+// AttrPairs 按书写顺序返回点位属性的键值对。
+func (a *AddIOSpec) AttrPairs() []xmldoc.Attr {
+	return mapPairs(&a.Attrs)
+}
+
+// HasAttr 报告点位是否声明了某属性(如 simulated)。
+func (a *AddIOSpec) HasAttr(name string) bool {
+	for _, p := range a.AttrPairs() {
+		if p.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// Descriptors 把 DescriptorList 拼成 "OFF:0,ON:1" 形式(name:value，逗号连接)；空列表返回 ""。
+func (a *AddIOSpec) Descriptors() string {
+	parts := make([]string, 0, len(a.DescriptorList))
+	for _, d := range a.DescriptorList {
+		parts = append(parts, d.Name+":"+d.Value.Value)
+	}
+	return strings.Join(parts, ",")
+}
+
 // MethodSpec 描述一个 add-method / remove-method 动作。
 type MethodSpec struct {
-	Name  string  `yaml:"name"`
-	Value *string `yaml:"value"` // nil = 无值(标志型方法)
+	Name  string    `yaml:"name"`
+	Value *string   `yaml:"value"` // nil = 无值(标志型方法)
+	Attrs yaml.Node `yaml:"attrs"` // 额外属性(如 comment=...)，保留书写顺序；type="method" 由 ops 置于最前
+}
+
+// AttrPairs 按书写顺序返回方法额外属性的键值对(不含 type="method")。
+func (m *MethodSpec) AttrPairs() []xmldoc.Attr {
+	return mapPairs(&m.Attrs)
 }
 
 // Load 读取并解析 feature YAML。
@@ -119,14 +177,16 @@ func ResolveBindings(step Step, tags map[string]string, idx config.Indexes) (map
 	return out, notes, nil
 }
 
-// Format 把模板里的 {key} 替换为 tags[key](等价 Python str.format(**tags))。
+// Format 把模板里的 ${key} 或 {key} 替换为 tags[key]。
+// ${key}(节点名语义)与 {key} 同解为标签名——二者最终都取该实例的标签，
+// 但 ${key} 允许写在 alias/logical 路径里而不残留 '$'(NewReplacer 在 '$' 处优先吃掉 ${key})。
 func Format(tmpl string, tags map[string]string) string {
 	if !strings.ContainsRune(tmpl, '{') {
 		return tmpl
 	}
-	pairs := make([]string, 0, len(tags)*2)
+	pairs := make([]string, 0, len(tags)*4)
 	for k, v := range tags {
-		pairs = append(pairs, "{"+k+"}", v)
+		pairs = append(pairs, "${"+k+"}", v, "{"+k+"}", v)
 	}
 	return strings.NewReplacer(pairs...).Replace(tmpl)
 }

@@ -42,9 +42,11 @@ func AddEntityRef(parent *xmldoc.Node, name string) Result {
 		&xmldoc.Edit{Kind: xmldoc.Insert, Parent: parent, Child: ent}}
 }
 
-// AddMethod 确保 anchor 下存在 <name type="method">value</name>。
+// AddMethod 确保 anchor 下存在 <name type="method" ...extra>value</name>。
 // hasValue=false 为标志型方法(按名判重、序列化为自闭合)；true 为带值方法(按名+值判重)。
-func AddMethod(anchor *xmldoc.Node, name string, value string, hasValue bool) Result {
+// extra 为额外属性(如 comment=...)，追加在 type="method" 之后；不参与判重。
+// before 非 nil 时把新方法插到该既有兄弟节点之前(见 where.before-method)；nil 则追加末尾。
+func AddMethod(anchor *xmldoc.Node, name string, value string, hasValue bool, extra []xmldoc.Attr, before *xmldoc.Node) Result {
 	if !hasValue {
 		if xmldoc.FindChild(anchor, name) != nil {
 			return Result{false, fmt.Sprintf("方法 %s() 已存在", name), nil}
@@ -57,16 +59,46 @@ func AddMethod(anchor *xmldoc.Node, name string, value string, hasValue bool) Re
 		}
 	}
 	el := xmldoc.NewElement(name)
-	el.Attrs = []xmldoc.Attr{{Name: "type", Value: "method"}}
+	el.Attrs = append([]xmldoc.Attr{{Name: "type", Value: "method"}}, extra...)
 	if hasValue {
 		el.Text = value
 	}
-	xmldoc.AppendChild(anchor, el)
+	edit := &xmldoc.Edit{Kind: xmldoc.Insert, Parent: anchor, Child: el}
+	if before != nil {
+		xmldoc.InsertBefore(anchor, el, before)
+		edit.Before = before
+	} else {
+		xmldoc.AppendChild(anchor, el)
+	}
 	msg := fmt.Sprintf("新增方法 %s()", name)
 	if hasValue {
 		msg = fmt.Sprintf("新增方法 %s(%s)", name, value)
 	}
-	return Result{true, msg, &xmldoc.Edit{Kind: xmldoc.Insert, Parent: anchor, Child: el}}
+	return Result{true, msg, edit}
+}
+
+// AddIO 确保 anchor 下存在 IO 点位 <name attrs...>，内含 children 声明的各子元素
+// (如 <Bd>/<Ch>/<DescriptorList>/<Unit>，按传入顺序)；按 name 判重(幂等)。
+// children 复用 xmldoc.Attr：Name=子标签、Value=子元素文本(空文本渲染为自闭合)。
+// simEntity 非空时在子节点末尾追加实体引用 &simEntity;(模拟量)。
+func AddIO(anchor *xmldoc.Node, name string, attrs, children []xmldoc.Attr, simEntity string) Result {
+	if xmldoc.FindChild(anchor, name) != nil {
+		return Result{false, fmt.Sprintf("IO 点位 <%s> 已存在", name), nil}
+	}
+	el := xmldoc.NewElement(name)
+	el.Attrs = attrs
+	for _, c := range children {
+		sub := xmldoc.NewElement(c.Name)
+		sub.Text = c.Value
+		sub.PairedEmpty = true // 空值子元素渲染成 <Unit></Unit> 而非 <Unit/>(与 IG 片段既有写法一致)
+		xmldoc.AppendChild(el, sub)
+	}
+	if simEntity != "" {
+		xmldoc.AppendChild(el, xmldoc.NewEntity(simEntity))
+	}
+	xmldoc.AppendChild(anchor, el)
+	return Result{true, fmt.Sprintf("新增 IO 点位 <%s>", name),
+		&xmldoc.Edit{Kind: xmldoc.Insert, Parent: anchor, Child: el}}
 }
 
 // RemoveMethod 删除 anchor 下匹配 (名字+值) 的方法调用；一个都没有 → no-op。

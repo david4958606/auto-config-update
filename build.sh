@@ -8,7 +8,8 @@
 # 无需 gcc/glibc。依赖已 vendor 进仓库，可离线构建(GOPROXY=off)。
 set -eu
 
-OUT=addex
+OUT=auto-config-update
+OUT32=auto-config-update-32
 LDFLAGS="-s -w"
 
 # 校验工具链主版本为 1.23.x。
@@ -23,11 +24,11 @@ if [ "${1:-cross}" = "native" ]; then
   CGO_ENABLED=0 GOFLAGS=-mod=vendor GOPROXY=off \
     go build -trimpath -ldflags="$LDFLAGS" -o "$OUT" .
 else
-  echo "交叉编译 linux/386 静态 -> $OUT"
+  echo "交叉编译 linux/386 静态 -> $OUT32"
   CGO_ENABLED=0 GOOS=linux GOARCH=386 GOFLAGS=-mod=vendor GOPROXY=off \
-    go build -trimpath -ldflags="$LDFLAGS" -o "$OUT" .
+    go build -trimpath -ldflags="$LDFLAGS" -o "$OUT32" .
 fi
 
 echo "----"
-file "$OUT" || true
+file "$OUT32" || true
 echo "验证: 上面应显示 'statically linked'；在 2.6.32 真机跑 plan/apply 与 Python 对拍。"

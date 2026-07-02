@@ -40,6 +40,10 @@ type Node struct {
 	Removed   bool // 标记删除(落盘时删掉其字节区间)
 	SelfClose bool // 原文是自闭合 <tag .../>
 
+	// PairedEmpty 为 true 时，空文本节点渲染成成对标签 <tag></tag> 而非自闭合 <tag/>。
+	// 仅作用于合成节点(如 add-io 的空 <Unit>/<Min>/<Max>)，与 IG 片段既有写法保持一致。
+	PairedEmpty bool
+
 	Start      int // 元素/实体在源文件的起始字节(指向 '<' 或 '&')；合成节点 = -1
 	End        int // 结束字节(其后第一个字节，半开区间)；合成节点 = -1
 	CloseStart int // '</tag>' 中 '<' 的字节偏移；自闭合/实体/合成 = -1

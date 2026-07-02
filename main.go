@@ -32,9 +32,9 @@ func run(argv []string) int {
 	fs := flag.NewFlagSet("addex", flag.ContinueOnError)
 	featurePath := fs.String("feature", "", "feature YAML 路径(必填)")
 	var chambers chamberList
-	fs.Var(&chambers, "chamber", "限定腔室，可重复；缺省=全部")
+	fs.Var(&chambers, "chamber", "限定腔室，可连续指定或重复；缺省=全部（如 --chamber Ch1 Ch2 Ch3）")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "用法: addex <plan|apply> --feature <path> [--chamber Ch1]...")
+		fmt.Fprintln(os.Stderr, "用法: addex <plan|apply> --feature <path> [--chamber Ch1 Ch2 ...]")
 		fs.PrintDefaults()
 	}
 
@@ -48,7 +48,7 @@ func run(argv []string) int {
 		fs.Usage()
 		return 2
 	}
-	if err := fs.Parse(argv[1:]); err != nil {
+	if err := fs.Parse(expandVariadic(argv[1:], "chamber")); err != nil {
 		return 2
 	}
 	if *featurePath == "" {
@@ -81,6 +81,37 @@ func run(argv []string) int {
 		return 1
 	}
 	return 0
+}
+
+// expandVariadic 让指定的 --name 支持连续多值写法（如 --chamber Ch1 Ch2 Ch3），
+// 做法是把它重写为 stdlib flag 能识别的重复写法（--chamber Ch1 --chamber Ch2 ...）。
+// 规则：遇到 -name / --name（不含 = 号）后，吞掉其后所有不以 - 开头的 token 作为该
+// flag 的值；`--` 终止符及后续 token 原样保留。--name=Ch1 这种绑定形式只取单值。
+func expandVariadic(argv []string, name string) []string {
+	dash1, dash2 := "-"+name, "--"+name
+	out := make([]string, 0, len(argv))
+	for i := 0; i < len(argv); i++ {
+		tok := argv[i]
+		if tok == "--" { // 终止符：其后不再解析 flag
+			out = append(out, argv[i:]...)
+			break
+		}
+		if tok != dash1 && tok != dash2 {
+			out = append(out, tok)
+			continue
+		}
+		// 连续吞掉后续非 flag token，逐个展开为 --name <val>
+		vals := 0
+		for j := i + 1; j < len(argv) && !strings.HasPrefix(argv[j], "-"); j++ {
+			out = append(out, tok, argv[j])
+			vals++
+		}
+		if vals == 0 { // 无值：交给 flag 报缺参错误
+			out = append(out, tok)
+		}
+		i += vals
+	}
+	return out
 }
 
 // pyStrList 复刻 Python str(list) 的写法，如 ['Ch1', 'Ch2']。

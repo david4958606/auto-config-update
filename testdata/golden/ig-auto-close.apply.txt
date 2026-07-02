@@ -3,7 +3,9 @@
 [Ch1] (Control_Ch1)
   步[建 IonGauge 对象] Ch1(class=ITO): ✎ 新增对象 <IonGauge class=PhyGauge>
   步[建 IonGauge 对象] Ch1(class=ITO): ✎ 新增实体引用 &Simulated_Ch1;
-  步[配置 IG 规] IonGauge(class=PhyGauge): ✎ 新增方法 setOnOffSp(/IO/Ch1/IG/OnOffDI)
+  步[配置 IG 规] IonGauge(class=PhyGauge): ✎ 新增方法 setOnOffSp(/IO/Ch1/IG/OnOffDO)
+  步[配置 IG 规] IonGauge(class=PhyGauge): ✎ 新增方法 enableOnoff()
+  步[配置 IG 规] IonGauge(class=PhyGauge): ✎ 新增方法 setOnOffVp(/IO/Ch1/IG/OnOffDI)
   步[配置 IG 规] IonGauge(class=PhyGauge): ✎ 新增方法 setModeVp(/IO/Ch1/IG/ControlModeDI)
   步[配置 IG 规] IonGauge(class=PhyGauge): ✎ 新增方法 setModeSp(/IO/Ch1/IG/ControlModeDO)
   步[配置 IG 规] IonGauge(class=PhyGauge): ✎ 新增方法 enableModeSwitch()
@@ -11,19 +13,35 @@
   步[在 ITO 中添加相关方法] Ch1(class=ITO): ✎ 新增方法 setIonGauge(./IonGauge)
   步[在 ITO 中添加setPgValve] Ch1(class=ITO): /Control/Ch1/Vacuum/PgValve 命中于 Control_Ch1（绑定 {PgValve}）
   步[在 ITO 中添加setPgValve] Ch1(class=ITO): ✎ 新增方法 setPgValve(./Vacuum/PgValve)
-[Ch1] ✎ 已写回 Control_Ch1（9 处编辑，其余字节不动）
+  步[配置 IG Driver] IG(class=DnVacuumGauge): ✎ 新增方法 addExplicitMsgDI(4101,0E|31|02|5D,8E|0)
+  步[配置 IG Driver] IG(class=DnVacuumGauge): ✎ 新增方法 addExplicitMsgDI(4102,0E|31|02|64,8E|0)
+  步[配置 IG Driver] IG(class=DnVacuumGauge): ✎ 新增方法 addExplicitMsgDO(4901,62|31|02|00,E2|0)
+  步[配置 IG Driver] IG(class=DnVacuumGauge): ✎ 新增方法 addExplicitMsgDO(4902,32|31|02|00,B2|0)
+  步[配置 IG IO] IG(class=): ✎ 新增 IO 点位 <OnOffDI>
+  步[配置 IG IO] IG(class=): ✎ 新增 IO 点位 <ControlModeDI>
+  步[配置 IG IO] IG(class=): ✎ 新增 IO 点位 <OnOffDO>
+  步[配置 IG IO] IG(class=): ✎ 新增 IO 点位 <ControlModeDO>
+[Ch1] ✎ 已写回 Control_Ch1（11 处编辑，其余字节不动）
+[Ch1] ✎ 已写回 IO_Ch1（4 处编辑，其余字节不动）
+[Ch1] ✎ 已写回 Driver_Ch1（4 处编辑，其余字节不动）
 [Ch2] (Control_Ch2)
-  步[建 IonGauge 对象] 跳过：anchor ITO 无匹配
-  步[配置 IG 规] 跳过：anchor ITO/PhyGauge 无匹配
-  步[在 ITO 中添加相关方法] 跳过：anchor ITO 无匹配
-  步[在 ITO 中添加setPgValve] 跳过：anchor ITO 无匹配
+  步[建 IonGauge 对象] 跳过：anchor /Control/{ITO} 无匹配
+  步[配置 IG 规] 跳过：anchor /Control/{ITO}/{PhyGauge} 无匹配
+  步[在 ITO 中添加相关方法] 跳过：anchor /Control/{ITO} 无匹配
+  步[在 ITO 中添加setPgValve] 跳过：anchor /Control/{ITO} 无匹配
+  步[配置 IG Driver] 跳过：本腔室无 IOBridge 域片段(anchor /IOBridge/${ITO}/{DnVacuumGauge})
+  步[配置 IG IO] 跳过：anchor /IO/${ITO}/IG 的 ${ITO} 未绑定
 [Ch3] (Control_Ch3)
-  步[建 IonGauge 对象] 跳过：anchor ITO 无匹配
-  步[配置 IG 规] 跳过：anchor ITO/PhyGauge 无匹配
-  步[在 ITO 中添加相关方法] 跳过：anchor ITO 无匹配
-  步[在 ITO 中添加setPgValve] 跳过：anchor ITO 无匹配
+  步[建 IonGauge 对象] 跳过：anchor /Control/{ITO} 无匹配
+  步[配置 IG 规] 跳过：anchor /Control/{ITO}/{PhyGauge} 无匹配
+  步[在 ITO 中添加相关方法] 跳过：anchor /Control/{ITO} 无匹配
+  步[在 ITO 中添加setPgValve] 跳过：anchor /Control/{ITO} 无匹配
+  步[配置 IG Driver] 跳过：本腔室无 IOBridge 域片段(anchor /IOBridge/${ITO}/{DnVacuumGauge})
+  步[配置 IG IO] 跳过：anchor /IO/${ITO}/IG 的 ${ITO} 未绑定
 [Ch4] (Control_Ch4)
-  步[建 IonGauge 对象] 跳过：anchor ITO 无匹配
-  步[配置 IG 规] 跳过：anchor ITO/PhyGauge 无匹配
-  步[在 ITO 中添加相关方法] 跳过：anchor ITO 无匹配
-  步[在 ITO 中添加setPgValve] 跳过：anchor ITO 无匹配
+  步[建 IonGauge 对象] 跳过：anchor /Control/{ITO} 无匹配
+  步[配置 IG 规] 跳过：anchor /Control/{ITO}/{PhyGauge} 无匹配
+  步[在 ITO 中添加相关方法] 跳过：anchor /Control/{ITO} 无匹配
+  步[在 ITO 中添加setPgValve] 跳过：anchor /Control/{ITO} 无匹配
+  步[配置 IG Driver] 跳过：本腔室无 IOBridge 域片段(anchor /IOBridge/${ITO}/{DnVacuumGauge})
+  步[配置 IG IO] 跳过：anchor /IO/${ITO}/IG 的 ${ITO} 未绑定
