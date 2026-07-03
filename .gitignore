@@ -24,3 +24,5 @@ wheels/
 /addex-*
 /auto-config-update
 /auto-config-update-*
+
+.idea

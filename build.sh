@@ -23,12 +23,14 @@ if [ "${1:-cross}" = "native" ]; then
   echo "本机构建 -> $OUT"
   CGO_ENABLED=0 GOFLAGS=-mod=vendor GOPROXY=off \
     go build -trimpath -ldflags="$LDFLAGS" -o "$OUT" .
+  echo "----"
+  file "$OUT" || true
 else
   echo "交叉编译 linux/386 静态 -> $OUT32"
   CGO_ENABLED=0 GOOS=linux GOARCH=386 GOFLAGS=-mod=vendor GOPROXY=off \
     go build -trimpath -ldflags="$LDFLAGS" -o "$OUT32" .
+  echo "----"
+  file "$OUT32" || true
 fi
 
-echo "----"
-file "$OUT32" || true
-echo "验证: 上面应显示 'statically linked'；在 2.6.32 真机跑 plan/apply 与 Python 对拍。"
+
