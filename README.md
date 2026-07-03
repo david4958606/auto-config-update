@@ -64,27 +64,40 @@ steps:
       - name: setIonGauge
         value: "{IonGauge}"                   # {IonGauge} 自动成 ./IonGauge
 
-  # 步4：前置条件满足才装
-  - name: 添加 setPgValve
-    anchor: ITO
+  # 步4：前置条件满足才建 IO 点位（域前缀 IO 路由到 IOBridge 片段）
+  - name: 建 IG IO 点位
+    anchor: IG
     require:
-      - exist: { PgValve: "/Control/{ITO}/Vacuum/PgValve" }   # 守卫+绑定；不满足则跳过该实例
-    add-method:
-      - name: setPgValve
-        value: "./Vacuum/PgValve"
+      - exist: { IGBoard: "/IO/{Ch}/IG" }        # 守卫+绑定；不满足则跳过该实例
+    add-io:
+      - name: OnOffDI
+        attrs: { type: DI }
+        Bd: auto                                  # 按本节点既有点位/腔室号推断板号
+        Ch: 0
+        DescriptorList:
+          - { name: OFF, value: 0 }
+          - { name: ON,  value: 1 }
+      - name: ModeAI
+        attrs: { type: AI, simulated: "true" }    # simulated → 末尾追加 &Simulated_ChN;
+        Bd: auto
+        Ch: 1
+        Min: 0
+        Max: 10
+        Unit: V
 ```
 
 ### 每步的字段
 
 | 字段 | 含义 |
 |------|------|
-| `anchor` | 一条 **class 路径**(如 `ITO/PhyGauge`)，逐层 descendant 定位。**靠 class，不靠标签/实例名**。 |
-| `where` | leaf 命中同类多实例时筛子集：`tag-glob:` 按标签 glob、`attr: {k: v}` 按属性。缺省=全部实例。 |
+| `anchor` | 一条 **class 路径**(如 `ITO/PhyGauge`)，逐层 descendant 定位。**靠 class，不靠标签/实例名**。首段可选**域前缀** `Control`/`IO`/`IOBridge`(缺省 `Control`)以路由到对应片段；段写法：`{X}`/裸名=按 class 匹配，`${X}`=按标签名匹配。 |
+| `where` | leaf 命中同类多实例时筛子集 **+ 插入定位**：`tag-glob:` 按标签 glob、`attr: {k: v}` 按属性(缺省=全部实例)；`before-method: {name: 方法名}` 把本步 `add-method` 插到该既有方法**之前**(而非追加末尾；找不到则退化为追加并告警)。 |
 | `require` | 守卫 + 绑定。`exist: {var: 路径}` —— 逻辑路径(`/IO/...` 或 `/Control/...`)必须解析得到，否则**跳过**；命中则把 `var` 绑成该路径。 |
 | `bind` | 纯绑定，不做存在性要求(如删除项引用的路径不必仍存在)。 |
 | `add-node` | 建对象节点。可带 `attrs`(值支持占位符) 和 `include-entity`(内嵌声明的实体引用)。 |
-| `add-method` | 加方法调用。有 `value` → `<name type="method">值</name>`；无 `value` → 自闭合。 |
-| `remove-method` | 删匹配 (名字+值) 的方法调用。 |
+| `add-method` | 加方法调用。有 `value` → `<name type="method">值</name>`；无 `value` → 自闭合。可带 `attrs`(如 `comment: ...`，追加在 `type="method"` 之后、不参与判重)。 |
+| `remove-method` | 删匹配 (名字+值) 的方法调用；命中多个一次删净，一个不中记为 no-op。 |
+| `add-io` | 在 anchor(如 `<IG>`)下建 IO 点位 `<name attrs...>`，按 `name` 判重。子元素按序：`Bd`(`auto`=按本节点既有点位/腔室号推断板号，否则取字面值)、`Ch`、可选 `Min`/`Max`(未配则不加，空串→成对空标签)、`DescriptorList`(渲染成 `OFF:0,ON:1`)、可选 `Unit`(空串→自闭合)；`attrs` 含 `simulated` 时在末尾追加实体引用 `&Simulated_ChN;`。 |
 
 ### 占位符 / 变量
 
@@ -127,12 +140,12 @@ master 与其它片段不动。
   - `xmldoc` 按**字节偏移**解析 XML、实体容忍(声明不展开)、供外科回写的编辑记录
   - `config` 解析/寻址：master+实体装配、逻辑 IO/Control 视图、实体真名解析
   - `anchor` class 路径定位 + 同类多实例 fan-out + `where` 筛选
-  - `ops` 幂等原语：`add-node` / `add-method` / `remove-method` / `add-entity-ref`
+  - `ops` 幂等原语：`add-node` / `add-method` / `remove-method` / `add-io` / `add-entity-ref`
   - `feature` 功能 YAML 加载 + `require`/`bind` 变量绑定
   - `splice` 外科式**字节**拼接写盘(用 xmldoc 给出的精确偏移)
   - `engine` steps 编排：逐腔室、逐步、逐实例执行并落盘
-- `features/*.yaml` —— 功能定义：`ig-auto-close`(建对象+配信号+跨步引用+条件)、
-  `add-pedcurpos-dataex`(加/删日志项)
+- `features/*.yaml` —— 功能定义：`ig-auto-close`(建对象+配信号+跨步引用+条件建 IO 点位)、
+  `add-pedcurpos-dataex`(before-method 定点插入 + 删项)
 - `config/` —— 演示夹具(Ch1 是较完整的真实 ITO 腔室)
 - `build.sh` —— 出包脚本(离线纯静态单二进制)
 - `legacy/` —— Python 原版(`addex.py` + `src/`)，保留作**逐字节对拍 oracle**
