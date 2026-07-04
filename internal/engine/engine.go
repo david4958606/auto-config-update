@@ -166,7 +166,7 @@ func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool,
 				if err := os.WriteFile(tg.path, outBytes, 0o644); err != nil {
 					return err
 				}
-				log(fmt.Sprintf("[%s] ✎ 已写回 %s（%d 处编辑，其余字节不动）", chamber, filepath.Base(tg.path), len(tg.edits)))
+				log(fmt.Sprintf("[%s] + 已写回 %s（%d 处编辑，其余字节不动）", chamber, filepath.Base(tg.path), len(tg.edits)))
 			}
 		}
 	}
@@ -317,7 +317,7 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 				if entName != "" && target != nil {
 					results = append(results, ops.AddEntityRef(target, entName))
 				} else {
-					log(fmt.Sprintf("  步[%s] %s: ⚠ include-entity 未在 Control_config.xml 找到匹配 %s 的实体",
+					log(fmt.Sprintf("  步[%s] %s: ! include-entity 未在 Control_config.xml 找到匹配 %s 的实体",
 						step.Name, inst, feature.Format(nd.IncludeEntity, tags)))
 				}
 			}
@@ -353,7 +353,7 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 		if step.Where != nil && step.Where.BeforeMethod != nil {
 			name := step.Where.BeforeMethod.Name
 			if before = xmldoc.FindChild(m.Node, name); before == nil {
-				log(fmt.Sprintf("  步[%s] %s: ⚠ before-method 未找到方法 %s，改为追加末尾", step.Name, inst, name))
+				log(fmt.Sprintf("  步[%s] %s: ! before-method 未找到方法 %s，改为追加末尾", step.Name, inst, name))
 			}
 		}
 		for _, mm := range step.AddMethod {
@@ -409,9 +409,9 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 		}
 
 		for _, r := range results {
-			mark := "·"
+			mark := "-"
 			if r.Changed {
-				mark = "✎"
+				mark = "+"
 			}
 			log(fmt.Sprintf("  步[%s] %s: %s %s", step.Name, inst, mark, r.Message))
 			if r.Edit != nil {
