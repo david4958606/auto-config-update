@@ -6,11 +6,13 @@
 
 ## 构建
 
-依赖已 vendor 进仓库，可**离线纯静态**编译(见 [build.sh](build.sh))：
+依赖已 vendor 进仓库，可**离线纯静态**编译(见 [Makefile](Makefile))：
 
 ```bash
-./build.sh          # 交叉编译 linux/386 静态二进制 -> auto-config-update-32(目标机 CentOS6/内核2.6.32)
-./build.sh native   # 本机二进制 -> auto-config-update(自测用)
+make          # 全部目标：本机 + linux/386 静态 + windows/amd64
+make cross    # 交叉编译 linux/386 静态二进制 -> auto-config-update-32(目标机 CentOS6/内核2.6.32)
+make native   # 本机二进制 -> auto-config-update(自测用)
+make win64    # 交叉编译 windows/amd64 -> auto-config-update.exe
 ```
 
 约束：工具链须为 Go **1.23.x**(1.24+ 的 runtime 要内核 3.2)；`CGO_ENABLED=0` → 纯静态、无需 gcc/glibc；`GOPROXY=off` 离线可构建。
@@ -26,7 +28,8 @@
 ```
 
 - `plan` 与 `apply` 打印完全一致的**语义 diff**，区别只在 `apply` 会落盘。
-- 每行前缀：`✎` = 有改动，`·` = 已达目标(幂等 no-op)——每个声明的动作都出一行，不静默省略。
+- 每行前缀：`+` = 有改动，`-` = 已达目标(幂等 no-op)，`!` = 告警——每个声明的动作都出一行，不静默省略。
+- 原语速查见 [doc/feature-primitives.md](doc/feature-primitives.md)。
 - `--chamber` 缺省=全部腔室；限定时可**连续指定**多个(`--chamber Ch1 Ch4`)，也兼容重复写法(`--chamber Ch1 --chamber Ch4`)。
 
 ## Feature 怎么写（`steps` 有序列表）
@@ -148,7 +151,7 @@ master 与其它片段不动。
 - `features/*.yaml` —— 功能定义：`ig-auto-close`(建对象+配信号+跨步引用+条件建 IO 点位)、
   `add-pedcurpos-dataex`(before-method 定点插入 + 删项)
 - `config/` —— 演示夹具(Ch1 是较完整的真实 ITO 腔室)
-- `build.sh` —— 出包脚本(离线纯静态单二进制)
+- `Makefile` —— 出包脚本(离线纯静态单二进制)
 - `legacy/` —— Python 原版(`addex.py` + `src/`)，保留作**逐字节对拍 oracle**
 
 > 移植计划见 [GO_PORT_PLAN.md](GO_PORT_PLAN.md)。Go 引擎的 `plan`/`apply` 输出与写盘结果
