@@ -39,6 +39,7 @@ type Step struct {
 	AddMethod    []MethodSpec  `yaml:"add-method"`
 	RemoveMethod []MethodSpec  `yaml:"remove-method"`
 	AddIO        []AddIOSpec   `yaml:"add-io"`
+	AddData      []AddDataSpec `yaml:"add-data"`
 }
 
 // WhereSpec 是 leaf 谓词 + 可选的插入定位。
@@ -77,8 +78,35 @@ type AddIOSpec struct {
 	Ch             yaml.Node  `yaml:"Ch"`             // 字面值(整数标量，取 .Value)
 	Min            yaml.Node  `yaml:"Min"`            // Kind==0=未配不加；否则 <Min>值</Min>(空串→<Min></Min>)
 	Max            yaml.Node  `yaml:"Max"`            // Kind==0=未配不加；否则 <Max>值</Max>(空串→<Max></Max>)
+	Accuracy       yaml.Node  `yaml:"Accuracy"`       // Kind==0=未配不加；否则 <Accuracy>值</Accuracy>(NULL/空串→成对空标签)
 	DescriptorList []DescItem `yaml:"DescriptorList"` // 渲染成 <DescriptorList>name:value,...</DescriptorList>
 	Unit           *string    `yaml:"Unit"`           // nil=未配不加；否则 <Unit>值</Unit>(空串→<Unit/>)
+}
+
+// AddDataSpec 描述一个 add-data 动作：在 anchor(如 <Heater>)下建一个数据点位。
+// 与 add-io 的差别：首属性固定为 type="data"，且不追加模拟量实体引用；
+// Bd/Ch/Min/Max/Accuracy 各字段 Kind==0(未配)时跳过，NULL 或空串→成对空标签(如 <Bd></Bd>)。
+type AddDataSpec struct {
+	Name     string    `yaml:"name"`
+	Attrs    yaml.Node `yaml:"attrs"`
+	Bd       yaml.Node `yaml:"Bd"`
+	Ch       yaml.Node `yaml:"Ch"`
+	Min      yaml.Node `yaml:"Min"`
+	Max      yaml.Node `yaml:"Max"`
+	Accuracy yaml.Node `yaml:"Accuracy"`
+}
+
+// AttrPairs 按书写顺序返回数据点位属性的键值对(不含 type="data")。
+func (a *AddDataSpec) AttrPairs() []xmldoc.Attr {
+	return mapPairs(&a.Attrs)
+}
+
+// ScalarText 返回标量节点用于渲染的文本：未配(Kind==0)或 NULL(!!null)→空串，否则取原始文本。
+func ScalarText(n *yaml.Node) string {
+	if n.Kind == 0 || n.Tag == "!!null" {
+		return ""
+	}
+	return n.Value
 }
 
 // DescItem 是 DescriptorList 的一项(name:value)。

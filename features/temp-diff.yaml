@@ -1,0 +1,22 @@
+id: temp-diff
+descriptiom: 差值监控
+version: 1
+
+steps:
+  - name: add methods to control
+    anchor: /Control/{Degas}/{PhyHeater}
+    where:
+      tag-glob: Heater
+    add-data:
+      - name: TempB4OffsetVp
+        attrs: { dataType: "D", accessMode: "R", simulated: "true", alias: "/IO/${Degas}Exports/Heater_TempB4Offset" }
+        Bd: NULL
+        Ch: NULL
+        Min: NULL
+        Max: NULL
+        Accuracy: 0.00000001
+    add-method:
+      - name: setMonitorTempVp
+        value: "/IO/Platform/Plc/${Degas}/HeaterTcAI"
+      - name: setTempB4Offset
+        value: "./TempB4OffsetVp"

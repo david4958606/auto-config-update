@@ -1,0 +1,18 @@
+功能 temp-diff v1 | 模式=plan
+
+[Ch1] (Control_Ch1)
+  步[add methods to control] 跳过：anchor /Control/{Degas}/{PhyHeater} 无匹配
+[Ch2] (Control_Ch2)
+  步[add methods to control] 跳过：anchor /Control/{Degas}/{PhyHeater} 无匹配
+[Ch3] (Control_Ch3)
+  步[add methods to control] 跳过：anchor /Control/{Degas}/{PhyHeater} 无匹配
+[Ch4] (Control_Ch4)
+  步[add methods to control] 跳过：anchor /Control/{Degas}/{PhyHeater} 无匹配
+[ChC] (Control_ChC)
+  步[add methods to control] Heater(class=PhyHeater): · 数据点位 <TempB4OffsetVp> 已存在
+  步[add methods to control] Heater(class=PhyHeater): · 方法 setMonitorTempVp(/IO/Platform/Plc/ChC/HeaterTcAI) 已存在
+  步[add methods to control] Heater(class=PhyHeater): · 方法 setTempB4Offset(./TempB4OffsetVp) 已存在
+[ChD] (Control_ChD)
+  步[add methods to control] Heater(class=PhyHeater): ✎ 新增数据点位 <TempB4OffsetVp>
+  步[add methods to control] Heater(class=PhyHeater): ✎ 新增方法 setMonitorTempVp(/IO/Platform/Plc/ChD/HeaterTcAI)
+  步[add methods to control] Heater(class=PhyHeater): ✎ 新增方法 setTempB4Offset(./TempB4OffsetVp)

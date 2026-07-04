@@ -72,45 +72,49 @@ func readGolden(t *testing.T, p string) string {
 }
 
 func TestGoldenParity(t *testing.T) {
-	features := []string{"ig-auto-close", "add-pedcurpos-dataex"}
-	for _, f := range features {
-		t.Run(f, func(t *testing.T) {
+	// control/bridge：各 feature 需逐字节比对的写盘片段。temp-diff 只动 Degas 腔室(ChC/ChD)。
+	cases := []struct {
+		name    string
+		control []string
+		bridge  []string
+	}{
+		{"ig-auto-close", []string{"Control_Ch1", "Control_Ch2", "Control_Ch3", "Control_Ch4"}, []string{"Driver_Ch1", "IO_Ch1"}},
+		{"add-pedcurpos-dataex", []string{"Control_Ch1", "Control_Ch2", "Control_Ch3", "Control_Ch4"}, nil},
+		{"temp-diff", []string{"Control_ChC", "Control_ChD"}, nil},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
 			work := t.TempDir()
 			copyTree(t, "../../config", filepath.Join(work, "config"))
-			featurePath := filepath.Join("../../features", f+".yaml")
+			featurePath := filepath.Join("../../features", c.name+".yaml")
 
 			// plan：不写盘，仅比对语义 diff。
-			if got, want := run(t, work, featurePath, false), stripHeader(readGolden(t, "../../testdata/golden/"+f+".plan.txt")); got != want {
+			if got, want := run(t, work, featurePath, false), stripHeader(readGolden(t, "../../testdata/golden/"+c.name+".plan.txt")); got != want {
 				t.Errorf("plan 输出不一致\n--- got ---\n%s\n--- want ---\n%s", got, want)
 			}
 
 			// apply：比对语义 diff + 逐字节比对写盘结果。
-			if got, want := run(t, work, featurePath, true), stripHeader(readGolden(t, "../../testdata/golden/"+f+".apply.txt")); got != want {
+			if got, want := run(t, work, featurePath, true), stripHeader(readGolden(t, "../../testdata/golden/"+c.name+".apply.txt")); got != want {
 				t.Errorf("apply 输出不一致\n--- got ---\n%s\n--- want ---\n%s", got, want)
 			}
-			for c := 1; c <= 4; c++ {
-				name := "Control_Ch" + string(rune('0'+c))
+			for _, name := range c.control {
 				got := readGolden(t, filepath.Join(work, "config", "Control", name))
-				want := readGolden(t, filepath.Join("../../testdata/golden", f, name))
+				want := readGolden(t, filepath.Join("../../testdata/golden", c.name, name))
 				if got != want {
 					t.Errorf("写盘 %s 不一致", name)
 				}
 			}
 
 			// 可选：IOBridge/Driver、IO 片段(仅涉及该域的 feature 才有 golden)。
-			for _, frag := range []string{"Driver_Ch1", "IO_Ch1"} {
-				golden := filepath.Join("../../testdata/golden", f, frag)
-				if _, err := os.Stat(golden); err != nil {
-					continue
-				}
+			for _, frag := range c.bridge {
 				got := readGolden(t, filepath.Join(work, "config", "IOBridge", frag))
-				if want := readGolden(t, golden); got != want {
+				if want := readGolden(t, filepath.Join("../../testdata/golden", c.name, frag)); got != want {
 					t.Errorf("写盘 %s 不一致\n--- got ---\n%s\n--- want ---\n%s", frag, got, want)
 				}
 			}
 
 			// 幂等：第二次 apply 零改动。
-			if got, want := run(t, work, featurePath, true), stripHeader(readGolden(t, "../../testdata/golden/"+f+".apply2.txt")); got != want {
+			if got, want := run(t, work, featurePath, true), stripHeader(readGolden(t, "../../testdata/golden/"+c.name+".apply2.txt")); got != want {
 				t.Errorf("幂等 apply2 输出不一致\n--- got ---\n%s\n--- want ---\n%s", got, want)
 			}
 		})

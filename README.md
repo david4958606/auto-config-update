@@ -97,7 +97,8 @@ steps:
 | `add-node` | 建对象节点。可带 `attrs`(值支持占位符) 和 `include-entity`(内嵌声明的实体引用)。 |
 | `add-method` | 加方法调用。有 `value` → `<name type="method">值</name>`；无 `value` → 自闭合。可带 `attrs`(如 `comment: ...`，追加在 `type="method"` 之后、不参与判重)。 |
 | `remove-method` | 删匹配 (名字+值) 的方法调用；命中多个一次删净，一个不中记为 no-op。 |
-| `add-io` | 在 anchor(如 `<IG>`)下建 IO 点位 `<name attrs...>`，按 `name` 判重。子元素按序：`Bd`(`auto`=按本节点既有点位/腔室号推断板号，否则取字面值)、`Ch`、可选 `Min`/`Max`(未配则不加，空串→成对空标签)、`DescriptorList`(渲染成 `OFF:0,ON:1`)、可选 `Unit`(空串→自闭合)；`attrs` 含 `simulated` 时在末尾追加实体引用 `&Simulated_ChN;`。 |
+| `add-io` | 在 anchor(如 `<IG>`)下建 IO 点位 `<name attrs...>`，按 `name` 判重。子元素按序：`Bd`(`auto`=按本节点既有点位/腔室号推断板号，否则取字面值)、`Ch`、可选 `Min`/`Max`(未配则不加，空串→成对空标签)、可选 `Accuracy`(未配则不加，`NULL`/空串→成对空标签)、`DescriptorList`(渲染成 `OFF:0,ON:1`)、可选 `Unit`(空串→自闭合)；`attrs` 含 `simulated` 时在末尾追加实体引用 `&Simulated_ChN;`。 |
+| `add-data` | 在 anchor(如 `<Heater>`)下建数据点位 `<name type="data" attrs...>`，按 `name` 判重；与 `add-io` 的差别：首属性固定 `type="data"`，且**不**追加 `&Simulated_ChN;`。子元素按序取配置到的：`Bd`(`auto` 同 `add-io`)、`Ch`、`Min`、`Max`、`Accuracy`——未配(缺省)则不加，`NULL`/空串→成对空标签(如 `<Bd></Bd>`)。同一 anchor 内数据点位排在 `add-method` 之前(便于方法引用 `./name`)。 |
 
 ### 占位符 / 变量
 
@@ -140,7 +141,7 @@ master 与其它片段不动。
   - `xmldoc` 按**字节偏移**解析 XML、实体容忍(声明不展开)、供外科回写的编辑记录
   - `config` 解析/寻址：master+实体装配、逻辑 IO/Control 视图、实体真名解析
   - `anchor` class 路径定位 + 同类多实例 fan-out + `where` 筛选
-  - `ops` 幂等原语：`add-node` / `add-method` / `remove-method` / `add-io` / `add-entity-ref`
+  - `ops` 幂等原语：`add-node` / `add-method` / `remove-method` / `add-io` / `add-data` / `add-entity-ref`
   - `feature` 功能 YAML 加载 + `require`/`bind` 变量绑定
   - `splice` 外科式**字节**拼接写盘(用 xmldoc 给出的精确偏移)
   - `engine` steps 编排：逐腔室、逐步、逐实例执行并落盘

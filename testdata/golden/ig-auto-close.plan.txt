@@ -42,3 +42,17 @@
   步[在 ITO 中添加setPgValve] 跳过：anchor /Control/{ITO} 无匹配
   步[配置 IG Driver] 跳过：本腔室无 IOBridge 域片段(anchor /IOBridge/${ITO}/{DnVacuumGauge})
   步[配置 IG IO] 跳过：anchor /IO/${ITO}/IG 的 ${ITO} 未绑定
+[ChC] (Control_ChC)
+  步[建 IonGauge 对象] 跳过：anchor /Control/{ITO} 无匹配
+  步[配置 IG 规] 跳过：anchor /Control/{ITO}/{PhyGauge} 无匹配
+  步[在 ITO 中添加相关方法] 跳过：anchor /Control/{ITO} 无匹配
+  步[在 ITO 中添加setPgValve] 跳过：anchor /Control/{ITO} 无匹配
+  步[配置 IG Driver] 跳过：本腔室无 IOBridge 域片段(anchor /IOBridge/${ITO}/{DnVacuumGauge})
+  步[配置 IG IO] 跳过：本腔室无 IO 域片段(anchor /IO/${ITO}/IG)
+[ChD] (Control_ChD)
+  步[建 IonGauge 对象] 跳过：anchor /Control/{ITO} 无匹配
+  步[配置 IG 规] 跳过：anchor /Control/{ITO}/{PhyGauge} 无匹配
+  步[在 ITO 中添加相关方法] 跳过：anchor /Control/{ITO} 无匹配
+  步[在 ITO 中添加setPgValve] 跳过：anchor /Control/{ITO} 无匹配
+  步[配置 IG Driver] 跳过：本腔室无 IOBridge 域片段(anchor /IOBridge/${ITO}/{DnVacuumGauge})
+  步[配置 IG IO] 跳过：本腔室无 IO 域片段(anchor /IO/${ITO}/IG)

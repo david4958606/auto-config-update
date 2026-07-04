@@ -1,13 +1,14 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE IAP [
-<!ENTITY Simulated_Ch1 SYSTEM "../Simulated_Ch1">
-<!ENTITY Control_Ch1 SYSTEM "./Control_Ch1">
-<!ENTITY Control_Ch2 SYSTEM "./Control_Ch2">
-<!ENTITY Control_Ch3 SYSTEM "./Control_Ch3">
-<!ENTITY Control_Ch4 SYSTEM "./Control_Ch4">
-
-
+    <!ENTITY Simulated_Ch1 SYSTEM "../Simulated_Ch1">
+    <!ENTITY SimulatedFlag_ChC SYSTEM "../SimulatedFlag_ChC">
+    <!ENTITY SimulatedFlag_ChD SYSTEM "../SimulatedFlag_ChD">
+    <!ENTITY Control_Ch1 SYSTEM "./Control_Ch1">
+    <!ENTITY Control_Ch2 SYSTEM "./Control_Ch2">
+    <!ENTITY Control_Ch3 SYSTEM "./Control_Ch3">
+    <!ENTITY Control_Ch4 SYSTEM "./Control_Ch4">
+    <!ENTITY Control_ChC SYSTEM "./Control_ChC">
+    <!ENTITY Control_ChD SYSTEM "./Control_ChD">
 ]>
 
 <Control>
@@ -15,4 +16,6 @@
     &Control_Ch2;
     &Control_Ch3;
     &Control_Ch4;
+    &Control_ChC;
+    &Control_ChD;
 </Control>

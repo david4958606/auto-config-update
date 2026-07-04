@@ -1,0 +1,26 @@
+<ChC class="Degas" type="instance" alias="/Control/ChCExports/ChC">
+    <Heater class="PhyHeater" type="instance" alias="/Control/ChCExports/Heater">
+        <setTemperatureSp type="method">/IO/Platform/Heater_ChC/ClosedLoopAO</setTemperatureSp>
+        <setTemperatureVp type="method">/IO/Platform/Heater_ChC/ProcessValue1AI</setTemperatureVp>
+        <setTimeIntegralSp type="method">/IO/Platform/Heater_ChC/TimeIntegralAO</setTimeIntegralSp>
+        <setTimeDerivativeSp type="method">/IO/Platform/Heater_ChC/TimeDerivativeAO</setTimeDerivativeSp>
+        <setHeatPropBandSp type="method">/IO/Platform/Heater_ChC/HeatPropBandAO</setHeatPropBandSp>
+        <setHeaterPowerOnSp type="method">/IO/Platform/Plc/ChC/HeaterEnDO</setHeaterPowerOnSp>
+        <setCalibrationOffsetSp type="method">/IO/Platform/Heater_ChC/CalibOffsetAO</setCalibrationOffsetSp>
+        <exportWarningTempHigh type="method">/IO/ChCExports/WarningTempHigh</exportWarningTempHigh>
+        <exportAlarmTempHigh type="method">/IO/ChCExports/AlarmTempHigh</exportAlarmTempHigh>
+        <exportWarningTempLow type="method">/IO/ChCExports/WarningTempLow</exportWarningTempLow>
+        <exportAlarmTempLow type="method">/IO/ChCExports/AlarmTempLow</exportAlarmTempLow>
+        <TempB4OffsetVp type="data" dataType="D" accessMode="R" simulated="true" alias="/IO/ChCExports/Heater_TempB4Offset">
+            <Bd></Bd>
+            <Ch></Ch>
+            <Min></Min>
+            <Max></Max>
+            <Accuracy>0.00000001</Accuracy>
+        </TempB4OffsetVp>
+        <setMonitorTempVp type="method">/IO/Platform/Plc/ChC/HeaterTcAI</setMonitorTempVp>
+        <setTempB4Offset type="method">./TempB4OffsetVp</setTempB4Offset>
+        &SimulatedFlag_ChC;
+    </Heater>
+    &SimulatedFlag_ChC;
+</ChC>

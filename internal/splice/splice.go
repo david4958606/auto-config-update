@@ -33,9 +33,13 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 				continue // 父是合成节点，文本已在祖先渲染里
 			}
 			// 缺省插到父闭合标签前(追加)；指定 before 且其为原节点时，改插到该兄弟节点所在行之前。
+			// 追加时若父末尾是"永远在最后"的实体引用(如 &Simulated_ChN;)，则插到该实体之前，
+			// 与内存树 AppendChild 的书写惯例一致。
 			anchorOff := e.Parent.CloseStart
 			if e.Before != nil && e.Before.Start >= 0 {
 				anchorOff = e.Before.Start
+			} else if ent := trailingEntity(e.Parent); ent != nil {
+				anchorOff = ent.Start
 			}
 			at := insertOffset(src, anchorOff)
 			block := xmldoc.Render(e.Child, xmldoc.RealDepth(e.Parent)+1) + "\n"
@@ -65,6 +69,25 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 		out = next
 	}
 	return out
+}
+
+// trailingEntity 返回父节点末尾连续"永远在最后"的原文实体引用(Start>=0)中最靠前的一个；
+// 无尾部实体则返回 nil。合成插入的新子节点被 AppendChild 放在实体之前，故实体仍在末位；
+// 从末尾向前扫，遇到首个非实体子节点即停，取到的最靠前实体即新节点应插入的位置。
+func trailingEntity(parent *xmldoc.Node) *xmldoc.Node {
+	var first *xmldoc.Node
+	for i := len(parent.Children) - 1; i >= 0; i-- {
+		c := parent.Children[i]
+		if c.Removed {
+			continue
+		}
+		if c.IsEntity && c.Start >= 0 {
+			first = c
+			continue
+		}
+		break
+	}
+	return first
 }
 
 // insertOffset 给出定位点 anchorOff(父闭合标签起点，或某兄弟节点起点)之前的插入点。

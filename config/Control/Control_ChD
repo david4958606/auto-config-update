@@ -1,0 +1,16 @@
+<ChD class="Degas" type="instance" alias="/Control/ChDExports/ChD">
+    <Heater class="PhyHeater" type="instance" alias="/Control/ChDExports/Heater">
+        <setTemperatureSp type="method">/IO/Platform/Heater_ChD/ClosedLoopAO</setTemperatureSp>
+        <setTemperatureVp type="method">/IO/Platform/Heater_ChD/ProcessValue1AI</setTemperatureVp>
+        <setTimeIntegralSp type="method">/IO/Platform/Heater_ChD/TimeIntegralAO</setTimeIntegralSp>
+        <setTimeDerivativeSp type="method">/IO/Platform/Heater_ChD/TimeDerivativeAO</setTimeDerivativeSp>
+        <setHeatPropBandSp type="method">/IO/Platform/Heater_ChD/HeatPropBandAO</setHeatPropBandSp>
+        <setHeaterPowerOnSp type="method">/IO/Platform/Plc/ChD/HeaterEnDO</setHeaterPowerOnSp>
+        <setCalibrationOffsetSp type="method">/IO/Platform/Heater_ChD/CalibOffsetAO</setCalibrationOffsetSp>
+        <exportWarningTempHigh type="method">/IO/ChDExports/WarningTempHigh</exportWarningTempHigh>
+        <exportAlarmTempHigh type="method">/IO/ChDExports/AlarmTempHigh</exportAlarmTempHigh>
+        <exportWarningTempLow type="method">/IO/ChDExports/WarningTempLow</exportWarningTempLow>
+        <exportAlarmTempLow type="method">/IO/ChDExports/AlarmTempLow</exportAlarmTempLow>
+    </Heater>
+    &SimulatedFlag_ChD;
+</ChD>

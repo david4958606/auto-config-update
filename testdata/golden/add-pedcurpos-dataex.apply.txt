@@ -19,3 +19,11 @@
   步[调整 ProcessLogger 日志项] ProcessLogger(class=ProcessLogger): · 方法 addDataEx(/IO/Ch4/Ped/CurPosDI,PedCurPos,1) 已存在
   步[调整 ProcessLogger 日志项] ProcessLogger(class=ProcessLogger): ✎ 删除方法 addDataEx(/IO/Ch4/Pin/CurPosDI,PinCurPos,1)
 [Ch4] ✎ 已写回 Control_Ch4（1 处编辑，其余字节不动）
+[ChC] (Control_ChC)
+  步[建 Ped 对象] 跳过：anchor CVD 无匹配
+  步[接 setCurPosVp] 跳过：anchor CVD/PhyChuck 无匹配
+  步[调整 ProcessLogger 日志项] 跳过：anchor CVD/ProcessLogger 无匹配
+[ChD] (Control_ChD)
+  步[建 Ped 对象] 跳过：anchor CVD 无匹配
+  步[接 setCurPosVp] 跳过：anchor CVD/PhyChuck 无匹配
+  步[调整 ProcessLogger 日志项] 跳过：anchor CVD/ProcessLogger 无匹配

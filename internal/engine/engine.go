@@ -22,6 +22,7 @@ import (
 	"addex/internal/ops"
 	"addex/internal/splice"
 	"addex/internal/xmldoc"
+	"gopkg.in/yaml.v3"
 )
 
 // Engine 持有只读逻辑索引与实体声明(构建一次，跨腔室复用)。
@@ -321,6 +322,32 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 				}
 			}
 		}
+		// add-data 先于 add-method 处理：数据点位在本节点里排在方法调用之前(与 YAML 声明序一致)，
+		// 且方法(如 setTempB4Offset)常引用该数据节点(./TempB4OffsetVp)。
+		for i := range step.AddData {
+			d := &step.AddData[i]
+			attrs := make([]xmldoc.Attr, 0, 4)
+			for _, a := range d.AttrPairs() {
+				attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
+			}
+			children := make([]xmldoc.Attr, 0, 5)
+			for _, f := range []struct {
+				name string
+				node *yaml.Node
+			}{
+				{"Bd", &d.Bd}, {"Ch", &d.Ch}, {"Min", &d.Min}, {"Max", &d.Max}, {"Accuracy", &d.Accuracy},
+			} {
+				if f.node.Kind == 0 {
+					continue
+				}
+				val := feature.Format(feature.ScalarText(f.node), tags)
+				if f.name == "Bd" && val == "auto" {
+					val = inferBd(m.Node, chamber)
+				}
+				children = append(children, xmldoc.Attr{Name: f.name, Value: val})
+			}
+			results = append(results, ops.AddData(m.Node, d.Name, attrs, children))
+		}
 		// where.before-method：把本步新增方法插到该既有方法之前(而非追加末尾)。
 		var before *xmldoc.Node
 		if step.Where != nil && step.Where.BeforeMethod != nil {
@@ -364,6 +391,9 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 			}
 			if io.Max.Kind != 0 {
 				children = append(children, xmldoc.Attr{Name: "Max", Value: io.Max.Value})
+			}
+			if io.Accuracy.Kind != 0 {
+				children = append(children, xmldoc.Attr{Name: "Accuracy", Value: feature.Format(feature.ScalarText(&io.Accuracy), tags)})
 			}
 			if desc := feature.Format(io.Descriptors(), tags); desc != "" {
 				children = append(children, xmldoc.Attr{Name: "DescriptorList", Value: desc})
