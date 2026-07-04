@@ -1,0 +1,359 @@
+# Feature YAML 原语参考
+
+本文档汇总 `features/*.yaml` 当前支持的全部原语，覆盖每个原语的**语义、字段、生成的 XML、
+判重（幂等）规则与示例**，以源码为准（`internal/feature`、`internal/anchor`、`internal/ops`、
+`internal/engine`）。面向"要写一份新 feature"的读者；概览与整体设计见 [README](../README.md)。
+
+> 术语：一个功能 = 一份 `features/<id>.yaml`，核心是有序的 `steps`。引擎对**每个腔室**加载
+> 相关配置片段，按 `steps` 顺序执行；后一步可依赖前一步的产物。所有动作**幂等**：已达目标即
+> no-op，重复运行不重复插入。
+
+---
+
+## 1. 文件骨架
+
+```yaml
+id: <功能标识>              # 用于日志与产物命名
+description: <一句话描述>    # 人类可读；仅用于打印
+version: 1                 # 原样标量(1 / "1.0" 都照打)
+steps:                     # 有序步骤列表，见下
+  - name: ...
+    anchor: ...
+    ...
+```
+
+| 顶层字段 | 含义 |
+|---------|------|
+| `id` | 功能标识（字符串）。 |
+| `description` | 描述，仅用于打印。 |
+| `version` | 版本标量，保留原始文本用于打印 `v{version}`。 |
+| `steps` | 有序步骤列表，逐个执行。 |
+
+---
+
+## 2. Step 字段总览
+
+每个 step 先用 `anchor`（+ 可选 `where`）定位到**一批实例节点**，再用 `require`/`bind` 做
+守卫与变量绑定，最后对每个命中实例执行动作原语。
+
+| 字段 | 类别 | 作用 |
+|------|------|------|
+| `name` | 元信息 | 步骤名，仅用于打印。 |
+| `anchor` | 定位 | 一条 **class 路径**，逐层 descendant 定位；leaf 多实例会 fan-out。见 §3。 |
+| `where` | 定位 | leaf 多实例时筛子集 + 插入定位（`before-method`）。见 §4。 |
+| `require` | 守卫/绑定 | `exist` 守卫：路径解析不到则**跳过**该实例；命中则绑定变量。见 §5。 |
+| `bind` | 绑定 | 纯绑定，不做存在性要求。见 §5。 |
+| `add-node` | 动作 | 建对象节点，可内嵌实体引用。见 §7.1。 |
+| `add-data` | 动作 | 建数据点位 `type="data"`。见 §7.2。 |
+| `add-method` | 动作 | 加方法调用。见 §7.3。 |
+| `remove-method` | 动作 | 删方法调用。见 §7.4。 |
+| `add-io` | 动作 | 建 IO 点位（含模拟量实体）。见 §7.5。 |
+
+同一 step 内动作的**执行顺序固定**（与 YAML 中书写顺序无关）：
+`add-node` → `add-data` → `add-method` → `remove-method` → `add-io`（见 §8）。
+
+---
+
+## 3. `anchor` —— class 路径定位
+
+`anchor` 是一条以 `/` 分隔的路径，逐层在子孙中定位节点。**靠 class 定位，与实例标签名无关**，
+这样"各台设备实例名不同"也能命中。
+
+### 3.1 域前缀
+
+首段若为 `Control` / `IO` / `IOBridge`，作为**域**，路由到对应配置片段；否则默认 `Control`。
+
+```
+anchor: /Control/{ITO}/{PhyGauge}    # 显式 Control 域
+anchor: ITO/PhyChuck                 # 无域前缀 → 默认 Control 域
+anchor: /IO/${ITO}/IG                # IO 域
+anchor: /IOBridge/${ITO}/{DnVacuumGauge}   # IOBridge 域(文件顶层节点是 IOBridge)
+```
+
+### 3.2 段写法
+
+| 写法 | 匹配方式 | 说明 |
+|------|---------|------|
+| `{X}` | 按 **class** 匹配 | 命中后把变量 `X` 绑成该实例的**标签名**。 |
+| 裸名 `X` | 按 **class** 匹配；无果回退按 **tag 名** | 某些层（如 IO 的 `<IG>`）无 class，回退用标签名。绑定同 `{X}`。 |
+| `${X}` | 按 **tag 名** 匹配 | `X` 需已由上层（腔室级绑定）解析成具体标签（如 `${ITO}`→`Ch1`）；未绑定则该步跳过。 |
+
+### 3.3 fan-out（同类多实例）
+
+leaf（最后一层）命中同一 class 的**多个实例**时，对**每个实例各执行一次**——绝不静默只取第一个。
+每次执行有独立的一份 tags：`{class名: 该实例标签}`，供占位符逐实例替换。中间层同样可各自
+fan-out。
+
+> 例：`anchor: CVD/PhyGauge`，若腔内有 `Gauge01`/`Gauge02`，动作各执行一次，
+> `{PhyGauge}` 分别取 `Gauge01` / `Gauge02`。
+
+---
+
+## 4. `where` —— leaf 筛选与插入定位
+
+`where` 仅作用于 leaf。三种子字段可组合：
+
+| 子字段 | 作用 |
+|--------|------|
+| `tag-glob: "IonGauge"` | 按**标签名 glob**（`path.Match` 语义，支持 `*`）筛出子集。缺省=全部实例。 |
+| `attr: { k: v }` | 按属性**全等**筛选（多个键需全部匹配）。 |
+| `before-method: { name: init }` | **插入定位**（不参与筛选）：本步 `add-method` 插到名为 `init` 的既有方法**之前**，而非追加末尾。找不到该方法则退化为追加末尾并打印告警 `!`。 |
+
+```yaml
+where:
+  tag-glob: "IG"
+  before-method:
+    name: init          # add-method 插到 <init> 之前
+```
+
+---
+
+## 5. `require` / `bind` —— 守卫与绑定
+
+两者都产出**变量**，供后续占位符引用。列表中每一项是一个单键 map。
+
+### 5.1 `require`
+
+目前仅支持 `exist` 一种（其它类型报"未知 require 类型"并跳过该实例）：
+
+```yaml
+require:
+  - exist: { PedCurPos: "/IO/{CVD}/Ped/CurPosDI" }
+```
+
+语义：先对路径做占位符替换，再按**逻辑路径**（`/IO/...` 或 `/Control/...`，只看根腔室标签、
+不看文件名）解析。
+
+- 解析**不到** → 该实例**跳过**（打印原因）。
+- 命中 → 把变量（`PedCurPos`）绑成该逻辑路径，并记录"命中于哪个文件"用于语义 diff。
+
+### 5.2 `bind`
+
+纯绑定，**不做存在性要求**。适用于"引用的目标不必仍存在"的场景（如 `remove-method` 要删的项）。
+
+```yaml
+bind:
+  - PinCurPos: "/IO/{CVD}/Pin/CurPosDI"    # 删除项引用，用 bind 而非 require
+```
+
+---
+
+## 6. 占位符 / 变量作用域
+
+模板中 `${key}` 与 `{key}` **同解**为 `tags[key]`（都取该实例的标签名）；区别仅在于 `${key}`
+可写在逻辑/alias 路径里而不残留 `$`。变量来源：
+
+- **class 段绑定**：anchor 路径上每个 class 匹配到的实例标签，逐实例自动绑定（`PhyGauge`→`Gauge01`）。
+- **跨步对象引用**：`add-node` 建出的对象登记 `{标签}` → `./标签`，供**后续步骤**引用（如
+  `{IonGauge}` → `./IonGauge`）。
+- **`require`/`bind` 变量**：见 §5。
+- `include-entity` 的 glob 也先做占位符替换，再去 `Control_config.xml` 的实体声明里匹配真名。
+
+占位符替换作用于：`add-node` 的 `attrs` 值与 `include-entity`、`add-method`/`remove-method` 的
+`value` 与额外 `attrs` 值、`add-io`/`add-data` 的 `attrs` 值与 `Accuracy`/`DescriptorList`/`Unit` 等。
+
+---
+
+## 7. 动作原语
+
+每个原语返回 `(changed, message)`：`changed=false` 表示已达目标（no-op）。语义 diff 里**每个
+声明的动作都出一行**：`+` = 有改动，`-` = 幂等 no-op。
+
+### 7.1 `add-node` —— 建对象节点
+
+在 anchor 下确保存在 `<tag class="class" attrs.../>`，**按 tag 判重**（已存在即 no-op）。
+
+| 字段 | 说明 |
+|------|------|
+| `tag` | 新对象标签名。判重键。 |
+| `class` | class 属性值（渲染为首属性 `class="..."`）。 |
+| `attrs` | 额外属性，**保留书写顺序**，值支持占位符。 |
+| `include-entity` | 可选。glob（先占位符替换）匹配 `Control_config.xml` 声明的实体真名，命中则把 `&实体名;` 内嵌为该对象**最后一个子节点**；未匹配到则打印告警 `!`。 |
+
+```yaml
+add-node:
+  - tag: IonGauge
+    class: PhyGauge
+    attrs: { type: instance, alias: "/Control/${ITO}Exports/IonGauge" }
+    include-entity: "Simulated*{ITO}"     # → 内嵌 &Simulated_Ch1;
+```
+
+生成：`<IonGauge class="PhyGauge" type="instance" alias="/Control/Ch1Exports/IonGauge"> &Simulated_Ch1; </IonGauge>`
+
+### 7.2 `add-data` —— 建数据点位
+
+在 anchor 下确保存在 `<name type="data" attrs...>`，**按 name 判重**。与 `add-io` 的差别：
+首属性固定 `type="data"`，且**不**追加模拟量实体引用。
+
+| 字段 | 说明 |
+|------|------|
+| `name` | 点位标签名。判重键。 |
+| `attrs` | 属性（`type="data"` 之后，保留书写顺序，值支持占位符）。 |
+| `Bd` | 板号。`auto` = 自适应推断（见 §9）；否则取字面值。 |
+| `Ch` | 通道号（字面值）。 |
+| `Min` / `Max` / `Accuracy` | 子元素。 |
+
+子元素规则（`Bd`、`Ch`、`Min`、`Max`、`Accuracy` 按此顺序）：
+
+- **未配**（该键缺省）→ 该子元素**不加**。
+- 配为 `NULL` 或空串 → 渲染成**成对空标签** `<Bd></Bd>`（而非自闭合 `<Bd/>`）。
+- 否则取字面文本。
+
+同一 anchor 内 `add-data` **排在 `add-method` 之前**，便于方法引用 `./name`。
+
+```yaml
+add-data:
+  - name: TempB4OffsetVp
+    attrs: { dataType: "D", accessMode: "R", simulated: "true", alias: "/IO/${Degas}Exports/Heater_TempB4Offset" }
+    Bd: NULL
+    Ch: NULL
+    Min: NULL
+    Max: NULL
+    Accuracy: 0.00000001
+```
+
+### 7.3 `add-method` —— 加方法调用
+
+在 anchor 下确保存在 `<name type="method" ...>`。
+
+| 字段 | 说明 |
+|------|------|
+| `name` | 方法名。 |
+| `value` | 可选。有值 → `<name type="method">值</name>`；无值 → 标志型方法，自闭合 `<name type="method"/>`。 |
+| `attrs` | 额外属性（如 `comment: ...`），追加在 `type="method"` **之后**，**不参与判重**。 |
+
+判重规则：
+
+- **无 value**（标志型）→ 按**名字**判重。
+- **有 value** → 按**名字 + 值**判重（同名不同值可共存）。
+
+插入位置：若本步 `where.before-method` 命中，则插到该既有方法**之前**；否则追加末尾。
+
+```yaml
+add-method:
+  - name: setOnOffVp
+    value: "/IO/${ITO}/IG/OnOffDI"
+  - name: enableModeSwitch                 # 无 value → <enableModeSwitch type="method"/>
+  - name: addExplicitMsgDI
+    attrs: { comment: "DisplayIgOnOff (OFF:0,ON:1)" }
+    value: "4101,0E|31|02|5D,8E|0"
+```
+
+### 7.4 `remove-method` —— 删方法调用
+
+删 anchor 下**名字 + 值**都匹配的方法调用；命中多个**一次删净**记为一处编辑，一个不中记为 no-op。
+
+| 字段 | 说明 |
+|------|------|
+| `name` | 方法名。 |
+| `value` | 匹配值（占位符替换后按文本全等比较）。 |
+
+```yaml
+remove-method:
+  - name: addDataEx
+    value: "{PinCurPos},PinCurPos,1"
+```
+
+### 7.5 `add-io` —— 建 IO 点位
+
+在 anchor（如 `<IG>`）下确保存在 IO 点位 `<name attrs...>`，**按 name 判重**。
+
+| 字段 | 说明 |
+|------|------|
+| `name` | 点位标签名。判重键。 |
+| `attrs` | 属性（保留书写顺序，值支持占位符）。含 `simulated` 时在子节点**末尾追加**实体引用 `&Simulated_ChN;`。 |
+| `Bd` | 板号。`auto` = 自适应推断（见 §9）；否则字面值。 |
+| `Ch` | 通道号（字面值）。 |
+| `Min` / `Max` | 可选。未配则不加；配了则加（空串→成对空标签）。 |
+| `Accuracy` | 可选。未配则不加；`NULL`/空串→成对空标签。 |
+| `DescriptorList` | `name/value` 列表，渲染成 `<DescriptorList>OFF:0,ON:1</DescriptorList>`；空列表则不加。 |
+| `Unit` | 可选。未配则不加；空串→自闭合。 |
+
+子元素顺序：`Bd`、`Ch`、`[Min]`、`[Max]`、`[Accuracy]`、`[DescriptorList]`、`[Unit]`。
+空值子元素渲染成成对空标签（如 `<Unit></Unit>`），与既有片段写法一致。
+
+```yaml
+add-io:
+  - name: OnOffDO
+    attrs: { dataType: "I", accessMode: "RW", simulated: "", alias: "/IO/${ITO}Exports/IG_OnOffDO" }
+    Bd: auto
+    Ch: 4901
+    Min: 0
+    Max: 1
+    DescriptorList:
+      - { name: OFF, value: 0 }
+      - { name: ON,  value: 1 }
+```
+
+生成（含末尾 `&Simulated_ChN;`，因 attrs 有 `simulated`）：
+
+```xml
+<OnOffDO dataType="I" accessMode="RW" simulated="" alias="/IO/Ch1Exports/IG_OnOffDO">
+  <Bd>100</Bd><Ch>4901</Ch><Min>0</Min><Max>1</Max>
+  <DescriptorList>OFF:0,ON:1</DescriptorList>
+  &Simulated_Ch1;
+</OnOffDO>
+```
+
+---
+
+## 8. 执行顺序与幂等
+
+- **腔室级**：`--chamber` 缺省=全部腔室；限定时逐腔室执行。某腔室 anchor 无匹配 / `require`
+  不满足 → 自动跳过并打印原因。
+- **step 级**：按 `steps` 顺序，后一步可见前一步在内存树上挂的新节点（跨步引用）。
+- **同一 step 内动作顺序**（固定，与书写顺序无关）：
+  `add-node` → `add-data` → `add-method` → `remove-method` → `add-io`。
+- **幂等**：每个原语先判重，已达目标即 no-op（`-`），不产生字节编辑；重复运行安全。
+
+`plan` 与 `apply` 打印**完全一致**的语义 diff，区别只在 `apply` 会落盘。每行前缀：
+`+` = 有改动，`-` = 幂等 no-op，`!` = 告警（如 `include-entity` 未匹配、`before-method` 未找到）。
+
+---
+
+## 9. `Bd: auto` 板号推断
+
+`add-io` / `add-data` 的 `Bd` 写 `auto` 时按下列顺序推断：
+
+1. 取本 anchor 节点下**已有 IO 点位**的 `<Bd>` 文本（首个非空）——沿用同处其它点位的板号；
+2. 否则按**腔室号**推断：`ChN` → `N*100`（`Ch1`→`100`、`Ch2`→`200`……）。
+
+---
+
+## 10. 最小完整示例
+
+```yaml
+id: demo
+description: 建对象 → 配方法 → 条件建 IO 点位
+version: 1
+steps:
+  - name: 建 IonGauge 对象
+    anchor: /Control/{ITO}
+    add-node:
+      - tag: IonGauge
+        class: PhyGauge
+        attrs: { type: instance, alias: "/Control/${ITO}Exports/IonGauge" }
+        include-entity: "Simulated*{ITO}"
+
+  - name: 配置 IG 规
+    anchor: /Control/{ITO}/{PhyGauge}
+    where: { tag-glob: "IonGauge" }
+    add-method:
+      - name: setOnOffVp
+        value: "/IO/${ITO}/IG/OnOffDI"
+      - name: enableModeSwitch
+
+  - name: 建 IG IO 点位
+    anchor: /IO/${ITO}/IG
+    add-io:
+      - name: OnOffDI
+        attrs: { dataType: "I", accessMode: "R", simulated: "", alias: "/IO/${ITO}Exports/IG_OnOffDI" }
+        Bd: auto
+        Ch: 4101
+        DescriptorList:
+          - { name: OFF, value: 0 }
+          - { name: ON,  value: 1 }
+```
+
+参考真实样例：`features/ig-auto-close.yaml`、`features/add-pedcurpos-dataex.yaml`、
+`features/temp-diff.yaml`。
