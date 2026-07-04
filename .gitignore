@@ -24,5 +24,6 @@ wheels/
 /addex-*
 /auto-config-update
 /auto-config-update-*
-
+*.exe
+*.tar.gz
 .idea
