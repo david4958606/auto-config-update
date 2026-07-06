@@ -47,7 +47,7 @@ steps:                     # 有序步骤列表，见下
 | `add-data` | 动作 | 建数据点位 `type="data"`。见 §7.2。 |
 | `add-method` | 动作 | 加方法调用。见 §7.3。 |
 | `remove-method` | 动作 | 删方法调用。见 §7.4。 |
-| `add-io` | 动作 | 建 IO 点位（含模拟量实体）。见 §7.5。 |
+| `add-io` | 动作 | 建 IO 点位，可内嵌实体引用。见 §7.5。 |
 
 同一 step 内动作的**执行顺序固定**（与 YAML 中书写顺序无关）：
 `add-node` → `add-data` → `add-method` → `remove-method` → `add-io`（见 §8）。
@@ -182,8 +182,8 @@ add-node:
 
 ### 7.2 `add-data` —— 建数据点位
 
-在 anchor 下确保存在 `<name type="data" attrs...>`，**按 name 判重**。与 `add-io` 的差别：
-首属性固定 `type="data"`，且**不**追加模拟量实体引用。
+在 anchor 下确保存在 `<name type="data" attrs...>`，**按 name 判重**。与 `add-io` 的唯一差别：
+首属性固定 `type="data"`。其余子元素/实体规则与 `add-io` 一致。
 
 | 字段 | 说明 |
 |------|------|
@@ -191,13 +191,20 @@ add-node:
 | `attrs` | 属性（`type="data"` 之后，保留书写顺序，值支持占位符）。 |
 | `Bd` | 板号。`auto` = 自适应推断（见 §9）；否则取字面值。 |
 | `Ch` | 通道号（字面值）。 |
-| `Min` / `Max` / `Accuracy` | 子元素。 |
+| `Min` / `Max` / `Accuracy` | 可选子元素。 |
+| `DescriptorList` | 可选。`name/value` 列表，渲染成 `<DescriptorList>OFF:0,ON:1</DescriptorList>`；空列表则不加。 |
+| `Unit` | 可选。未配则不加；`NULL`/空串→成对空标签 `<Unit></Unit>`。 |
+| `include-entity` | 可选。glob（先占位符替换）匹配顶层声明的实体真名，命中则把 `&实体名;` 内嵌为点位**最后一个子节点**（同 `add-node`/`add-io`）；未匹配到则打印告警 `!`。 |
 
-子元素规则（`Bd`、`Ch`、`Min`、`Max`、`Accuracy` 按此顺序）：
+子元素顺序：`Bd`、`Ch`、`[Min]`、`[Max]`、`[Accuracy]`、`[DescriptorList]`、`[Unit]`、`[&实体;]`。
+子元素文本规则：
 
 - **未配**（该键缺省）→ 该子元素**不加**。
 - 配为 `NULL` 或空串 → 渲染成**成对空标签** `<Bd></Bd>`（而非自闭合 `<Bd/>`）。
 - 否则取字面文本。
+
+> 注意：`attrs` 里的 `simulated` 只是普通属性，**不**驱动实体引用；要追加 `&SimulatedFlag_ChN;`
+> 之类的引用须显式写 `include-entity`。
 
 同一 anchor 内 `add-data` **排在 `add-method` 之前**，便于方法引用 `./name`。
 
@@ -205,6 +212,7 @@ add-node:
 add-data:
   - name: TempB4OffsetVp
     attrs: { dataType: "D", accessMode: "R", simulated: "true", alias: "/IO/${Degas}Exports/Heater_TempB4Offset" }
+    include-entity: "SimulatedFlag*{Degas}"   # → 点位内末尾内嵌 &SimulatedFlag_ChD;
     Bd: NULL
     Ch: NULL
     Min: NULL
@@ -261,21 +269,23 @@ remove-method:
 | 字段 | 说明 |
 |------|------|
 | `name` | 点位标签名。判重键。 |
-| `attrs` | 属性（保留书写顺序，值支持占位符）。含 `simulated` 时在子节点**末尾追加**实体引用 `&Simulated_ChN;`。 |
+| `attrs` | 属性（保留书写顺序，值支持占位符）。`simulated` 只是普通属性，不驱动实体引用。 |
 | `Bd` | 板号。`auto` = 自适应推断（见 §9）；否则字面值。 |
 | `Ch` | 通道号（字面值）。 |
 | `Min` / `Max` | 可选。未配则不加；配了则加（空串→成对空标签）。 |
 | `Accuracy` | 可选。未配则不加；`NULL`/空串→成对空标签。 |
 | `DescriptorList` | `name/value` 列表，渲染成 `<DescriptorList>OFF:0,ON:1</DescriptorList>`；空列表则不加。 |
 | `Unit` | 可选。未配则不加；空串→自闭合。 |
+| `include-entity` | 可选。glob（先占位符替换）匹配顶层声明的实体真名，命中则把 `&实体名;` 内嵌为点位**最后一个子节点**（同 `add-node`）；未匹配到则打印告警 `!`。 |
 
-子元素顺序：`Bd`、`Ch`、`[Min]`、`[Max]`、`[Accuracy]`、`[DescriptorList]`、`[Unit]`。
+子元素顺序：`Bd`、`Ch`、`[Min]`、`[Max]`、`[Accuracy]`、`[DescriptorList]`、`[Unit]`、`[&实体;]`。
 空值子元素渲染成成对空标签（如 `<Unit></Unit>`），与既有片段写法一致。
 
 ```yaml
 add-io:
   - name: OnOffDO
     attrs: { dataType: "I", accessMode: "RW", simulated: "", alias: "/IO/${ITO}Exports/IG_OnOffDO" }
+    include-entity: "Simulated*{ITO}"        # → 点位内末尾内嵌 &Simulated_Ch1;
     Bd: auto
     Ch: 4901
     Min: 0
@@ -285,7 +295,7 @@ add-io:
       - { name: ON,  value: 1 }
 ```
 
-生成（含末尾 `&Simulated_ChN;`，因 attrs 有 `simulated`）：
+生成（含末尾 `&Simulated_ChN;`，因 `include-entity` 命中）：
 
 ```xml
 <OnOffDO dataType="I" accessMode="RW" simulated="" alias="/IO/Ch1Exports/IG_OnOffDO">
@@ -348,6 +358,7 @@ steps:
     add-io:
       - name: OnOffDI
         attrs: { dataType: "I", accessMode: "R", simulated: "", alias: "/IO/${ITO}Exports/IG_OnOffDI" }
+        include-entity: "Simulated*{ITO}"
         Bd: auto
         Ch: 4101
         DescriptorList:

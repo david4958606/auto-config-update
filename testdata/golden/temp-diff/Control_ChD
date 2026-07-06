@@ -17,10 +17,10 @@
             <Min></Min>
             <Max></Max>
             <Accuracy>0.00000001</Accuracy>
+            &SimulatedFlag_ChD;
         </TempB4OffsetVp>
         <setMonitorTempVp type="method">/IO/Platform/Plc/ChD/HeaterTcAI</setMonitorTempVp>
         <setTempB4Offset type="method">./TempB4OffsetVp</setTempB4Offset>
-        &SimulatedFlag_ChD;
     </Heater>
     &SimulatedFlag_ChD;
 </ChD>

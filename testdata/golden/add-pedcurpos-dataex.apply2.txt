@@ -13,11 +13,11 @@
   步[接 setCurPosVp] 跳过：anchor CVD/PhyChuck 无匹配
   步[调整 ProcessLogger 日志项] 跳过：anchor CVD/ProcessLogger 无匹配
 [Ch4] (Control_Ch4)
-  步[建 Ped 对象] Ch4(class=CVD): · 对象 <Ped> 已存在
-  步[接 setCurPosVp] Ped(class=PhyChuck): · 方法 setCurPosVp(/IO/Ch4/Ped/CurPosDI) 已存在
+  步[建 Ped 对象] Ch4(class=CVD): - 对象 <Ped> 已存在
+  步[接 setCurPosVp] Ped(class=PhyChuck): - 方法 setCurPosVp(/IO/Ch4/Ped/CurPosDI) 已存在
   步[调整 ProcessLogger 日志项] ProcessLogger(class=ProcessLogger): /IO/Ch4/Ped/CurPosDI 命中于 IO_Motor（绑定 {PedCurPos}）
-  步[调整 ProcessLogger 日志项] ProcessLogger(class=ProcessLogger): · 方法 addDataEx(/IO/Ch4/Ped/CurPosDI,PedCurPos,1) 已存在
-  步[调整 ProcessLogger 日志项] ProcessLogger(class=ProcessLogger): · 方法 addDataEx(/IO/Ch4/Pin/CurPosDI,PinCurPos,1) 不存在，无需删除
+  步[调整 ProcessLogger 日志项] ProcessLogger(class=ProcessLogger): - 方法 addDataEx(/IO/Ch4/Ped/CurPosDI,PedCurPos,1) 已存在
+  步[调整 ProcessLogger 日志项] ProcessLogger(class=ProcessLogger): - 方法 addDataEx(/IO/Ch4/Pin/CurPosDI,PinCurPos,1) 不存在，无需删除
 [ChC] (Control_ChC)
   步[建 Ped 对象] 跳过：anchor CVD 无匹配
   步[接 setCurPosVp] 跳过：anchor CVD/PhyChuck 无匹配

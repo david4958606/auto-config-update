@@ -303,6 +303,15 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 		}
 
 		var results []ops.Result
+		// resolveEntity 把 include-entity 的 glob 按顶层声明解析成真名；无匹配→""并告警(供 add-io/add-data 复用)。
+		resolveEntity := func(glob string) string {
+			g := feature.Format(glob, tags)
+			name := config.ResolveEntityName(e.declared, g, croot)
+			if name == "" {
+				log(fmt.Sprintf("  步[%s] %s: ! include-entity 未在 Control_config.xml 找到匹配 %s 的实体", step.Name, inst, g))
+			}
+			return name
+		}
 		for _, nd := range step.AddNode {
 			attrs := make([]xmldoc.Attr, 0, 4)
 			for _, a := range nd.AttrPairs() {
@@ -330,7 +339,7 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 			for _, a := range d.AttrPairs() {
 				attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
 			}
-			children := make([]xmldoc.Attr, 0, 5)
+			children := make([]xmldoc.Attr, 0, 7)
 			for _, f := range []struct {
 				name string
 				node *yaml.Node
@@ -346,7 +355,19 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 				}
 				children = append(children, xmldoc.Attr{Name: f.name, Value: val})
 			}
-			results = append(results, ops.AddData(m.Node, d.Name, attrs, children))
+			// DescriptorList / Unit 顺序对齐 add-io：置于 Accuracy 之后。
+			if desc := feature.Format(d.Descriptors(), tags); desc != "" {
+				children = append(children, xmldoc.Attr{Name: "DescriptorList", Value: desc})
+			}
+			// Unit 与 Bd/Ch/Min/Max/Accuracy 同族：Kind==0 缺省跳过，NULL/空串→<Unit></Unit>。
+			if d.Unit.Kind != 0 {
+				children = append(children, xmldoc.Attr{Name: "Unit", Value: feature.Format(feature.ScalarText(&d.Unit), tags)})
+			}
+			entity := ""
+			if d.IncludeEntity != "" {
+				entity = resolveEntity(d.IncludeEntity)
+			}
+			results = append(results, ops.AddData(m.Node, d.Name, attrs, children, entity))
 		}
 		// where.before-method：把本步新增方法插到该既有方法之前(而非追加末尾)。
 		var before *xmldoc.Node
@@ -401,11 +422,11 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 			if io.Unit != nil {
 				children = append(children, xmldoc.Attr{Name: "Unit", Value: feature.Format(*io.Unit, tags)})
 			}
-			simEntity := ""
-			if io.HasAttr("simulated") {
-				simEntity = "Simulated_" + chamber
+			entity := ""
+			if io.IncludeEntity != "" {
+				entity = resolveEntity(io.IncludeEntity)
 			}
-			results = append(results, ops.AddIO(m.Node, io.Name, attrs, children, simEntity))
+			results = append(results, ops.AddIO(m.Node, io.Name, attrs, children, entity))
 		}
 
 		for _, r := range results {

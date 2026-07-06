@@ -9,11 +9,11 @@
 [Ch4] (Control_Ch4)
   步[add methods to control] 跳过：anchor /Control/{Degas}/{PhyHeater} 无匹配
 [ChC] (Control_ChC)
-  步[add methods to control] Heater(class=PhyHeater): · 数据点位 <TempB4OffsetVp> 已存在
-  步[add methods to control] Heater(class=PhyHeater): · 方法 setMonitorTempVp(/IO/Platform/Plc/ChC/HeaterTcAI) 已存在
-  步[add methods to control] Heater(class=PhyHeater): · 方法 setTempB4Offset(./TempB4OffsetVp) 已存在
+  步[add methods to control] Heater(class=PhyHeater): - 数据点位 <TempB4OffsetVp> 已存在
+  步[add methods to control] Heater(class=PhyHeater): - 方法 setMonitorTempVp(/IO/Platform/Plc/ChC/HeaterTcAI) 已存在
+  步[add methods to control] Heater(class=PhyHeater): - 方法 setTempB4Offset(./TempB4OffsetVp) 已存在
 [ChD] (Control_ChD)
-  步[add methods to control] Heater(class=PhyHeater): ✎ 新增数据点位 <TempB4OffsetVp>
-  步[add methods to control] Heater(class=PhyHeater): ✎ 新增方法 setMonitorTempVp(/IO/Platform/Plc/ChD/HeaterTcAI)
-  步[add methods to control] Heater(class=PhyHeater): ✎ 新增方法 setTempB4Offset(./TempB4OffsetVp)
-[ChD] ✎ 已写回 Control_ChD（3 处编辑，其余字节不动）
+  步[add methods to control] Heater(class=PhyHeater): + 新增数据点位 <TempB4OffsetVp>
+  步[add methods to control] Heater(class=PhyHeater): + 新增方法 setMonitorTempVp(/IO/Platform/Plc/ChD/HeaterTcAI)
+  步[add methods to control] Heater(class=PhyHeater): + 新增方法 setTempB4Offset(./TempB4OffsetVp)
+[ChD] + 已写回 Control_ChD（3 处编辑，其余字节不动）

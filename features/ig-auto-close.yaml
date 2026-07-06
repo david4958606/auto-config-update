@@ -70,6 +70,7 @@ steps:
     add-io:
       - name: OnOffDI
         attrs: { dataType: "I", accessMode: "R", simulated: "", alias: "/IO/${ITO}Exports/IG_OnOffDI" }
+        include-entity: "Simulated*{ITO}"
         Bd: auto
         Ch: 4101
         DescriptorList:
@@ -79,6 +80,7 @@ steps:
             value: 1
       - name: ControlModeDI
         attrs: { dataType: "I", accessMode: "R", simulated: "", alias: "/IO/${ITO}Exports/IG_ControlModeDI" }
+        include-entity: "Simulated*{ITO}"
         Bd: auto
         Ch: 4102
         DescriptorList:
@@ -88,6 +90,7 @@ steps:
             value: 1
       - name: OnOffDO
         attrs: { dataType: "I", accessMode: "RW", simulated: "", alias: "/IO/${ITO}Exports/IG_OnOffDO" }
+        include-entity: "Simulated*{ITO}"
         Bd: auto
         Ch: 4901
         Min: 0
@@ -99,6 +102,7 @@ steps:
             value: 1
       - name: ControlModeDO
         attrs: { dataType: "I", accessMode: "RW", simulated: "", alias: "/IO/${ITO}Exports/IG_ControlModeDO" }
+        include-entity: "Simulated*{ITO}"
         Bd: auto
         Ch: 4902
         Min: 0

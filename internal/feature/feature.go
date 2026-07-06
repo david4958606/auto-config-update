@@ -70,10 +70,10 @@ func (a *AddNodeSpec) AttrPairs() []xmldoc.Attr {
 }
 
 // AddIOSpec 描述一个 add-io 动作：在 anchor(如 <IG>)下建一个 IO 点位。
-// 点位形如 <name attrs...><Bd>..</Bd><Ch>..</Ch><DescriptorList>..</DescriptorList>[<Unit>..</Unit>][&Simulated_ChN;]</name>。
+// 点位形如 <name attrs...><Bd>..</Bd><Ch>..</Ch><DescriptorList>..</DescriptorList>[<Unit>..</Unit>][&Ent;]</name>。
 type AddIOSpec struct {
 	Name           string     `yaml:"name"`
-	Attrs          yaml.Node  `yaml:"attrs"`          // 保留书写顺序；含 simulated 时同时追加实体引用
+	Attrs          yaml.Node  `yaml:"attrs"`          // 保留书写顺序(simulated 只是普通属性，不驱动实体引用)
 	Bd             yaml.Node  `yaml:"Bd"`             // "auto"=自适应推断，否则取字面值
 	Ch             yaml.Node  `yaml:"Ch"`             // 字面值(整数标量，取 .Value)
 	Min            yaml.Node  `yaml:"Min"`            // Kind==0=未配不加；否则 <Min>值</Min>(空串→<Min></Min>)
@@ -81,24 +81,34 @@ type AddIOSpec struct {
 	Accuracy       yaml.Node  `yaml:"Accuracy"`       // Kind==0=未配不加；否则 <Accuracy>值</Accuracy>(NULL/空串→成对空标签)
 	DescriptorList []DescItem `yaml:"DescriptorList"` // 渲染成 <DescriptorList>name:value,...</DescriptorList>
 	Unit           *string    `yaml:"Unit"`           // nil=未配不加；否则 <Unit>值</Unit>(空串→<Unit/>)
+	IncludeEntity  string     `yaml:"include-entity"` // 非空=按 glob 从顶层声明解析真名，于点位内部末尾追加 &真名;(同 add-node)
 }
 
 // AddDataSpec 描述一个 add-data 动作：在 anchor(如 <Heater>)下建一个数据点位。
-// 与 add-io 的差别：首属性固定为 type="data"，且不追加模拟量实体引用；
+// 与 add-io 的差别：首属性固定为 type="data"。
 // Bd/Ch/Min/Max/Accuracy 各字段 Kind==0(未配)时跳过，NULL 或空串→成对空标签(如 <Bd></Bd>)。
+// DescriptorList/Unit/IncludeEntity 与 add-io 语义一致：子元素顺序及实体引用放置均对齐 add-io。
 type AddDataSpec struct {
-	Name     string    `yaml:"name"`
-	Attrs    yaml.Node `yaml:"attrs"`
-	Bd       yaml.Node `yaml:"Bd"`
-	Ch       yaml.Node `yaml:"Ch"`
-	Min      yaml.Node `yaml:"Min"`
-	Max      yaml.Node `yaml:"Max"`
-	Accuracy yaml.Node `yaml:"Accuracy"`
+	Name           string     `yaml:"name"`
+	Attrs          yaml.Node  `yaml:"attrs"`
+	Bd             yaml.Node  `yaml:"Bd"`
+	Ch             yaml.Node  `yaml:"Ch"`
+	Min            yaml.Node  `yaml:"Min"`
+	Max            yaml.Node  `yaml:"Max"`
+	Accuracy       yaml.Node  `yaml:"Accuracy"`
+	DescriptorList []DescItem `yaml:"DescriptorList"` // 渲染成 <DescriptorList>name:value,...</DescriptorList>
+	Unit           yaml.Node  `yaml:"Unit"`           // Kind==0=未配不加；否则 <Unit>值</Unit>(NULL/空串→成对空标签 <Unit></Unit>)
+	IncludeEntity  string     `yaml:"include-entity"` // 非空=按 glob 从顶层声明解析真名，于点位内部末尾追加 &真名;(同 add-node)
 }
 
 // AttrPairs 按书写顺序返回数据点位属性的键值对(不含 type="data")。
 func (a *AddDataSpec) AttrPairs() []xmldoc.Attr {
 	return mapPairs(&a.Attrs)
+}
+
+// Descriptors 把 DescriptorList 拼成 "OFF:0,ON:1" 形式；空列表返回 ""。
+func (a *AddDataSpec) Descriptors() string {
+	return joinDescriptors(a.DescriptorList)
 }
 
 // ScalarText 返回标量节点用于渲染的文本：未配(Kind==0)或 NULL(!!null)→空串，否则取原始文本。
@@ -120,20 +130,15 @@ func (a *AddIOSpec) AttrPairs() []xmldoc.Attr {
 	return mapPairs(&a.Attrs)
 }
 
-// HasAttr 报告点位是否声明了某属性(如 simulated)。
-func (a *AddIOSpec) HasAttr(name string) bool {
-	for _, p := range a.AttrPairs() {
-		if p.Name == name {
-			return true
-		}
-	}
-	return false
-}
-
 // Descriptors 把 DescriptorList 拼成 "OFF:0,ON:1" 形式(name:value，逗号连接)；空列表返回 ""。
 func (a *AddIOSpec) Descriptors() string {
-	parts := make([]string, 0, len(a.DescriptorList))
-	for _, d := range a.DescriptorList {
+	return joinDescriptors(a.DescriptorList)
+}
+
+// joinDescriptors 把描述子列表拼成 "name:value,..."；空列表返回 ""。
+func joinDescriptors(list []DescItem) string {
+	parts := make([]string, 0, len(list))
+	for _, d := range list {
 		parts = append(parts, d.Name+":"+d.Value.Value)
 	}
 	return strings.Join(parts, ",")

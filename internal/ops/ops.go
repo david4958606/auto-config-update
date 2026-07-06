@@ -80,46 +80,47 @@ func AddMethod(anchor *xmldoc.Node, name string, value string, hasValue bool, ex
 // AddIO 确保 anchor 下存在 IO 点位 <name attrs...>，内含 children 声明的各子元素
 // (如 <Bd>/<Ch>/<DescriptorList>/<Unit>，按传入顺序)；按 name 判重(幂等)。
 // children 复用 xmldoc.Attr：Name=子标签、Value=子元素文本(空文本渲染为自闭合)。
-// simEntity 非空时在子节点末尾追加实体引用 &simEntity;(模拟量)。
-func AddIO(anchor *xmldoc.Node, name string, attrs, children []xmldoc.Attr, simEntity string) Result {
+// entity 非空时在子节点末尾追加实体引用 &entity;(由 include-entity 解析得来)。
+func AddIO(anchor *xmldoc.Node, name string, attrs, children []xmldoc.Attr, entity string) Result {
 	if xmldoc.FindChild(anchor, name) != nil {
 		return Result{false, fmt.Sprintf("IO 点位 <%s> 已存在", name), nil}
 	}
 	el := xmldoc.NewElement(name)
 	el.Attrs = attrs
-	for _, c := range children {
-		sub := xmldoc.NewElement(c.Name)
-		sub.Text = c.Value
-		sub.PairedEmpty = true // 空值子元素渲染成 <Unit></Unit> 而非 <Unit/>(与 IG 片段既有写法一致)
-		xmldoc.AppendChild(el, sub)
-	}
-	if simEntity != "" {
-		xmldoc.AppendChild(el, xmldoc.NewEntity(simEntity))
-	}
+	appendChildrenAndEntity(el, children, entity)
 	xmldoc.AppendChild(anchor, el)
 	return Result{true, fmt.Sprintf("新增 IO 点位 <%s>", name),
 		&xmldoc.Edit{Kind: xmldoc.Insert, Parent: anchor, Child: el}}
 }
 
 // AddData 确保 anchor 下存在数据点位 <name type="data" attrs...>，内含 children 声明的各子元素
-// (如 <Bd>/<Ch>/<Min>/<Max>/<Accuracy>，按传入顺序)；按 name 判重(幂等)。
-// 与 AddIO 的差别：首属性固定为 type="data"，且不追加模拟量实体引用。
+// (如 <Bd>/<Ch>/<Min>/<Max>/<Accuracy>/<DescriptorList>/<Unit>，按传入顺序)；按 name 判重(幂等)。
+// 与 AddIO 的差别：首属性固定为 type="data"。entity 语义同 AddIO(于点位内部末尾追加 &entity;)。
 // children 复用 xmldoc.Attr：Name=子标签、Value=子元素文本(空文本渲染为成对空标签)。
-func AddData(anchor *xmldoc.Node, name string, attrs, children []xmldoc.Attr) Result {
+func AddData(anchor *xmldoc.Node, name string, attrs, children []xmldoc.Attr, entity string) Result {
 	if xmldoc.FindChild(anchor, name) != nil {
 		return Result{false, fmt.Sprintf("数据点位 <%s> 已存在", name), nil}
 	}
 	el := xmldoc.NewElement(name)
 	el.Attrs = append([]xmldoc.Attr{{Name: "type", Value: "data"}}, attrs...)
-	for _, c := range children {
-		sub := xmldoc.NewElement(c.Name)
-		sub.Text = c.Value
-		sub.PairedEmpty = true // 空值子元素渲染成 <Bd></Bd> 而非 <Bd/>(与 IG 片段既有写法一致)
-		xmldoc.AppendChild(el, sub)
-	}
+	appendChildrenAndEntity(el, children, entity)
 	xmldoc.AppendChild(anchor, el)
 	return Result{true, fmt.Sprintf("新增数据点位 <%s>", name),
 		&xmldoc.Edit{Kind: xmldoc.Insert, Parent: anchor, Child: el}}
+}
+
+// appendChildrenAndEntity 把 children 逐个作为子元素挂到 el 下(空文本渲染成对空标签)，
+// 最后 entity 非空时追加实体引用 &entity;。add-io / add-data 共用。
+func appendChildrenAndEntity(el *xmldoc.Node, children []xmldoc.Attr, entity string) {
+	for _, c := range children {
+		sub := xmldoc.NewElement(c.Name)
+		sub.Text = c.Value
+		sub.PairedEmpty = true // 空值子元素渲染成 <Unit></Unit> 而非 <Unit/>(与 IG 片段既有写法一致)
+		xmldoc.AppendChild(el, sub)
+	}
+	if entity != "" {
+		xmldoc.AppendChild(el, xmldoc.NewEntity(entity))
+	}
 }
 
 // RemoveMethod 删除 anchor 下匹配 (名字+值) 的方法调用；一个都没有 → no-op。
