@@ -10,9 +10,13 @@
 # 约束：工具链必须是 Go 1.23.x(1.24+ 的 runtime 要内核 3.2)。CGO_ENABLED=0 → 纯静态、
 # 无需 gcc/glibc。依赖已 vendor 进仓库，可离线构建(GOPROXY=off)。
 
-OUT     := auto-config-update
-OUT32   := auto-config-update-32
-OUTWIN  := auto-config-update.exe
+OUT     	:= auto-config-update
+OUT32   	:= auto-config-update-32
+OUTWIN  	:= auto-config-update.exe
+TAR_TARGETS := $(OUT) $(OUT32) $(OUTWIN) features
+TAR_TARGETS += doc
+TAR_TARGETS += README.md
+TAR_NAME := auto-config-update-$(shell date +%Y%m%d-%H%M%S).tar.gz
 LDFLAGS := -s -w
 
 # 离线 + 静态 构建环境。
@@ -51,12 +55,12 @@ win64: check-go
 	@echo "----"
 	@file "$(OUTWIN)" || true
 
-tar:
-	@echo "打包 tar.gz -> auto-config-update-$(DATE).tar.gz"
-	tar -czf auto-config-update-$(DATE).tar.gz "$(OUT)" "$(OUT32)" "$(OUTWIN)" features
+tar: all
+	@echo "打包 tar.gz -> $(TAR_NAME)"
+	tar -czf "$(TAR_NAME)" $(TAR_TARGETS)
 	@echo "----"
-	@ls -lh auto-config-update-$(DATE).tar.gz || true
+	@ls -lh "$(TAR_NAME)" || true
 
 clean:
 	@echo "清理构建产物"
-	rm -f "$(OUT)" "$(OUT32)" "$(OUTWIN)" auto-config-update-*.tar.gz
+	rm -f "$(OUT)" "$(OUT32)" "$(OUTWIN)" "$(TAR_NAME)"
