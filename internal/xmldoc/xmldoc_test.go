@@ -135,3 +135,25 @@ func TestCommentTolerance(t *testing.T) {
 		t.Fatalf("注释未被跳过, children=%d", len(root.Children))
 	}
 }
+
+// CDATA 段应整段忽略(用于把内容当注释)，且内容里的 '>'、']>' 不得误截断。
+func TestCDATATolerance(t *testing.T) {
+	cases := []string{
+		`<A><![CDATA[ 纯文本 ]]><real type="method">v</real></A>`,
+		`<A><![CDATA[<fake attr="x">bar</fake>]]><real type="method">v</real></A>`, // 含 '>'
+		`<A><![CDATA[ a]>b ]]><real type="method">v</real></A>`,                    // 含 ']>'
+	}
+	for i, s := range cases {
+		doc, err := Parse([]byte(s))
+		if err != nil {
+			t.Fatalf("case %d 解析失败: %v", i, err)
+		}
+		root := doc.Roots[0]
+		if root.Text != "" {
+			t.Errorf("case %d: CDATA 内容泄漏到父节点文本: %q", i, root.Text)
+		}
+		if len(root.Children) != 1 || root.Children[0].Tag != "real" {
+			t.Fatalf("case %d: CDATA 未被整段跳过, children=%d", i, len(root.Children))
+		}
+	}
+}

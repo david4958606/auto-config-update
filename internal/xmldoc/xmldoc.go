@@ -6,7 +6,8 @@
 //   - 外科式写盘的根基：每个原节点带 [Start,End) 全区间 + 闭合标签起点 CloseStart。
 //   - 跨步可变树：可挂合成节点(Synthetic)、标记删除(Removed)，落盘时只翻译成字节编辑。
 //
-// 假设(设备 XML 均满足)：结构良好、实体写作 &x;、属性值内不含裸 '<' 或 '>'、无 CDATA。
+// 假设(设备 XML 均满足)：结构良好、实体写作 &x;、属性值内不含裸 '<' 或 '>'。
+// CDATA 段(<![CDATA[...]]>)按整段忽略处理——配置里存在用它包内容当注释的写法。
 package xmldoc
 
 import (
@@ -90,6 +91,12 @@ func Parse(src []byte) (*Document, error) {
 			switch {
 			case p.has("<!--"):
 				if err := p.skipUntil("-->"); err != nil {
+					return nil, err
+				}
+			case p.has("<![CDATA["):
+				// CDATA 段整体跳过：配置里有用 <![CDATA[...]]> 包住内容当注释的写法。
+				// 按 "]]>" 精确结束，避免内容里的 '>' 或 ']>' 造成误截断。
+				if err := p.skipUntil("]]>"); err != nil {
 					return nil, err
 				}
 			case p.has("<?"):
