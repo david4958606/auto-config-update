@@ -36,6 +36,8 @@ type Step struct {
 	Require      []yaml.Node   `yaml:"require"` // 单键 map 列表
 	Bind         []yaml.Node   `yaml:"bind"`    // 单键 map 列表
 	AddNode      []AddNodeSpec `yaml:"add-node"`
+	AddBlank     int           `yaml:"add-blank"`   // 在 add-method 之前插入的空行行数(0=不加)
+	AddComment   []string      `yaml:"add-comment"` // 在 add-method 之前插入的注释原文列表(完整 <!--...-->)
 	AddMethod    []MethodSpec  `yaml:"add-method"`
 	RemoveMethod []MethodSpec  `yaml:"remove-method"`
 	AddIO        []AddIOSpec   `yaml:"add-io"`

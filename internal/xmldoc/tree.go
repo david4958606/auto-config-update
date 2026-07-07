@@ -98,6 +98,19 @@ func NewEntity(name string) *Node {
 	return &Node{IsEntity: true, EntName: name, Synthetic: true, Start: -1, End: -1, CloseStart: -1}
 }
 
+// NewComment 造一个合成注释节点；raw 为完整注释原文(含 <!-- -->)，落盘时原样输出。
+func NewComment(raw string) *Node {
+	return &Node{IsComment: true, Raw: raw, Synthetic: true, Start: -1, End: -1, CloseStart: -1}
+}
+
+// NewBlank 造一个合成空行节点，渲染成 n 个空行(n<1 按 1 计)。
+func NewBlank(n int) *Node {
+	if n < 1 {
+		n = 1
+	}
+	return &Node{IsBlank: true, BlankCount: n, Synthetic: true, Start: -1, End: -1, CloseStart: -1}
+}
+
 // hasElementChildren 报告是否有(未删除的)元素或实体子节点。
 func (n *Node) hasElementChildren() bool {
 	for _, c := range n.Children {
@@ -116,7 +129,15 @@ func (n *Node) hasElementChildren() bool {
 //	仅文本          → <tag attrs>text</tag>
 //	空              → <tag attrs/>(PairedEmpty=true 时改为 <tag attrs></tag>)
 func Render(n *Node, depth int) string {
+	// 空行：不带缩进；BlankCount 行空行 = BlankCount-1 个换行(splice 落盘时再补一个)。
+	if n.IsBlank {
+		return strings.Repeat("\n", n.BlankCount-1)
+	}
 	indent := strings.Repeat("    ", depth)
+	// 注释：原样输出(首行按深度缩进)。
+	if n.IsComment {
+		return indent + n.Raw
+	}
 	if n.IsEntity {
 		return indent + "&" + n.EntName + ";"
 	}

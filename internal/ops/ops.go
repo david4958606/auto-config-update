@@ -7,6 +7,7 @@ package ops
 
 import (
 	"fmt"
+	"strings"
 
 	"addex/internal/xmldoc"
 )
@@ -121,6 +122,54 @@ func appendChildrenAndEntity(el *xmldoc.Node, children []xmldoc.Attr, entity str
 	if entity != "" {
 		xmldoc.AppendChild(el, xmldoc.NewEntity(entity))
 	}
+}
+
+// AddComment 确保 anchor 下存在一行注释 raw(完整 <!--...-->，原样输出)。
+// 判重：注释/空行不进解析树(解析器跳过)，故按 anchor 的【原始字节区间 inner】整串包含判重——
+// 二次 apply 时 inner 已含该注释即 no-op。追加到 anchor 末尾(由上层控制相对顺序)。
+func AddComment(anchor *xmldoc.Node, raw, inner string) Result {
+	if strings.Contains(inner, raw) {
+		return Result{false, fmt.Sprintf("注释 %s 已存在", raw), nil}
+	}
+	c := xmldoc.NewComment(raw)
+	xmldoc.AppendChild(anchor, c)
+	return Result{true, fmt.Sprintf("新增注释 %s", raw),
+		&xmldoc.Edit{Kind: xmldoc.Insert, Parent: anchor, Child: c}}
+}
+
+// AddBlank 确保 anchor 下有一处空行分隔(n 行)。判重同 AddComment：inner 已含空行(两换行间仅空白)
+// 即 no-op——避免二次 apply 反复堆空行。
+func AddBlank(anchor *xmldoc.Node, n int, inner string) Result {
+	if n < 1 {
+		return Result{false, "空行数 <1，忽略", nil}
+	}
+	if hasBlankLine(inner) {
+		return Result{false, "空行已存在", nil}
+	}
+	b := xmldoc.NewBlank(n)
+	xmldoc.AppendChild(anchor, b)
+	msg := "新增空行"
+	if n > 1 {
+		msg = fmt.Sprintf("新增 %d 行空行", n)
+	}
+	return Result{true, msg, &xmldoc.Edit{Kind: xmldoc.Insert, Parent: anchor, Child: b}}
+}
+
+// hasBlankLine 报告 s 中是否存在空行：某个换行之后(只隔空白)紧跟另一个换行。
+func hasBlankLine(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] != '\n' {
+			continue
+		}
+		j := i + 1
+		for j < len(s) && (s[j] == ' ' || s[j] == '\t' || s[j] == '\r') {
+			j++
+		}
+		if j < len(s) && s[j] == '\n' {
+			return true
+		}
+	}
+	return false
 }
 
 // RemoveMethod 删除 anchor 下匹配 (名字+值) 的方法调用；一个都没有 → no-op。

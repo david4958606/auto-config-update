@@ -37,6 +37,12 @@ type Node struct {
 	IsEntity bool   // true 表示这是 &EntName; 这类实体引用节点
 	EntName  string // 实体名(去掉 & 与 ;)
 
+	// 注释 / 空行合成节点(仅由 add-comment / add-blank 产出，解析器不建这类节点)。
+	IsComment  bool   // true → 注释节点：Raw 存完整 <!--...-->，落盘时原样输出
+	IsBlank    bool   // true → 空行节点：渲染为空行(无缩进)
+	Raw        string // IsComment 时的完整注释原文(含 <!-- -->)
+	BlankCount int    // IsBlank 时的空行行数(>=1)
+
 	Synthetic bool // 本次新增(无字节区间)
 	Removed   bool // 标记删除(落盘时删掉其字节区间)
 	SelfClose bool // 原文是自闭合 <tag .../>

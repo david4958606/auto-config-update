@@ -369,6 +369,18 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 			}
 			results = append(results, ops.AddData(m.Node, d.Name, attrs, children, entity))
 		}
+		// add-blank / add-comment：空行与注释，作为方法块的前置注解，排在 add-method 之前。
+		// 注释/空行不进解析树，故判重按 anchor 的原始字节区间(open..close)整串扫描——二次 apply 幂等。
+		innerRaw := ""
+		if m.Node.Start >= 0 && m.Node.CloseStart >= 0 {
+			innerRaw = string(tg.doc.Src[m.Node.Start:m.Node.CloseStart])
+		}
+		if step.AddBlank > 0 {
+			results = append(results, ops.AddBlank(m.Node, step.AddBlank, innerRaw))
+		}
+		for _, raw := range step.AddComment {
+			results = append(results, ops.AddComment(m.Node, feature.Format(raw, tags), innerRaw))
+		}
 		// where.before-method：把本步新增方法插到该既有方法之前(而非追加末尾)。
 		var before *xmldoc.Node
 		if step.Where != nil && step.Where.BeforeMethod != nil {
