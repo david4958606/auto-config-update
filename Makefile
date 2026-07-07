@@ -63,4 +63,4 @@ tar: all
 
 clean:
 	@echo "清理构建产物"
-	rm -f "$(OUT)" "$(OUT32)" "$(OUTWIN)" "$(TAR_NAME)"
+	rm -f "$(OUT)" "$(OUT32)" "$(OUTWIN)" *.tar.gz
