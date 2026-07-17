@@ -31,8 +31,11 @@ func main() {
 func run(argv []string) int {
 	fs := flag.NewFlagSet("addex", flag.ContinueOnError)
 	featurePath := fs.String("feature", "", "feature YAML 路径(必填)")
+	fs.StringVar(featurePath, "f", "", "feature YAML 路径(必填，--feature 的别名)")
+
 	var chambers chamberList
 	fs.Var(&chambers, "chamber", "限定腔室，可连续指定或重复；缺省=全部（如 --chamber Ch1 Ch2 Ch3）")
+	fs.Var(&chambers, "c", "限定腔室，可连续指定或重复；缺省=全部（如 -c Ch1 Ch2 Ch3）")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "用法: addex <plan|apply> --feature <path> [--chamber Ch1 Ch2 ...]")
 		fs.PrintDefaults()
