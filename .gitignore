@@ -33,3 +33,5 @@ wheels/
 /.upgrade-work/
 example-config
 .omo
+example*
+.tmpwork

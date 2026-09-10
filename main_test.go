@@ -1,6 +1,44 @@
 package main
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+// TestVerifySetupGate 校验 CLI 的硬闸门：Setup 里 Param/Value 笔误必须让 verifySetup 返回 1。
+func TestVerifySetupGate(t *testing.T) {
+	work := t.TempDir()
+	dir := filepath.Join(work, "config", "Setup")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// 复现 GasFlowCompens 的笔误：声明 AlONG...，取值 AlOG...。
+	bad := `<X>
+  <Param name="AlONGasFlowPieceCompens" type="S" />
+  <Option index="1"><Value paramName="AlOGasFlowPieceCompens">0</Value></Option>
+</X>`
+	if err := os.WriteFile(filepath.Join(dir, "Bad.xml"), []byte(bad), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code := verifySetup(filepath.Join(work, "config"), true); code != 1 {
+		t.Fatalf("笔误应返回非零退出码，得到 %d", code)
+	}
+	// 一致的文件必须通过。
+	if err := os.Remove(filepath.Join(dir, "Bad.xml")); err != nil {
+		t.Fatal(err)
+	}
+	good := `<X>
+  <Param name="A" type="S" />
+  <Option index="1"><Value paramName="A">0</Value></Option>
+</X>`
+	if err := os.WriteFile(filepath.Join(dir, "Good.xml"), []byte(good), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code := verifySetup(filepath.Join(work, "config"), true); code != 0 {
+		t.Fatalf("一致配置应返回 0，得到 %d", code)
+	}
+}
 
 func TestExpandVariadic(t *testing.T) {
 	cases := []struct {

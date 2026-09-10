@@ -87,7 +87,15 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 	}
 
 	// 自底向上应用，保持偏移稳定。
-	sort.Slice(patches, func(i, j int) bool { return patches[i].start > patches[j].start })
+	// 同一偏移处可能既有"删除/替换"(end>start) 又有"插入"(end==start)——例如把新节点插到
+	// 一个即将被删除的兄弟之前。此时必须**先删后插**：若先插，随后按原偏移执行的删除会把
+	// 刚插入的文本一并吃掉。故同一 start 时 end 大者先应用。
+	sort.SliceStable(patches, func(i, j int) bool {
+		if patches[i].start != patches[j].start {
+			return patches[i].start > patches[j].start
+		}
+		return patches[i].end > patches[j].end
+	})
 	out := src
 	for _, p := range patches {
 		next := make([]byte, 0, len(out)-(p.end-p.start)+len(p.text))

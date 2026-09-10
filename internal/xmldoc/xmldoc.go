@@ -11,6 +11,7 @@
 package xmldoc
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 )
@@ -197,12 +198,12 @@ type parser struct {
 }
 
 func (p *parser) has(s string) bool {
-	return strings.HasPrefix(string(p.src[p.pos:]), s)
+	return bytes.HasPrefix(p.src[p.pos:], []byte(s))
 }
 
 // skipUntil 把 pos 推进到 delim 之后。
 func (p *parser) skipUntil(delim string) error {
-	i := strings.Index(string(p.src[p.pos:]), delim)
+	i := bytes.Index(p.src[p.pos:], []byte(delim))
 	if i < 0 {
 		return fmt.Errorf("字节 %d: 找不到结束符 %q", p.pos, delim)
 	}
@@ -213,9 +214,9 @@ func (p *parser) skipUntil(delim string) error {
 // skipDirective 跳过 <!DOCTYPE ...> 等指令；含内部子集 [...] 时跳到 "]>"。
 func (p *parser) skipDirective() error {
 	// 片段本身通常没有指令；稳妥处理 DOCTYPE 的内部子集。
-	rest := string(p.src[p.pos:])
-	if lb := strings.IndexByte(rest, '['); lb >= 0 {
-		if gt := strings.IndexByte(rest, '>'); gt >= 0 && gt < lb {
+	rest := p.src[p.pos:]
+	if lb := bytes.IndexByte(rest, '['); lb >= 0 {
+		if gt := bytes.IndexByte(rest, '>'); gt >= 0 && gt < lb {
 			return p.skipUntil(">")
 		}
 		return p.skipUntil("]>")
@@ -233,7 +234,7 @@ func (p *parser) skipText() {
 // readEntity 读 &name; 返回实体节点(Start 指向 '&'，End 指向 ';' 之后)。
 func (p *parser) readEntity() (*Node, error) {
 	start := p.pos
-	i := strings.IndexByte(string(p.src[p.pos:]), ';')
+	i := bytes.IndexByte(p.src[p.pos:], ';')
 	if i < 0 {
 		return nil, fmt.Errorf("字节 %d: 实体引用缺少 ';'", start)
 	}
@@ -249,7 +250,7 @@ func (p *parser) readEntity() (*Node, error) {
 // readEndTag 读 </name> 返回 (name, endOffset)。调用时 pos 指向 '<'。
 func (p *parser) readEndTag() (string, int, error) {
 	start := p.pos
-	i := strings.IndexByte(string(p.src[p.pos:]), '>')
+	i := bytes.IndexByte(p.src[p.pos:], '>')
 	if i < 0 {
 		return "", 0, fmt.Errorf("字节 %d: 结束标签缺少 '>'", start)
 	}

@@ -1,0 +1,243 @@
+# 由 hack/gen_upgrade_16196.py 依据 example-16196 config_old → config 差异生成。
+# 静态 feature：运行时只依赖 primitives，不读取目标 config/。
+id: upgrade-16196-control
+description: Control 升级（补偿器、PMacro、稳定时间、互锁报警；逐腔室参数化）
+version: 1
+
+steps:
+  - name: Control 腔室（Degas）升级：Degas
+    anchor: Degas
+    remove-node:
+      - {"attr": {"type": "method"}, "tag": "setMacroHeater", "value": "./Heater"}
+    set-text:
+      - {"attr": {"type": "method"}, "old": "./Heater1", "tag": "setHeater", "value": "./Heater"}
+    add-xml:
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${Degas}Exports/PMacroRcpName"}, "xml": "<exportPMacroCurStepTime type=\"method\">/IO/${Degas}Exports/PMacroCurStepTime</exportPMacroCurStepTime>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${Degas}Exports/PMacroRcpName"}, "xml": "<exportPMacroTotalStepTime type=\"method\">/IO/${Degas}Exports/PMacroTotalStepTime</exportPMacroTotalStepTime>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${Degas}Exports/PMacroRcpName"}, "xml": "<exportPMacroCurrentLoopCounter type=\"method\">/IO/${Degas}Exports/PMacroCurrentLoopCounter</exportPMacroCurrentLoopCounter>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${Degas}Exports/PMacroRcpName"}, "xml": "<exportPMacroTotalLoopCounter type=\"method\">/IO/${Degas}Exports/PMacroTotalLoopCounter</exportPMacroTotalLoopCounter>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${Degas}Exports/PMacroRcpName"}, "xml": "<enablePMacroPrintfStepInfo type=\"method\" />"}
+
+  - name: Control 腔室（Degas）升级：Degas/ProcessLogger
+    anchor: Degas/ProcessLogger
+    set-text:
+      - {"attr": {"type": "method"}, "old": "/IO/${Degas}Exports/IG_PressureAI,1", "tag": "setDataStableTime", "value": "/IO/${Degas}Exports/IG_PressureAI,/SETUP/${Degas}/ProcessDataStableTime/IGStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${Degas}/Heater/Temperature1AI,1", "tag": "setDataStableTime", "value": "/IO/${Degas}/Heater/Temperature1AI,/SETUP/${Degas}/ProcessDataStableTime/HeaterTempStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/LoadRack/${Degas}/LampInner/CurrentAI,1", "tag": "setDataStableTime", "value": "/IO/LoadRack/${Degas}/LampInner/CurrentAI,/SETUP/${Degas}/ProcessDataStableTime/LampInnerCurStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/LoadRack/${Degas}/LampOuter/CurrentAI,1", "tag": "setDataStableTime", "value": "/IO/LoadRack/${Degas}/LampOuter/CurrentAI,/SETUP/${Degas}/ProcessDataStableTime/LampOuterCurStableTime"}
+
+  - name: Control 腔室（LoadLock）升级：LoadLock
+    anchor: LoadLock
+    add-xml:
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${LoadLock}Exports/PMacroRcpName"}, "xml": "<exportPMacroCurStepTime type=\"method\">/IO/${LoadLock}Exports/PMacroCurStepTime</exportPMacroCurStepTime>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${LoadLock}Exports/PMacroRcpName"}, "xml": "<exportPMacroTotalStepTime type=\"method\">/IO/${LoadLock}Exports/PMacroTotalStepTime</exportPMacroTotalStepTime>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${LoadLock}Exports/PMacroRcpName"}, "xml": "<exportPMacroCurrentLoopCounter type=\"method\">/IO/${LoadLock}Exports/PMacroCurrentLoopCounter</exportPMacroCurrentLoopCounter>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${LoadLock}Exports/PMacroRcpName"}, "xml": "<exportPMacroTotalLoopCounter type=\"method\">/IO/${LoadLock}Exports/PMacroTotalLoopCounter</exportPMacroTotalLoopCounter>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${LoadLock}Exports/PMacroRcpName"}, "xml": "<enablePMacroPrintfStepInfo type=\"method\" />"}
+
+  - name: Control 腔室（PVD）升级：PVD
+    anchor: PVD
+    remove-node:
+      - {"attr": {"type": "method"}, "tag": "enableCompensation"}
+      - {"attr": {"type": "method"}, "tag": "exportPowerCompensByMatCounterEn", "value": "/IO/${PVD}Exports/PowerCompensByMatCounter,Disable"}
+      - {"attr": {"type": "method"}, "tag": "exportTimeCompensByMatCounterEn", "value": "/IO/${PVD}Exports/TimeCompensByMatCounter,Enable"}
+      - {"attr": {"type": "method"}, "tag": "setSrcDcPwrVp", "value": "/IO/${PVD}/SourceDC/ActPowerAI"}
+      - {"attr": {"type": "method"}, "tag": "setBacksideFlowVp", "value": "/IO/${PVD}Exports/BsMFC_GasFlowAI"}
+      - {"attr": {"type": "method"}, "tag": "setBsPressureVp", "value": "/IO/${PVD}/BG/PressureAI"}
+      - {"attr": {"type": "method"}, "tag": "setMacroHeater", "value": "./Heater"}
+      - {"attr": {"type": "method"}, "tag": "setHeater", "value": "./Heater1"}
+      - {"attr": {"type": "method"}, "tag": "setHeater2", "value": "./Heater2"}
+      - {"attr": {"type": "method"}, "tag": "setEscVoltageVp", "value": "/IO/${PVD}/EscDC/VoltageAI"}
+    add-xml:
+      - {"before": {"attr": {"type": "method"}, "tag": "exportState", "value": "/IO/${PVD}Exports/State"}, "xml": "<setCompensCalculator type=\"method\">./CompensParamCalculator</setCompensCalculator>"}
+      - {"before": {"attr": {"type": "method"}, "tag": "exportState", "value": "/IO/${PVD}Exports/State"}, "xml": "<CompensParamCalculator class=\"CompensParamCalculator\" type=\"instance\" alias=\"/Control/${PVD}Exports/CompensParamCalculator\">\n        &SimulatedFlag_${PVD};\n        <addProcTypes type=\"method\">Al</addProcTypes>\n        <addProcTypes type=\"method\">AlO</addProcTypes>\n\n        <addVariables type=\"method\">TargetLife,/SETUP/${PVD}Counter/TargetLifeCounter</addVariables>\n        <addVariables type=\"method\">AlOCycWafer,/SETUP/${PVD}Counter/AlOCycWaferCounter</addVariables>\n        <!-- <setGasFlowSetParamsNum type=\"method\">20</setGasFlowSetParamsNum> -->\n    </CompensParamCalculator>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${PVD}Exports/PMacroRcpName"}, "xml": "<exportPMacroCurStepTime type=\"method\">/IO/${PVD}Exports/PMacroCurStepTime</exportPMacroCurStepTime>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${PVD}Exports/PMacroRcpName"}, "xml": "<exportPMacroTotalStepTime type=\"method\">/IO/${PVD}Exports/PMacroTotalStepTime</exportPMacroTotalStepTime>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${PVD}Exports/PMacroRcpName"}, "xml": "<exportPMacroCurrentLoopCounter type=\"method\">/IO/${PVD}Exports/PMacroCurrentLoopCounter</exportPMacroCurrentLoopCounter>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${PVD}Exports/PMacroRcpName"}, "xml": "<exportPMacroTotalLoopCounter type=\"method\">/IO/${PVD}Exports/PMacroTotalLoopCounter</exportPMacroTotalLoopCounter>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "exportPMacroRcpName", "value": "/IO/${PVD}Exports/PMacroRcpName"}, "xml": "<enablePMacroPrintfStepInfo type=\"method\" />"}
+      - {"after": {"attr": {"type": "method"}, "tag": "setPedTempTolAttrName", "value": "HeaterTempTol"}, "xml": "<setHeater type=\"method\">./Heater</setHeater>"}
+
+  - name: Control 腔室（PVD）升级：PVD/ProcessLogger
+    anchor: PVD/ProcessLogger
+    set-text:
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}/SourceDC/ActPowerAI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}/SourceDC/ActPowerAI,/SETUP/${PVD}/ProcessDataStableTime/SrcPwrStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}/SourceDC/ActVoltageAI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}/SourceDC/ActVoltageAI,/SETUP/${PVD}/ProcessDataStableTime/SrcVoltStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}/SourceDC/ActCurrentAI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}/SourceDC/ActCurrentAI,/SETUP/${PVD}/ProcessDataStableTime/SrcCurStableTime"}
+      - {"attr": {"type": "method"}, "old": "/SETUP/${PVD}Counter/TargetLifeCounter,1", "tag": "setDataStableTime", "value": "/SETUP/${PVD}Counter/TargetLifeCounter,/SETUP/${PVD}/ProcessDataStableTime/TargetLifeStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}Exports/MFC01_GasFlowAI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}Exports/MFC01_GasFlowAI,/SETUP/${PVD}/ProcessDataStableTime/MFC01StableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}Exports/MFC02_GasFlowAI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}Exports/MFC02_GasFlowAI,/SETUP/${PVD}/ProcessDataStableTime/MFC02StableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}Exports/BsMFC_GasFlowAI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}Exports/BsMFC_GasFlowAI,/SETUP/${PVD}/ProcessDataStableTime/BsMFCStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}/BG/PressureAI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}/BG/PressureAI,/SETUP/${PVD}/ProcessDataStableTime/BGStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}Exports/LowerBsMFC_GasFlowAI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}Exports/LowerBsMFC_GasFlowAI,/SETUP/${PVD}/ProcessDataStableTime/LowerBsMFCStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}/LowerBG/PressureAI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}/LowerBG/PressureAI,/SETUP/${PVD}/ProcessDataStableTime/LowerBGStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}/IG/PressureAI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}/IG/PressureAI,/SETUP/${PVD}/ProcessDataStableTime/IGStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}Exports/PG_ImpactPressureVp,1", "tag": "setDataStableTime", "value": "/IO/${PVD}Exports/PG_ImpactPressureVp,/SETUP/${PVD}/ProcessDataStableTime/PGStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}/EscDC/VoltageAI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}/EscDC/VoltageAI,/SETUP/${PVD}/ProcessDataStableTime/EscVoltStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}/EscDC/PosCurrentAI,2", "tag": "setDataStableTime", "value": "/IO/${PVD}/EscDC/PosCurrentAI,/SETUP/${PVD}/ProcessDataStableTime/EscPosCurStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}/EscDC/NegCurrentAI,2", "tag": "setDataStableTime", "value": "/IO/${PVD}/EscDC/NegCurrentAI,/SETUP/${PVD}/ProcessDataStableTime/EscNegCurStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}/EscDC/CenterTapAI,2", "tag": "setDataStableTime", "value": "/IO/${PVD}/EscDC/CenterTapAI,/SETUP/${PVD}/ProcessDataStableTime/DCBiasStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}/PendulumValve/PositionDI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}/PendulumValve/PositionDI,/SETUP/${PVD}/ProcessDataStableTime/PendulumPosStableTime"}
+      - {"attr": {"type": "method"}, "old": "/IO/${PVD}/Plc/PedTemperatureAI,1", "tag": "setDataStableTime", "value": "/IO/${PVD}/Plc/PedTemperatureAI,/SETUP/${PVD}/ProcessDataStableTime/PedTempStableTime"}
+
+  - name: Control 腔室（PVD）升级：PVD/Source/SourceDC
+    anchor: PVD/Source/SourceDC
+    add-xml:
+      - {"after": {"attr": {"type": "method"}, "tag": "setReverseTimeSp", "value": "/IO/${PVD}/SourceDC/ReverseTimeAO"}, "xml": "<setCurrentVp type=\"method\">/IO/${PVD}/SourceDC/ActCurrentAI</setCurrentVp>"}
+
+  - name: Control 腔室（PVD）升级：PVD/Vacuum/BsGasLine/BsMFC
+    anchor: PVD/Vacuum/BsGasLine/BsMFC
+    remove-node:
+      - {"attr": {"type": "method"}, "tag": "factorEnable"}
+      - {"attr": {"type": "method"}, "tag": "setAftOffsetFlowVp", "value": "/IO/${PVD}Exports/BsMFC_GasFlowAI"}
+      - {"attr": {"type": "method"}, "tag": "setAftOffsetFlowSp", "value": "/IO/${PVD}Exports/BsMFC_GasFlowAO"}
+      - {"attr": {"accessMode": "R", "alias": "/IO/${PVD}Exports/BsMFC_GasFlowAI", "dataType": "D", "simulated": "true", "type": "data"}, "tag": "AfterOffsetVp"}
+      - {"attr": {"accessMode": "RW", "alias": "/IO/${PVD}Exports/BsMFC_GasFlowAO", "dataType": "D", "simulated": "false", "type": "data"}, "tag": "AfterOffsetSp"}
+    add-xml:
+      - {"after": {"attr": {"type": "method"}, "tag": "setVp", "value": "/IO/${PVD}/BsMFC/GasFlowAI"}, "xml": "<setFlowMonitorVp type=\"method\">/IO/${PVD}Exports/BsMFC_GasFlowAI</setFlowMonitorVp>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "setVp", "value": "/IO/${PVD}/BsMFC/GasFlowAI"}, "xml": "<setFlowMonitorSp type=\"method\">/IO/${PVD}Exports/BsMFC_GasFlowAO</setFlowMonitorSp>"}
+
+  - name: Control 腔室（PVD）升级：PVD/Vacuum/GasLine01/MFC01
+    anchor: PVD/Vacuum/GasLine01/MFC01
+    remove-node:
+      - {"attr": {"type": "method"}, "tag": "factorEnable"}
+      - {"attr": {"type": "method"}, "tag": "setAftOffsetFlowVp", "value": "/IO/${PVD}Exports/MFC01_GasFlowAI"}
+      - {"attr": {"type": "method"}, "tag": "setAftOffsetFlowSp", "value": "/IO/${PVD}Exports/MFC01_GasFlowAO"}
+      - {"attr": {"accessMode": "R", "alias": "/IO/${PVD}Exports/MFC01_GasFlowAI", "dataType": "D", "simulated": "true", "type": "data"}, "tag": "AfterOffsetVp"}
+      - {"attr": {"accessMode": "RW", "alias": "/IO/${PVD}Exports/MFC01_GasFlowAO", "dataType": "D", "simulated": "false", "type": "data"}, "tag": "AfterOffsetSp"}
+    add-xml:
+      - {"after": {"attr": {"type": "method"}, "tag": "setVp", "value": "/IO/${PVD}/MFC01/GasFlowAI"}, "xml": "<setFlowMonitorVp type=\"method\">/IO/${PVD}Exports/MFC01_GasFlowAI</setFlowMonitorVp>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "setVp", "value": "/IO/${PVD}/MFC01/GasFlowAI"}, "xml": "<setFlowMonitorSp type=\"method\">/IO/${PVD}Exports/MFC01_GasFlowAO</setFlowMonitorSp>"}
+
+  - name: Control 腔室（PVD）升级：PVD/Vacuum/GasLine02/MFC02
+    anchor: PVD/Vacuum/GasLine02/MFC02
+    remove-node:
+      - {"attr": {"type": "method"}, "tag": "factorEnable"}
+      - {"attr": {"type": "method"}, "tag": "setAftOffsetFlowVp", "value": "/IO/${PVD}Exports/MFC02_GasFlowAI"}
+      - {"attr": {"type": "method"}, "tag": "setAftOffsetFlowSp", "value": "/IO/${PVD}Exports/MFC02_GasFlowAO"}
+      - {"attr": {"accessMode": "R", "alias": "/IO/${PVD}Exports/MFC02_GasFlowAI", "dataType": "D", "simulated": "true", "type": "data"}, "tag": "AfterOffsetVp"}
+      - {"attr": {"accessMode": "RW", "alias": "/IO/${PVD}Exports/MFC02_GasFlowAO", "dataType": "D", "simulated": "false", "type": "data"}, "tag": "AfterOffsetSp"}
+    add-xml:
+      - {"after": {"attr": {"type": "method"}, "tag": "setVp", "value": "/IO/${PVD}/MFC02/GasFlowAI"}, "xml": "<setFlowMonitorVp type=\"method\">/IO/${PVD}Exports/MFC02_GasFlowAI</setFlowMonitorVp>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "setVp", "value": "/IO/${PVD}/MFC02/GasFlowAI"}, "xml": "<setFlowMonitorSp type=\"method\">/IO/${PVD}Exports/MFC02_GasFlowAO</setFlowMonitorSp>"}
+
+  - name: Control 腔室（PVD）升级：PVD/Vacuum/HighVacuumValve
+    anchor: PVD/Vacuum/HighVacuumValve
+    add-xml:
+      - {"after": {"attr": {"type": "method"}, "tag": "setGain", "value": "1.0"}, "xml": "<setPosMonitorVp type=\"method\">/IO/${PVD}Exports/PendulumValve_PositionDI</setPosMonitorVp>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "setGain", "value": "1.0"}, "xml": "<setPosMonitorSp type=\"method\">/IO/${PVD}Exports/PendulumValve_PositionDO</setPosMonitorSp>"}
+
+  - name: Control 腔室（PVD）升级：PVD/Vacuum/LowerBsGasLine/LowerBsMFC
+    anchor: PVD/Vacuum/LowerBsGasLine/LowerBsMFC
+    remove-node:
+      - {"attr": {"type": "method"}, "tag": "factorEnable"}
+      - {"attr": {"type": "method"}, "tag": "setAftOffsetFlowVp", "value": "/IO/${PVD}Exports/LowerBsMFC_GasFlowAI"}
+      - {"attr": {"type": "method"}, "tag": "setAftOffsetFlowSp", "value": "/IO/${PVD}Exports/LowerBsMFC_GasFlowAO"}
+      - {"attr": {"accessMode": "R", "alias": "/IO/${PVD}Exports/LowerBsMFC_GasFlowAI", "dataType": "D", "simulated": "true", "type": "data"}, "tag": "AfterOffsetVp"}
+      - {"attr": {"accessMode": "RW", "alias": "/IO/${PVD}Exports/LowerBsMFC_GasFlowAO", "dataType": "D", "simulated": "false", "type": "data"}, "tag": "AfterOffsetSp"}
+    add-xml:
+      - {"after": {"attr": {"type": "method"}, "tag": "setVp", "value": "/IO/${PVD}/LowerBsMFC/GasFlowAI"}, "xml": "<setFlowMonitorVp type=\"method\">/IO/${PVD}Exports/LowerBsMFC_GasFlowAI</setFlowMonitorVp>"}
+      - {"after": {"attr": {"type": "method"}, "tag": "setVp", "value": "/IO/${PVD}/LowerBsMFC/GasFlowAI"}, "xml": "<setFlowMonitorSp type=\"method\">/IO/${PVD}Exports/LowerBsMFC_GasFlowAO</setFlowMonitorSp>"}
+
+  - name: Control 腔室（TransferChamber）升级：TransferChamber/Heater
+    anchor: TransferChamber/Heater
+    add-xml:
+      - {"after": {"attr": {"type": "method"}, "tag": "setPastTimeDispData", "value": "HeaterPastTime,/IO/${TransferChamber}Exports/HeaterPastTime"}, "xml": "<exportHeaterNames type=\"method\">/IO/${TransferChamber}Exports/HeaterNames</exportHeaterNames>"}
+
+  - name: Control 腔室升级：${Chamber}/VInterlocks/ChamberAtTemp
+    anchor: ${Chamber}/VInterlocks/ChamberAtTemp
+    set-text:
+      - {"attr": {"type": "method"}, "old": "Warning,ERROR,${Chamber} chamber temperature is over 96 centigrade.", "tag": "setIntlkAlarm", "value": "Warning,NOTICE,${Chamber} chamber temperature is over 96 centigrade."}
+
+  - name: Control/Control_EFEM 升级
+    file: Control/Control_EFEM
+    anchor: LP1
+    add-xml:
+      - {"xml": "<setE84HO_AVBL type=\"method\">/IO/LP1Exports/E84HO_AVBLDI</setE84HO_AVBL>", "after": {"tag": "setE84Ready", "attr": {"type": "method"}, "value": "/IO/LP1Exports/E84ReadyDI"}}
+
+  - name: Control/Control_EFEM 升级
+    file: Control/Control_EFEM
+    anchor: LP2
+    add-xml:
+      - {"xml": "<setE84HO_AVBL type=\"method\">/IO/LP2Exports/E84HO_AVBLDI</setE84HO_AVBL>", "after": {"tag": "setE84Ready", "attr": {"type": "method"}, "value": "/IO/LP2Exports/E84ReadyDI"}}
+
+  - name: Control/Control_EFEM 升级
+    file: Control/Control_EFEM
+    anchor: LP3
+    add-xml:
+      - {"xml": "<setE84HO_AVBL type=\"method\">/IO/LP3Exports/E84HO_AVBLDI</setE84HO_AVBL>", "after": {"tag": "setE84Ready", "attr": {"type": "method"}, "value": "/IO/LP3Exports/E84ReadyDI"}}
+
+  - name: Control/Control_EFEM 升级
+    file: Control/Control_EFEM
+    anchor: LP1/FuncLP1/PhyLP1
+    add-xml:
+      - {"xml": "<setLoadDO type=\"method\">/IO/Platform/LP1/LoadDO</setLoadDO>", "after": {"tag": "setCarrierTagState", "attr": {"type": "method"}, "value": "/IO/LP1Exports/CarrierTagState"}}
+
+  - name: Control/Control_EFEM 升级
+    file: Control/Control_EFEM
+    anchor: LP2/FuncLP2/PhyLP2
+    add-xml:
+      - {"xml": "<setLoadDO type=\"method\">/IO/Platform/LP2/LoadDO</setLoadDO>", "after": {"tag": "setCarrierTagState", "attr": {"type": "method"}, "value": "/IO/LP2Exports/CarrierTagState"}}
+
+  - name: Control/Control_EFEM 升级
+    file: Control/Control_EFEM
+    anchor: LP3/FuncLP3/PhyLP3
+    add-xml:
+      - {"xml": "<setLoadDO type=\"method\">/IO/Platform/LP3/LoadDO</setLoadDO>", "after": {"tag": "setCarrierTagState", "attr": {"type": "method"}, "value": "/IO/LP3Exports/CarrierTagState"}}
+
+  - name: Control/Control_LA 升级
+    file: Control/Control_LA
+    anchor: LA/Vacuum
+    remove-node:
+      - {"tag": "enableOverVentBySlow", "attr": {"type": "method"}}
+    add-xml:
+      - {"xml": "<enableOverVent type=\"method\" />", "after": {"tag": "addSlotVlv", "attr": {"type": "method"}, "value": "./SlotValve"}}
+
+  - name: Control/Control_LB 升级
+    file: Control/Control_LB
+    anchor: LB/Vacuum
+    remove-node:
+      - {"tag": "enableOverVentBySlow", "attr": {"type": "method"}}
+    add-xml:
+      - {"xml": "<enableOverVent type=\"method\" />", "after": {"tag": "addSlotVlv", "attr": {"type": "method"}, "value": "./SlotValve"}}
+
+  - name: Control/Control_Transfer 升级
+    file: Control/Control_Transfer
+    anchor: Transfer/BiasRFGenerator
+    remove-node:
+      - {"tag": "ImpactPowerVp", "attr": {"type": "data", "dataType": "D", "accessMode": "R", "simulated": "true", "alias": "/IO/SystemExports/BiasRf_ImpactPowerVp"}}
+      - {"tag": "ImpactPowerSp", "attr": {"type": "data", "dataType": "D", "accessMode": "RW", "simulated": "true", "alias": "/IO/SystemExports/BiasRf_ImpactPowerSp"}}
+    add-xml:
+      - {"xml": "<setReflectPowerVp type=\"method\">/IO/Platform/Plc2/BiasRF/ReflectedPowerAI</setReflectPowerVp>", "after": {"tag": "setPowerVp", "attr": {"type": "method"}, "value": "/IO/Platform/Plc2/BiasRF/ForwardPowerAI"}}
+
+  - name: Control/Interlock_ChA 升级
+    file: Control/Interlock_ChA
+    anchor: ChA/VInterlocks/PinOriginPoint
+    remove-node:
+      - {"tag": "setTrigger", "attr": {"type": "method"}, "value": "(/IO/Motor/ChA/Pin/OriginPtDI == NotBuilt)"}
+    add-xml:
+      - {"xml": "<setDurationTrigger type=\"method\">(/IO/Motor/ChA/Pin/OriginPtDI == NotBuilt),10000</setDurationTrigger>", "before": {"tag": "setIntlkAlarm", "attr": {"type": "method"}, "value": "NotBuilt,ERROR,ChA chamber Pin motor origin-point is NOT built."}}
+
+  - name: Control/Interlock_ChB 升级
+    file: Control/Interlock_ChB
+    anchor: ChB/VInterlocks/PinOriginPoint
+    remove-node:
+      - {"tag": "setTrigger", "attr": {"type": "method"}, "value": "(/IO/Motor/ChB/Pin/OriginPtDI == NotBuilt)"}
+    add-xml:
+      - {"xml": "<setDurationTrigger type=\"method\">(/IO/Motor/ChB/Pin/OriginPtDI == NotBuilt),10000</setDurationTrigger>", "before": {"tag": "setIntlkAlarm", "attr": {"type": "method"}, "value": "NotBuilt,ERROR,ChB chamber Pin motor origin-point is NOT built."}}
+
+  - name: Control/Interlock_LA 升级
+    file: Control/Interlock_LA
+    anchor: LA/VInterlocks/PinOriginPoint
+    remove-node:
+      - {"tag": "setTrigger", "attr": {"type": "method"}, "value": "(/IO/Motor/LA/Pin/OriginPtDI == NotBuilt)"}
+    add-xml:
+      - {"xml": "<setDurationTrigger type=\"method\">(/IO/Motor/LA/Pin/OriginPtDI == NotBuilt),10000</setDurationTrigger>", "before": {"tag": "setIntlkAlarm", "attr": {"type": "method"}, "value": "NotBuilt,ERROR,LA chamber Pin motor origin-point is NOT built."}}
+
+  - name: Control/Interlock_LB 升级
+    file: Control/Interlock_LB
+    anchor: LB/VInterlocks/PinOriginPoint
+    remove-node:
+      - {"tag": "setTrigger", "attr": {"type": "method"}, "value": "(/IO/Motor/LB/Pin/OriginPtDI == NotBuilt)"}
+    add-xml:
+      - {"xml": "<setDurationTrigger type=\"method\">(/IO/Motor/LB/Pin/OriginPtDI == NotBuilt),10000</setDurationTrigger>", "before": {"tag": "setIntlkAlarm", "attr": {"type": "method"}, "value": "NotBuilt,ERROR,LB chamber Pin motor origin-point is NOT built."}}

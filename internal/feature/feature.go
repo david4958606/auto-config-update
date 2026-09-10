@@ -36,6 +36,8 @@ type Step struct {
 	Name         string        `yaml:"name"`
 	Anchor       string        `yaml:"anchor"`
 	File         string        `yaml:"file"`
+	NewFile      string        `yaml:"new-file"` // 非空：文件不存在时用 Content 新建(相对 config/)
+	Content      string        `yaml:"content"`  // new-file 的原文内容(逐字写入，不做占位符替换)
 	Where        *WhereSpec    `yaml:"where"`
 	Require      []yaml.Node   `yaml:"require"` // 单键 map 列表
 	Bind         []yaml.Node   `yaml:"bind"`    // 单键 map 列表

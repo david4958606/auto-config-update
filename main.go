@@ -17,6 +17,7 @@ import (
 
 	"addex/internal/engine"
 	"addex/internal/feature"
+	"addex/internal/setupcheck"
 )
 
 type chamberList []string
@@ -32,12 +33,14 @@ func run(argv []string) int {
 	fs := flag.NewFlagSet("addex", flag.ContinueOnError)
 	featurePath := fs.String("feature", "", "feature YAML 路径(必填)")
 	fs.StringVar(featurePath, "f", "", "feature YAML 路径(必填，--feature 的别名)")
+	noVerify := fs.Bool("no-verify", false, "apply 后跳过 Setup 一致性自检")
 
 	var chambers chamberList
 	fs.Var(&chambers, "chamber", "限定腔室，可连续指定或重复；缺省=全部（如 --chamber Ch1 Ch2 Ch3）")
 	fs.Var(&chambers, "c", "限定腔室，可连续指定或重复；缺省=全部（如 -c Ch1 Ch2 Ch3）")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "用法: addex <plan|apply> --feature <path> [--chamber Ch1 Ch2 ...]")
+		fmt.Fprintln(os.Stderr, "用法: addex <plan|apply> --feature <path> [--chamber Ch1 Ch2 ...] [--no-verify]")
+		fmt.Fprintln(os.Stderr, "      addex check            # 校验 config/Setup 的 Param/Value 一一对应")
 		fs.PrintDefaults()
 	}
 
@@ -46,13 +49,17 @@ func run(argv []string) int {
 		return 2
 	}
 	mode := argv[0]
-	if mode != "plan" && mode != "apply" {
-		fmt.Fprintf(os.Stderr, "未知模式 %q（应为 plan 或 apply）\n", mode)
+	if mode != "plan" && mode != "apply" && mode != "check" {
+		fmt.Fprintf(os.Stderr, "未知模式 %q（应为 plan / apply / check）\n", mode)
 		fs.Usage()
 		return 2
 	}
 	if err := fs.Parse(expandVariadic(argv[1:], "chamber")); err != nil {
 		return 2
+	}
+	if mode == "check" {
+		fmt.Print("配置一致性校验 | Setup 的 Param/Value 按下标一一对应\n\n")
+		return verifySetup("config", true)
 	}
 	if *featurePath == "" {
 		fmt.Fprintln(os.Stderr, "缺少 --feature")
@@ -81,6 +88,42 @@ func run(argv []string) int {
 	log := func(s string) { fmt.Println(s) }
 	if err := eng.ApplyFeature(feat, chambers, mode == "apply", log); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	// 后置自检：Setup 的 Param/Value 必须一一对应。这类笔误/错位往往只在设备侧才暴露，
+	// 这里提前拦下：apply 默认自检并以非零退出码报错；plan 只提示；--no-verify 可显式跳过。
+	if mode == "apply" && !*noVerify {
+		return verifySetup("config", true)
+	}
+	if mode == "plan" {
+		verifySetup("config", false)
+	}
+	return 0
+}
+
+// verifySetup 校验 config/Setup 的 Param/Value 一一对应并打印问题。
+// fail=true 且存在 error 级问题时返回 1（供 apply / check 作硬闸门）。
+func verifySetup(configDir string, fail bool) int {
+	issues, err := setupcheck.CheckDir(configDir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if len(issues) == 0 {
+		return 0
+	}
+	errors := 0
+	fmt.Println("── Setup 一致性自检 ──")
+	for _, is := range issues {
+		mark := "! "
+		if is.Severity == setupcheck.Error {
+			mark = "!!"
+			errors++
+		}
+		fmt.Printf("  %s %s\n", mark, is)
+	}
+	fmt.Printf("共 %d 处问题，均必须修复（设备按数组下标读取 Param/Value）。\n", len(issues))
+	if fail && errors > 0 {
 		return 1
 	}
 	return 0

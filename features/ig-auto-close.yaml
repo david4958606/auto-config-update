@@ -2,7 +2,11 @@ id: ig-auto-close
 description: IG规在工艺中自动关闭灯丝功能
 version: 1
 
-# 用 {} 表示节点的类，用 ${} 表示节点名称
+# 占位符两种写法：
+#   anchor 段：{X} = 按 class 匹配并把 X 绑定为该实例标签；${X} = 按"已绑定的标签名"匹配
+#              (如腔室 class 绑定 {ITO}=Ch1，IOBridge 那层没有 class 只能写 ${ITO})。
+#   取值字段：{X} 与 ${X} **同解**，都替换为 tags[X]（所有原语的取值字段都支持，见
+#              doc/feature-primitives.md §6）。
 steps:
   ### Control_ChXXX ###
   - name: 建 IonGauge 对象

@@ -99,9 +99,10 @@ func loadFragByChamber(master string) (map[string]*target, error) {
 }
 
 // SplitSteps 把 steps 分成"腔室级"与"文件级"两组(保持各自声明顺序)。
+// 文件级步骤指声明了 file:(作用于既有文件) 或 new-file:(新建文件) 的步骤。
 func SplitSteps(steps []feature.Step) (chamber, files []feature.Step) {
 	for _, s := range steps {
-		if s.File != "" {
+		if s.File != "" || s.NewFile != "" {
 			files = append(files, s)
 		} else {
 			chamber = append(chamber, s)
@@ -116,6 +117,11 @@ func SplitSteps(steps []feature.Step) (chamber, files []feature.Step) {
 // 声明了 file: 的步骤在腔室循环之后对相应文件各执行一次。
 func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool, log func(string)) error {
 	chamberSteps, fileSteps := SplitSteps(f.Steps)
+	// 纯文件级 feature(如 Setup/IOBridge 的静态升级)：不必加载任何腔室片段，
+	// 省掉对全部 Control/IO/Driver 片段的解析。
+	if len(chamberSteps) == 0 {
+		return e.runFileSteps(fileSteps, write, log)
+	}
 	frags, err := config.FragmentFiles(e.controlMaster)
 	if err != nil {
 		return err
@@ -169,7 +175,10 @@ func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool,
 		}
 
 		// seed：腔室根的 {类}=腔室标签(如 {ITO}=Ch1)，供 anchor 名称段 ${ITO} 与模板取值。
-		chamberBinds := map[string]string{}
+		// 另加一个与 class 无关的保留绑定 {Chamber}=腔室标签：某些片段(如 Interlock_*)
+		// 的根没有 class，或同一改动要跨多个 class 的腔室复用，此时用 ${Chamber} 才能
+		// 写出"一份声明、逐腔室自动替换腔室名"的 feature(见 add-pedcurpos-dataex.yaml)。
+		chamberBinds := map[string]string{"Chamber": chamber}
 		if cls := croot.Class(); cls != "" {
 			chamberBinds[cls] = chamber
 		}
@@ -197,9 +206,16 @@ func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool,
 }
 
 // runFileSteps 逐条执行文件级步骤：每个文件只读一次、改完(可选)写回。
+// new-file 步骤不走解析：文件不存在才逐字写 Content(存在即幂等 no-op，绝不覆盖)。
 func (e *Engine) runFileSteps(steps []feature.Step, write bool, log func(string)) error {
 	for i := range steps {
 		step := &steps[i]
+		if step.NewFile != "" {
+			if err := e.createFile(step, write, log); err != nil {
+				return err
+			}
+			continue
+		}
 		path := filepath.Join(e.configDir, filepath.FromSlash(step.File))
 		src, err := os.ReadFile(path)
 		if err != nil {
@@ -216,10 +232,7 @@ func (e *Engine) runFileSteps(steps []feature.Step, write bool, log func(string)
 		log(fmt.Sprintf("[文件 %s]", step.File))
 		tg := &target{doc: doc, path: path, roots: doc.Roots}
 		segs := parseAnchorPlain(step.Anchor)
-		var where *anchor.Where
-		if step.Where != nil {
-			where = &anchor.Where{TagGlob: step.Where.TagGlob, HasGlob: step.Where.TagGlob != "", Attr: step.Where.Attr}
-		}
+		where := buildWhere(step.Where, nil)
 		var matches []anchor.Match
 		for _, root := range doc.Roots {
 			matches = append(matches, anchor.Resolve(root, segs, where)...)
@@ -240,6 +253,34 @@ func (e *Engine) runFileSteps(steps []feature.Step, write bool, log func(string)
 			log(fmt.Sprintf("[文件 %s] + 已写回 %s（%d 处编辑，其余字节不动）", step.File, step.File, len(tg.edits)))
 		}
 	}
+	return nil
+}
+
+// createFile 执行 new-file 步骤：config/<new-file> 不存在时按 Content 逐字新建。
+// 幂等判据=文件是否已存在——已存在即 no-op，绝不覆盖(与"外科式补丁"一致)。
+func (e *Engine) createFile(step *feature.Step, write bool, log func(string)) error {
+	path := filepath.Join(e.configDir, filepath.FromSlash(step.NewFile))
+	if _, err := os.Stat(path); err == nil {
+		log(fmt.Sprintf("[新文件 %s] - 已存在，保持原样(no-op)", step.NewFile))
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("检查 %s: %w", step.NewFile, err)
+	}
+	if !write {
+		log(fmt.Sprintf("[新文件 %s] + 待新建（%d 字节）", step.NewFile, len(step.Content)))
+		return nil
+	}
+	if dir := filepath.Dir(path); dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("新建目录 %s: %w", dir, err)
+		}
+	}
+	// 逐字落盘：content 原样写入(含 CRLF/LF 与是否带行尾换行)，保证新建文件与声明完全一致。
+	content := step.Content
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		return fmt.Errorf("新建 %s: %w", step.NewFile, err)
+	}
+	log(fmt.Sprintf("[新文件 %s] + 已新建 %s（%d 字节）", step.NewFile, step.NewFile, len(content)))
 	return nil
 }
 
@@ -345,10 +386,7 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 			segs[i].Match = v
 		}
 	}
-	var where *anchor.Where
-	if step.Where != nil {
-		where = &anchor.Where{TagGlob: step.Where.TagGlob, HasGlob: step.Where.TagGlob != "", Attr: step.Where.Attr}
-	}
+	where := buildWhere(step.Where, chamberBinds)
 	// 逐 root 解析后汇总(片段可含同名 tag 的多个顶层节点)。
 	var matches []anchor.Match
 	for _, root := range tg.roots {
@@ -362,6 +400,19 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 	for _, m := range matches {
 		e.applyActions(step, tg, m, chamberBinds, chamber, croot, log)
 	}
+}
+
+// buildWhere 把 step 的 where 谓词转成 anchor.Where，并对 tag-glob / attr 值做占位符替换。
+// 与所有取值字段同一口径：`{X}` 与 `${X}` 同解为 tags[X]。文件级步骤没有腔室绑定，传 nil 即原样。
+func buildWhere(w *feature.WhereSpec, tags map[string]string) *anchor.Where {
+	if w == nil {
+		return nil
+	}
+	attrs := make(map[string]string, len(w.Attr))
+	for k, v := range w.Attr {
+		attrs[k] = feature.Format(v, tags)
+	}
+	return &anchor.Where{TagGlob: feature.Format(w.TagGlob, tags), HasGlob: w.TagGlob != "", Attr: attrs}
 }
 
 // toSel 把 feature 选择器转成 ops 选择器，并做占位符替换。
@@ -438,7 +489,7 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		if before == nil && nd.After != nil {
 			before = resolveBefore(m.Node, nd.After, true, tags)
 		}
-		results = append(results, ops.AddNode(m.Node, feature.Format(nd.Tag, tags), nd.Class, attrs, before))
+		results = append(results, ops.AddNode(m.Node, feature.Format(nd.Tag, tags), feature.Format(nd.Class, tags), attrs, before))
 		chamberBinds[feature.Format(nd.Tag, tags)] = "./" + feature.Format(nd.Tag, tags) // 登记对象引用，供后续步骤 {标签}
 
 		if nd.IncludeEntity != "" {
@@ -534,7 +585,7 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		if hasOld {
 			old = feature.Format(*st.Old, tags)
 		}
-		results = append(results, ops.SetText(m.Node, sel, st.Child, old, hasOld, feature.Format(st.Value, tags)))
+		results = append(results, ops.SetText(m.Node, sel, feature.Format(st.Child, tags), old, hasOld, feature.Format(st.Value, tags)))
 	}
 	for i := range step.SetAttr {
 		sa := &step.SetAttr[i]
@@ -544,7 +595,7 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		if hasOld {
 			old = feature.Format(*sa.Old, tags)
 		}
-		results = append(results, ops.SetAttr(m.Node, sel, sa.Child, old, hasOld,
+		results = append(results, ops.SetAttr(m.Node, sel, feature.Format(sa.Child, tags), old, hasOld,
 			feature.Format(sa.Name, tags), feature.Format(sa.Value, tags)))
 	}
 	for i := range step.RemoveNode {
@@ -554,7 +605,7 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 			v := feature.Format(*rn.Value, tags)
 			sel.Value = &v
 		}
-		results = append(results, ops.RemoveNode(m.Node, sel, rn.Child))
+		results = append(results, ops.RemoveNode(m.Node, sel, feature.Format(rn.Child, tags)))
 	}
 	// wrap：注释掉 / CDATA 化一段节点区间。
 	for i := range step.Wrap {
@@ -569,6 +620,7 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		if close == "" {
 			close = "-->"
 		}
+		open, close = feature.Format(open, tags), feature.Format(close, tags)
 		sels := make([]ops.Sel, 0, len(wr.Select))
 		for j := range wr.Select {
 			sel := ops.Sel{Tag: feature.Format(wr.Select[j].Tag, tags), Attrs: formatAttrs(wr.Select[j].Attr, tags)}
@@ -578,7 +630,7 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 			}
 			sels = append(sels, sel)
 		}
-		results = append(results, ops.WrapRange(m.Node, sels, wr.Child, open, close, src))
+		results = append(results, ops.WrapRange(m.Node, sels, feature.Format(wr.Child, tags), open, close, src))
 	}
 	// uncomment：放开/删除被注释包住的块(文本级)。
 	for i := range step.Uncomment {
@@ -590,6 +642,7 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		if close == "" {
 			close = "-->"
 		}
+		open, close = feature.Format(open, tags), feature.Format(close, tags)
 		results = append(results, ops.Uncomment(src, feature.Format(uc.Find, tags), open, close, uc.Drop))
 	}
 	// add-blank / add-comment：空行与注释，作为方法块的前置注解，排在 add-method 之前。
@@ -643,16 +696,16 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		for _, a := range io.AttrPairs() {
 			attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
 		}
-		bd := io.Bd.Value
+		bd := feature.Format(io.Bd.Value, tags)
 		if bd == "auto" {
 			bd = inferBd(m.Node, chamber)
 		}
-		children := []xmldoc.Attr{{Name: "Bd", Value: bd}, {Name: "Ch", Value: io.Ch.Value}}
+		children := []xmldoc.Attr{{Name: "Bd", Value: bd}, {Name: "Ch", Value: feature.Format(io.Ch.Value, tags)}}
 		if io.Min.Kind != 0 {
-			children = append(children, xmldoc.Attr{Name: "Min", Value: io.Min.Value})
+			children = append(children, xmldoc.Attr{Name: "Min", Value: feature.Format(io.Min.Value, tags)})
 		}
 		if io.Max.Kind != 0 {
-			children = append(children, xmldoc.Attr{Name: "Max", Value: io.Max.Value})
+			children = append(children, xmldoc.Attr{Name: "Max", Value: feature.Format(io.Max.Value, tags)})
 		}
 		if io.Accuracy.Kind != 0 {
 			children = append(children, xmldoc.Attr{Name: "Accuracy", Value: feature.Format(feature.ScalarText(&io.Accuracy), tags)})

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"addex/internal/feature"
+	"addex/internal/setupcheck"
 	"addex/internal/xmlcmp"
 	"addex/internal/xmldoc"
 )
@@ -70,6 +71,7 @@ func TestUpgradeExampleConfig(t *testing.T) {
 
 // setupSequences 返回 Setup 文件里 <Param name> 与 <Option> 内 <Value paramName> 的名字序列。
 // 二者必须"数量与顺序都一一对应"——这是 Setup 的结构约定(见目标要求)。
+// 提取逻辑与 CLI 的 `check` 子命令共用 internal/setupcheck，避免两处口径漂移。
 func setupSequences(t *testing.T, path string) (params, values []string, ok bool) {
 	t.Helper()
 	src, err := os.ReadFile(path)
@@ -80,35 +82,7 @@ func setupSequences(t *testing.T, path string) (params, values []string, ok bool
 	if err != nil || len(doc.Roots) == 0 {
 		return nil, nil, false
 	}
-	var walkParams, walkValues func(n *xmldoc.Node)
-	walkParams = func(n *xmldoc.Node) {
-		for _, c := range n.Children {
-			if c.Removed || c.IsEntity {
-				continue
-			}
-			if c.Tag == "Param" && c.HasAttr("name") {
-				params = append(params, c.Attr("name"))
-			}
-			if c.Tag == "Option" {
-				continue // Param 不会出现在 Option 里
-			}
-			walkParams(c)
-		}
-	}
-	walkValues = func(n *xmldoc.Node) {
-		for _, c := range n.Children {
-			if c.Removed || c.IsEntity {
-				continue
-			}
-			if c.Tag == "Value" && c.HasAttr("paramName") {
-				values = append(values, c.Attr("paramName"))
-				continue
-			}
-			walkValues(c)
-		}
-	}
-	walkParams(doc.Roots[0])
-	walkValues(doc.Roots[0])
+	params, values = setupcheck.Sequences(doc)
 	return params, values, true
 }
 

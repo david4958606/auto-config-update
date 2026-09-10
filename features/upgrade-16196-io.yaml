@@ -1,0 +1,220 @@
+# 由 hack/gen_upgrade_16196.py 依据 example-16196 config_old → config 差异生成。
+# 静态 feature：运行时只依赖 primitives，不读取目标 config/。
+id: upgrade-16196-io
+description: IOBridge 升级（量程/别名/描述子改写、停用节点删除；逐腔室参数化）
+version: 1
+
+steps:
+  - name: IOBridge 腔室升级：IO/${Chamber}/PendulumValve
+    anchor: IO/${Chamber}/PendulumValve
+    set-attr:
+      - {"attr": {"accessMode": "R", "dataType": "I"}, "name": "alias", "old": "/IO/${Chamber}Exports/PendulumValve_PositionDI", "tag": "PositionDI", "value": "/IO/${Chamber}Exports/PendulumValve_ActPositionDI"}
+      - {"attr": {"accessMode": "RW", "dataType": "I"}, "name": "alias", "old": "/IO/${Chamber}Exports/PendulumValve_PositionDO", "tag": "PositionDO", "value": "/IO/${Chamber}Exports/PendulumValve_ActPositionDO"}
+
+  - name: IOBridge 腔室升级：IOBridge/${Chamber}/SourceDC
+    anchor: IOBridge/${Chamber}/SourceDC
+    remove-node:
+      - {"attr": {"type": "method"}, "tag": "setTimeBtwSendRead", "value": "25000"}
+    set-text:
+      - {"attr": {"type": "method"}, "old": "1000", "tag": "setTimeout", "value": "300"}
+      - {"attr": {"type": "method"}, "old": "1", "tag": "setCmdRetryTimes", "value": "3"}
+
+  - name: IOBridge/Driver_Platform 升级
+    file: IOBridge/Driver_Platform
+    anchor: EFEM/AfeRobotDriver
+    remove-node:
+      - {"tag": "printVerboseLog", "attr": {"type": "method"}}
+
+  - name: IOBridge/Driver_Platform 升级
+    file: IOBridge/Driver_Platform
+    anchor: EFEM/RobotDriver1
+    remove-node:
+      - {"tag": "printVerboseLog", "attr": {"type": "method"}}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch1/Rotation
+    set-attr:
+      - {"tag": "ConnStateDI", "old": "/IO/Ch1Exports/ConstRotation_ConnStateDI", "name": "alias", "value": "/IO/Ch1Exports/Rotation_ConnStateDI", "attr": {"dataType": "I", "accessMode": "R"}}
+      - {"tag": "ConnectDO", "old": "/IO/Ch1Exports/ConstRotation_ConnectDO", "name": "alias", "value": "/IO/Ch1Exports/Rotation_ConnectDO", "attr": {"dataType": "I", "accessMode": "RW"}}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch2/Rotation
+    set-attr:
+      - {"tag": "ConnStateDI", "old": "/IO/Ch2Exports/ConstRotation_ConnStateDI", "name": "alias", "value": "/IO/Ch2Exports/Rotation_ConnStateDI", "attr": {"dataType": "I", "accessMode": "R"}}
+      - {"tag": "ConnectDO", "old": "/IO/Ch2Exports/ConstRotation_ConnectDO", "name": "alias", "value": "/IO/Ch2Exports/Rotation_ConnectDO", "attr": {"dataType": "I", "accessMode": "RW"}}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch3/Rotation
+    set-attr:
+      - {"tag": "ConnStateDI", "old": "/IO/Ch3Exports/ConstRotation_ConnStateDI", "name": "alias", "value": "/IO/Ch3Exports/Rotation_ConnStateDI", "attr": {"dataType": "I", "accessMode": "R"}}
+      - {"tag": "ConnectDO", "old": "/IO/Ch3Exports/ConstRotation_ConnectDO", "name": "alias", "value": "/IO/Ch3Exports/Rotation_ConnectDO", "attr": {"dataType": "I", "accessMode": "RW"}}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch4/Rotation
+    set-attr:
+      - {"tag": "ConnStateDI", "old": "/IO/Ch4Exports/ConstRotation_ConnStateDI", "name": "alias", "value": "/IO/Ch4Exports/Rotation_ConnStateDI", "attr": {"dataType": "I", "accessMode": "R"}}
+      - {"tag": "ConnectDO", "old": "/IO/Ch4Exports/ConstRotation_ConnectDO", "name": "alias", "value": "/IO/Ch4Exports/Rotation_ConnectDO", "attr": {"dataType": "I", "accessMode": "RW"}}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch5/Rotation
+    set-attr:
+      - {"tag": "ConnStateDI", "old": "/IO/Ch5Exports/ConstRotation_ConnStateDI", "name": "alias", "value": "/IO/Ch5Exports/Rotation_ConnStateDI", "attr": {"dataType": "I", "accessMode": "R"}}
+      - {"tag": "ConnectDO", "old": "/IO/Ch5Exports/ConstRotation_ConnectDO", "name": "alias", "value": "/IO/Ch5Exports/Rotation_ConnectDO", "attr": {"dataType": "I", "accessMode": "RW"}}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch6/Rotation
+    set-attr:
+      - {"tag": "ConnStateDI", "old": "/IO/Ch6Exports/ConstRotation_ConnStateDI", "name": "alias", "value": "/IO/Ch6Exports/Rotation_ConnStateDI", "attr": {"dataType": "I", "accessMode": "R"}}
+      - {"tag": "ConnectDO", "old": "/IO/Ch6Exports/ConstRotation_ConnectDO", "name": "alias", "value": "/IO/Ch6Exports/Rotation_ConnectDO", "attr": {"dataType": "I", "accessMode": "RW"}}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/ChE/Rotation
+    set-attr:
+      - {"tag": "ConnStateDI", "old": "/IO/ChEExports/ConstRotation_ConnStateDI", "name": "alias", "value": "/IO/ChEExports/Rotation_ConnStateDI", "attr": {"dataType": "I", "accessMode": "R"}}
+      - {"tag": "ConnectDO", "old": "/IO/ChEExports/ConstRotation_ConnectDO", "name": "alias", "value": "/IO/ChEExports/Rotation_ConnectDO", "attr": {"dataType": "I", "accessMode": "RW"}}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/ChF/Rotation
+    set-attr:
+      - {"tag": "ConnStateDI", "old": "/IO/ChFExports/ConstRotation_ConnStateDI", "name": "alias", "value": "/IO/ChFExports/Rotation_ConnStateDI", "attr": {"dataType": "I", "accessMode": "R"}}
+      - {"tag": "ConnectDO", "old": "/IO/ChFExports/ConstRotation_ConnectDO", "name": "alias", "value": "/IO/ChFExports/Rotation_ConnectDO", "attr": {"dataType": "I", "accessMode": "RW"}}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch1/Ped/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch1/Pin/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch2/Ped/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch2/Pin/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch3/Ped/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch3/Pin/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch4/Ped/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch4/Pin/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch5/Ped/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch5/Pin/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch6/Ped/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/Ch6/Pin/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/ChC/Pin/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/ChD/Pin/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/ChE/Ped/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/ChE/Pin/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/ChF/Ped/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_Facility 升级
+    file: IOBridge/IO_Facility
+    anchor: Motor/ChF/Pin/MotorType
+    set-text:
+      - {"tag": "DescriptorList", "old": "UnformSpeed:0, GoUp:1, GoDown:2", "value": "UniformSpeed:0, GoUp:1, GoDown:2"}
+
+  - name: IOBridge/IO_LoadRack 升级
+    file: IOBridge/IO_LoadRack
+    anchor: LoadRack/Plc/Ch1SrcDCOffAfterDepDO
+    set-text:
+      - {"tag": "DescriptorList", "old": "reset:0,off:1", "value": "Reset:0,Off:1"}
+
+  - name: IOBridge/IO_LoadRack 升级
+    file: IOBridge/IO_LoadRack
+    anchor: LoadRack/Plc/Ch2SrcDCOffAfterDepDO
+    set-text:
+      - {"tag": "DescriptorList", "old": "reset:0,off:1", "value": "Reset:0,Off:1"}
+
+  - name: IOBridge/IO_LoadRack 升级
+    file: IOBridge/IO_LoadRack
+    anchor: LoadRack/Plc/Ch5SrcDCOffAfterDepDO
+    set-text:
+      - {"tag": "DescriptorList", "old": "reset:0,off:1", "value": "Reset:0,Off:1"}
+
+  - name: IOBridge/IO_LoadRack 升级
+    file: IOBridge/IO_LoadRack
+    anchor: LoadRack/Plc/Ch6SrcDCOffAfterDepDO
+    set-text:
+      - {"tag": "DescriptorList", "old": "reset:0,off:1", "value": "Reset:0,Off:1"}

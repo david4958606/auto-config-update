@@ -57,6 +57,8 @@ steps:                     # 有序步骤列表，见下
 | `remove-node` | 动作 | 删除已存在元素(含子树)。见 §7.11。 |
 | `wrap` | 动作 | 用 `open`/`close` 包裹一段节点区间(注释掉 / CDATA 化)。见 §7.12。 |
 | `uncomment` | 动作 | 放开(或删除)包住某段文本的注释块。见 §7.13。 |
+| `file:`(step 级) | 定位 | 让某个 step 直接作用于 `config/<file>`(已存在的文件)。见 §7.14。 |
+| `new-file:`(step 级) | 动作 | 文件不存在时按 `content` **逐字新建**；已存在即 no-op。见 §7.15。 |
 
 同一 step 内动作的**执行顺序固定**（与 YAML 中书写顺序无关）：
 `add-node` → `add-data` → `add-element` → `add-xml` → `set-text`/`set-attr`/`remove-node` →
@@ -151,10 +153,49 @@ bind:
 
 ## 6. 占位符 / 变量作用域
 
-模板中 `${key}` 与 `{key}` **同解**为 `tags[key]`（都取该实例的标签名）；区别仅在于 `${key}`
-可写在逻辑/alias 路径里而不残留 `$`。变量来源：
+有**两种写法**，作用取决于出现的位置：
+
+| 位置 | `{X}` | `${X}` |
+|------|-------|--------|
+| **anchor 段** | 按 **class** 匹配，命中后把 `X` 绑定为该实例标签（无 class 时回退 tag）。见 §3.2。 | 按 **tag 名** 匹配；`X` 必须**已绑定**（腔室 class 绑定 / require / bind），否则该步跳过。 |
+| **所有取值字段** | 替换为 `tags[X]` | 替换为 `tags[X]`（**与 `{X}` 同解**） |
+
+也就是说：**只有 anchor 段有区别**（一个是"按类找并绑定"，一个是"按已绑定的名字找"），
+在 attr/value/xml/text/old/name/child/where/open/close/find 等**取值**里两者完全等价，
+可随场景混用（路径里用 `${X}` 更直观，`{X}` 更简洁）。实现见 `internal/feature.Format`。
+
+> 取值字段的替换覆盖**全部原语**：`add-node`(tag/class/attrs/include-entity)、
+> `add-data`/`add-io`(name/attrs/Bd/Ch/Min/Max/Accuracy/DescriptorList/Unit)、
+> `add-element`(tag/attrs/text)、`add-xml`(xml)、`add-method`/`remove-method`(name/value/attrs)、
+> `set-text`(tag/child/old/value)、`set-attr`(tag/child/attr/old/name/value)、
+> `remove-node`(tag/child/attr/value/has)、`wrap`(open/close/select)、`uncomment`(find/open/close)、
+> `add-comment`，以及 step 级 `where`(tag-glob/attr)、`require`/`bind` 路径、`before`/`after` 选择器。
+> 回归覆盖见 `internal/engine/placeholder_test.go`（两种写法混用、断言产物不残留占位符）。
+> 例外：`file:` / `new-file:` / `content` 是文件级、无腔室上下文，按字面处理。
+
+变量来源：
 
 - **class 段绑定**：anchor 路径上每个 class 匹配到的实例标签，逐实例自动绑定（`PhyGauge`→`Gauge01`）。
+- **`{Chamber}` 保留绑定**：每个腔室恒定绑定 `Chamber`→该腔室标签（如 `Ch1`），**与 class 无关**。
+  片段根没有 class（如 `Interlock_*`）、或同一改动要跨多个 class 的腔室复用时，用它写"一份声明、
+  逐腔室替换腔室名"的 feature：
+  ```yaml
+  - name: PVD 腔室稳定时间改引用 SETUP
+    anchor: PVD/ProcessLogger                 # 按 class PVD 命中 Ch1/Ch2/Ch5/Ch6
+    set-text:
+      - { tag: setDataStableTime, attr: { type: method },
+          old: "/IO/${PVD}/SourceDC/ActPowerAI,1",
+          value: "/IO/${PVD}/SourceDC/ActPowerAI,/SETUP/${PVD}/ProcessDataStableTime/SrcPwrStableTime" }
+
+  - name: 腔室 96℃ 告警降级（根无 class 的 Interlock_*）
+    anchor: ${Chamber}/VInterlocks/ChamberAtTemp   # ${Chamber} 作 anchor 段=按标签名匹配腔室根
+    set-text:
+      - { tag: setIntlkAlarm, attr: { type: method },
+          old: "Warning,ERROR,${Chamber} chamber temperature is over 96 centigrade.",
+          value: "Warning,NOTICE,${Chamber} chamber temperature is over 96 centigrade." }
+  ```
+  注意：anchor 首段写 `PVD`（裸名=按 class 匹配）适用于该类全部腔室；写 `${Chamber}` 则命中**任意**
+  腔室，需自行保证非目标腔室不会匹配到该 anchor 路径（否则会误改），必要时用 `require` 守卫跳过。
 - **跨步对象引用**：`add-node` 建出的对象登记 `{标签}` → `./标签`，供**后续步骤**引用（如
   `{IonGauge}` → `./IonGauge`）。
 - **`require`/`bind` 变量**：见 §5。
@@ -473,6 +514,42 @@ steps:
 ```
 
 声明了 `file:` 的步骤不参与腔室循环，在腔室步骤之后按声明顺序各执行一次，直接读该文件、改完写回。
+
+### 7.15 `new-file` —— 新建文件
+
+升级里常有"目标版本多出一整份新文件"（例如新腔室/新功能对应的 `Setup/*.xml`）。这类文件
+在旧配置里**完全不存在**，`file:` 步骤（要求文件可读）无从下手，因此提供 `new-file`：
+
+| 字段 | 说明 |
+|------|------|
+| `new-file` | 相对 `config/` 的新文件路径（step 级字段，与 `file:` 同族）。 |
+| `content` | 新文件的**原文**（逐字写入：保留 CRLF/LF、是否带行尾换行、实体书写）。 |
+
+语义与幂等：
+
+- 文件**不存在** → 按 `content` 逐字新建（自动建父目录），打印 `+ 已新建`；
+- 文件**已存在** → `- 已存在，保持原样(no-op)`，**绝不覆盖**（与外科式补丁一致）；
+- `plan` 模式只打印 `+ 待新建`，不落盘。
+
+`new-file` 步骤同样属于"文件级步骤"：不参与腔室循环，在腔室步骤之后按声明顺序执行。
+
+```yaml
+steps:
+  - name: 新建 Setup/ProcessDataStableTime_Ch1.xml
+    new-file: Setup/ProcessDataStableTime_Ch1.xml
+    content: |
+      <?xml version="1.0" encoding="UTF-8"?>
+      <Ch1ProcessDataStableTime comments="">
+        <Param name="IG" dataObject="/SETUP/Ch1/ProcessDataStableTime/IGStableTime" type="D" min="0" max="10" units="s" accuracy="0.01" default="1" />
+        <Option index="1">
+          <Value paramName="IG">1</Value>
+        </Option>
+      </Ch1ProcessDataStableTime>
+```
+
+> 提示：`content` 不经过渲染器、也不做占位符替换；需要按腔室生成多份时，各写一个步骤
+> （生成器会把目标文件原文分别内联）。若把 `content` 写成 YAML 的 `|` 块标量，缩进会被
+> 保留，建议用 `|-` 或注意首行缩进。
 
 ---
 

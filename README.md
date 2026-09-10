@@ -23,11 +23,16 @@ make win64    # windows/amd64 -> auto-config-update.exe
 ./auto-config-update plan  --feature features/ig-auto-close.yaml    # dry-run,不写盘
 ./auto-config-update apply --feature features/ig-auto-close.yaml    # 写盘
 ./auto-config-update apply --feature features/... --chamber Ch1 Ch4 # 限定腔室(缺省=全部)
+./auto-config-update check                                          # 校验 Setup 的 Param/Value 一一对应
 ```
 
 - `--feature` 可简写 `-f`;`--chamber` 可简写 `-c`,均支持连续多值(`-c Ch1 Ch2 Ch3`)。
 - `plan` / `apply` 打印一致的**语义 diff**,区别只在 `apply` 落盘。
 - 行前缀:`+` 有改动、`-` 已达目标(幂等 no-op)、`!` 告警;每个声明动作都出一行。
+- **一致性闸门**:`apply` 结束会对 `config/Setup/*.xml` 做自检——`<Param name>` 与
+  `<Option>/<Value paramName>` 必须**按下标一一同名**(设备把两者当并行数组读取,顺序即语义);
+  数量不符、笔误、重复、错位/顺序不同都打印 `!!` 并以**非零退出码**报错(`--no-verify` 可跳过)。
+  也可单独跑 `check` 作为上线前的硬闸门。
 - 原语速查见 [doc/feature-primitives.md](doc/feature-primitives.md)。
 
 ## Feature 怎么写
@@ -81,8 +86,9 @@ steps:
 | `remove-node` | 删除已存在元素(含子树);`has` 子条件可区分同名不同内容的节点。 |
 | `wrap` / `uncomment` | 用任意 `open`/`close` 包裹一段节点区间(注释掉 / CDATA 化) / 放开(或删除)注释块。 |
 | `file:`(step 级) | 让某个 step 直接作用于 `config/<file>`(Setup、SysLog、master 等非片段文件)。 |
+| `new-file:`(step 级) | 目标版本多出的**整份新文件**:文件不存在时按 `content` 逐字新建,已存在即 no-op(绝不覆盖)。 |
 
-**占位符**:`{类名}` = anchor 路径上该 class 命中的实例标签名(逐实例绑定);`add-node` 建出的对象登记 `{标签}`→`./标签` 供后续步骤引用;`require`/`bind` 变量同理。
+**占位符**:两种写法。**anchor 段**里 `{X}`=按 class 匹配并把 `X` 绑定为该实例标签,`${X}`=按"已绑定的标签名"匹配(如腔室 class 绑定 `{ITO}`=Ch1,IOBridge 那层没有 class 只能写 `${ITO}`)。**取值字段**(attr/value/xml/text/old/name/child/where/open/close/find 等)里 `{X}` 与 `${X}` **同解**,都替换为标签/变量值,且**所有原语都支持**。`add-node` 建出的对象登记 `{标签}`→`./标签` 供后续步骤引用;`require`/`bind` 变量同理。另见 [doc/feature-primitives.md](doc/feature-primitives.md) §6。
 
 ## 它如何应对真实配置
 
@@ -147,3 +153,44 @@ go test ./internal/engine -run TestUpgradeExampleConfig   # 语义比对 + 幂�
 
 > 说明:该迁移把目标里"注释掉/ CDATA 包住"的块实现为**删除**——注释内容不参与解析,两者语义等价。
 > 需要保留原文时可改用 `wrap`(本仓库对 `IO_Platform` 的 V6DO、CDATA 段就是这么做的)。
+
+## 用第二份真实配置验证:example-16196(config_old → config)
+
+`example-16196/` 下是另一台设备的新旧两版配置,用来复验原语覆盖面。与上一份不同,这次目标版本
+**多出 10 个全新的 `Setup/*.xml`**(`GasFlowCompens_Ch*`、`ProcessDataStableTime_*`),需要
+**新建文件**能力——由此新增了 step 级原语 `new-file`(见
+[doc/feature-primitives.md](doc/feature-primitives.md) §7.15)。
+
+| feature | 覆盖 | 生成方式 |
+|---------|------|----------|
+| `features/upgrade-16196-setup.yaml` | `Setup/*.xml`(含 10 个新文件)、`SysLog_config.xml` | `hack/gen_upgrade_16196.py` |
+| `features/upgrade-16196-io.yaml` | `IOBridge/*`(量程/别名/描述子、停用节点) | 同上 |
+| `features/upgrade-16196-control.yaml` | `Control/*`(补偿器、PMacro、稳定时间、互锁) | 同上 |
+
+```bash
+hack/run-upgrade-16196.sh /tmp/up16196 apply          # 拷 config_old → /tmp/up16196/config 并按序升级
+go test ./internal/engine -run TestUpgradeExample16196 # 语义比对 + Setup 对应 + 幂等
+```
+
+`hack/gen_upgrade_16196.py` 用与 `gen_upgrade_control.py` 同构的带偏移分词器(不用 lxml,避免
+丢掉 `&amp;&amp;`),把新旧树做**单调对齐**后生成静态 feature:`set-text`/`set-attr`/`remove-node`
+落到具体节点,新增节点用 `add-xml` 按 `before`/`after` 定位,整体缺失的文件用 `new-file` 新建。
+`Recipe/` 下新增 recipe 与对应 recipe 文件按需求不处理。
+
+生成器还会把**逐腔室重复**的改动归并成"一份声明、逐腔室替换腔室名"的腔室级步骤(写法同
+`features/add-pedcurpos-dataex.yaml`):同 class 的腔室用 `anchor: <Class>/…` + `${<Class>}`
+(如 `PVD/ProcessLogger` 覆盖 Ch1/Ch2/Ch5/Ch6);根没有 class 的片段(Interlock)用保留占位符
+`${Chamber}`。因此不再出现 `anchor: Ch1/…` / `anchor: Ch2/…` 的复制粘贴。
+
+验收结果:三份 feature 依次 apply 后,与目标 `config/` 的语义差异为 **0 处**(只剩若干
+"同级子节点顺序不同"的 `order`,按既有口径视为语义无关);`Setup/*.xml` 的
+`<Param name>` 与 `<Value paramName>` **按下标**一一同名;二次 apply **逐字节幂等**;
+10 个新文件与目标**逐字节一致**。
+
+> 目标 `Setup/GasFlowCompens_Ch*.xml` 自身有一处笔误:`<Param name="AlONGasFlowPieceCompens">`
+> 与 `<Value paramName="AlOGasFlowPieceCompens">` 不同名。工具**按目标保真**复现该笔误,
+> 同时由一致性校验**检出并报错**:`auto-config-update check` 会打印
+> `!! Setup/GasFlowCompens_ChN.xml: 第 1 项 Param=AlONGasFlowPieceCompens 与 Value=AlOGasFlowPieceCompens 不同名`
+> (以及对应的 orphan-param / orphan-value),并以**非零退出码**结束;`apply` 默认也会在结束时
+> 跑同样的自检。设备把 `<Param>`/`<Value>` 当**并行数组按下标读取**,所以顺序不同同样是 error。
+> 测试 `checkSetup16196Issues` 断言产物与目标触发**完全相同**的问题集合。

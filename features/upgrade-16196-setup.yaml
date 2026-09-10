@@ -1,0 +1,842 @@
+# 由 hack/gen_upgrade_16196.py 依据 example-16196 config_old → config 差异生成。
+# 静态 feature：运行时只依赖 primitives，不读取目标 config/。
+id: upgrade-16196-setup
+description: Setup/SysLog 文件级升级（Param/Value 增删与改写、ProcessDataStableTime/GasFlowCompens 新文件）
+version: 1
+
+steps:
+  - name: Setup/PowerCompens_Ch1.xml 升级
+    file: Setup/PowerCompens_Ch1.xml
+    anchor: Ch1PowerCompens
+    remove-node:
+      - {"tag": "Param", "attr": {"name": "PowerCompensA", "dataObject": "/SETUP/Ch1PowerCompens/A", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensB", "dataObject": "/SETUP/Ch1PowerCompens/B", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensC", "dataObject": "/SETUP/Ch1PowerCompens/C", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensD", "dataObject": "/SETUP/Ch1PowerCompens/D", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensE", "dataObject": "/SETUP/Ch1PowerCompens/E", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensF", "dataObject": "/SETUP/Ch1PowerCompens/F", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+    add-xml:
+      - {"xml": "<Param name=\"AlPowerPieceCompens\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/Al/PowerPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"AlOPowerPieceCompens\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/AlO/PowerPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet1\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PowerSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet2\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PowerSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet3\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PowerSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet4\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PowerSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet5\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PowerSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet6\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PowerSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet7\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PowerSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet8\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PowerSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet9\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PowerSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet10\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PowerSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+
+  - name: Setup/PowerCompens_Ch1.xml 升级
+    file: Setup/PowerCompens_Ch1.xml
+    anchor: Ch1PowerCompens/Option
+    remove-node:
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensA"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensB"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensC"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensD"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensE"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensF"}, "value": "0"}
+    add-xml:
+      - {"xml": "<Value paramName=\"AlPowerPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"AlOPowerPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet1\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet2\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet3\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet4\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet5\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet6\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet7\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet8\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet9\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet10\">0|0|0|0</Value>"}
+
+  - name: Setup/PowerCompens_Ch2.xml 升级
+    file: Setup/PowerCompens_Ch2.xml
+    anchor: Ch2PowerCompens
+    remove-node:
+      - {"tag": "Param", "attr": {"name": "PowerCompensA", "dataObject": "/SETUP/Ch2PowerCompens/A", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensB", "dataObject": "/SETUP/Ch2PowerCompens/B", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensC", "dataObject": "/SETUP/Ch2PowerCompens/C", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensD", "dataObject": "/SETUP/Ch2PowerCompens/D", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensE", "dataObject": "/SETUP/Ch2PowerCompens/E", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensF", "dataObject": "/SETUP/Ch2PowerCompens/F", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+    add-xml:
+      - {"xml": "<Param name=\"AlPowerPieceCompens\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/Al/PowerPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"AlOPowerPieceCompens\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/AlO/PowerPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet1\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PowerSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet2\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PowerSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet3\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PowerSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet4\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PowerSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet5\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PowerSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet6\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PowerSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet7\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PowerSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet8\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PowerSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet9\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PowerSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet10\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PowerSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+
+  - name: Setup/PowerCompens_Ch2.xml 升级
+    file: Setup/PowerCompens_Ch2.xml
+    anchor: Ch2PowerCompens/Option
+    remove-node:
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensA"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensB"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensC"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensD"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensE"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensF"}, "value": "0"}
+    add-xml:
+      - {"xml": "<Value paramName=\"AlPowerPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"AlOPowerPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet1\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet2\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet3\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet4\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet5\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet6\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet7\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet8\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet9\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet10\">0|0|0|0</Value>"}
+
+  - name: Setup/PowerCompens_Ch5.xml 升级
+    file: Setup/PowerCompens_Ch5.xml
+    anchor: Ch5PowerCompens
+    remove-node:
+      - {"tag": "Param", "attr": {"name": "PowerCompensA", "dataObject": "/SETUP/Ch5PowerCompens/A", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensB", "dataObject": "/SETUP/Ch5PowerCompens/B", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensC", "dataObject": "/SETUP/Ch5PowerCompens/C", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensD", "dataObject": "/SETUP/Ch5PowerCompens/D", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensE", "dataObject": "/SETUP/Ch5PowerCompens/E", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensF", "dataObject": "/SETUP/Ch5PowerCompens/F", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+    add-xml:
+      - {"xml": "<Param name=\"AlPowerPieceCompens\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/Al/PowerPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"AlOPowerPieceCompens\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/AlO/PowerPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet1\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PowerSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet2\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PowerSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet3\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PowerSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet4\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PowerSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet5\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PowerSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet6\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PowerSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet7\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PowerSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet8\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PowerSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet9\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PowerSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet10\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PowerSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+
+  - name: Setup/PowerCompens_Ch5.xml 升级
+    file: Setup/PowerCompens_Ch5.xml
+    anchor: Ch5PowerCompens/Option
+    remove-node:
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensA"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensB"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensC"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensD"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensE"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensF"}, "value": "0"}
+    add-xml:
+      - {"xml": "<Value paramName=\"AlPowerPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"AlOPowerPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet1\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet2\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet3\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet4\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet5\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet6\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet7\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet8\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet9\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet10\">0|0|0|0</Value>"}
+
+  - name: Setup/PowerCompens_Ch6.xml 升级
+    file: Setup/PowerCompens_Ch6.xml
+    anchor: Ch6PowerCompens
+    remove-node:
+      - {"tag": "Param", "attr": {"name": "PowerCompensA", "dataObject": "/SETUP/Ch6PowerCompens/A", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensB", "dataObject": "/SETUP/Ch6PowerCompens/B", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensC", "dataObject": "/SETUP/Ch6PowerCompens/C", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensD", "dataObject": "/SETUP/Ch6PowerCompens/D", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensE", "dataObject": "/SETUP/Ch6PowerCompens/E", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "PowerCompensF", "dataObject": "/SETUP/Ch6PowerCompens/F", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+    add-xml:
+      - {"xml": "<Param name=\"AlPowerPieceCompens\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/Al/PowerPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"AlOPowerPieceCompens\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/AlO/PowerPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet1\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PowerSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet2\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PowerSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet3\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PowerSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet4\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PowerSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet5\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PowerSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet6\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PowerSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet7\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PowerSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet8\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PowerSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet9\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PowerSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"PowerSet10\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PowerSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+
+  - name: Setup/PowerCompens_Ch6.xml 升级
+    file: Setup/PowerCompens_Ch6.xml
+    anchor: Ch6PowerCompens/Option
+    remove-node:
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensA"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensB"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensC"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensD"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensE"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "PowerCompensF"}, "value": "0"}
+    add-xml:
+      - {"xml": "<Value paramName=\"AlPowerPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"AlOPowerPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet1\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet2\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet3\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet4\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet5\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet6\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet7\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet8\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet9\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"PowerSet10\">0|0|0|0</Value>"}
+
+  - name: Setup/SetupRepository.xml 升级
+    file: Setup/SetupRepository.xml
+    anchor: SetupRepository
+    add-xml:
+      - {"xml": "<Ch1ProcessDataStableTime file=\"ProcessDataStableTime_Ch1.xml\" active=\"yes\" />", "after": {"tag": "Ch1CleanContextInfo", "attr": {"file": "CleanContextInfo_Ch1.xml", "active": "yes"}}}
+      - {"xml": "<Ch2ProcessDataStableTime file=\"ProcessDataStableTime_Ch2.xml\" active=\"yes\" />", "after": {"tag": "Ch2CleanContextInfo", "attr": {"file": "CleanContextInfo_Ch2.xml", "active": "yes"}}}
+      - {"xml": "<Ch5ProcessDataStableTime file=\"ProcessDataStableTime_Ch5.xml\" active=\"yes\" />", "after": {"tag": "Ch5CleanContextInfo", "attr": {"file": "CleanContextInfo_Ch5.xml", "active": "yes"}}}
+      - {"xml": "<Ch6ProcessDataStableTime file=\"ProcessDataStableTime_Ch6.xml\" active=\"yes\" />", "after": {"tag": "Ch6CleanContextInfo", "attr": {"file": "CleanContextInfo_Ch6.xml", "active": "yes"}}}
+      - {"xml": "<ChCProcessDataStableTime file=\"ProcessDataStableTime_ChC.xml\" active=\"yes\" />", "after": {"tag": "ChCCleanContextInfo", "attr": {"file": "CleanContextInfo_ChC.xml", "active": "yes"}}}
+      - {"xml": "<ChDProcessDataStableTime file=\"ProcessDataStableTime_ChD.xml\" active=\"yes\" />", "after": {"tag": "ChDCleanContextInfo", "attr": {"file": "CleanContextInfo_ChD.xml", "active": "yes"}}}
+      - {"xml": "<Ch1GasFlowCompens file=\"GasFlowCompens_Ch1.xml\" active=\"yes\" />", "after": {"tag": "Ch1SpacingCompens", "attr": {"file": "SpacingCompens_Ch1.xml", "active": "yes"}}}
+      - {"xml": "<Ch2GasFlowCompens file=\"GasFlowCompens_Ch2.xml\" active=\"yes\" />", "after": {"tag": "Ch2SpacingCompens", "attr": {"file": "SpacingCompens_Ch2.xml", "active": "yes"}}}
+      - {"xml": "<Ch5GasFlowCompens file=\"GasFlowCompens_Ch5.xml\" active=\"yes\" />", "after": {"tag": "Ch5SpacingCompens", "attr": {"file": "SpacingCompens_Ch5.xml", "active": "yes"}}}
+      - {"xml": "<Ch6GasFlowCompens file=\"GasFlowCompens_Ch6.xml\" active=\"yes\" />", "after": {"tag": "Ch6SpacingCompens", "attr": {"file": "SpacingCompens_Ch6.xml", "active": "yes"}}}
+
+  - name: Setup/Setup_Ch1.xml 升级
+    file: Setup/Setup_Ch1.xml
+    anchor: Ch1Setup
+    add-xml:
+      - {"xml": "<Param name=\"SrcTimerThresholdOffset\" dataObject=\"/SETUP/Control/Ch1/Source/TimerThresholdOffset\" type=\"D\" min=\"0\" max=\"6000\" units=\"s\" accuracy=\"0.1\" default=\"0.2\" />", "after": {"tag": "Param", "attr": {"name": "SrcPowerRampInterval", "dataObject": "/SETUP/Control/Ch1/Source/SourceDC/PowerRampInterval", "type": "I", "min": "250", "max": "1000", "descriptorList": "", "units": "ms", "default": "250"}}}
+      - {"xml": "<Param name=\"SourceDCCurrentMax\" dataObject=\"/SETUP/Control/Ch1/Source/SourceDC/CurrentOutputMaxPercent\" type=\"D\" min=\"0\" max=\"100\" units=\"%\" accuracy=\"0.1\" default=\"70\" />", "after": {"tag": "Param", "attr": {"name": "SrcPowerRampInterval", "dataObject": "/SETUP/Control/Ch1/Source/SourceDC/PowerRampInterval", "type": "I", "min": "250", "max": "1000", "descriptorList": "", "units": "ms", "default": "250"}}}
+      - {"xml": "<Param name=\"MFC01IsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch1/Vacuum/GasLine01/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch1/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"MFC02IsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch1/Vacuum/GasLine02/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch1/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"BsMFCIsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch1/Vacuum/BsGasLine/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch1/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"LowerBsMFCIsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch1/Vacuum/LowerBsGasLine/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch1/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"MFC01TuningSet\" dataObject=\"/SETUP/Control/Ch1/Vacuum/GasLine01/MFC01/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch1/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"MFC02TuningSet\" dataObject=\"/SETUP/Control/Ch1/Vacuum/GasLine02/MFC02/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch1/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"BsMFCTuningSet\" dataObject=\"/SETUP/Control/Ch1/Vacuum/BsGasLine/BsMFC/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch1/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"LowerBsMFCTuningSet\" dataObject=\"/SETUP/Control/Ch1/Vacuum/LowerBsGasLine/LowerBsMFC/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch1/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"HighVacVlvTuningSet\" dataObject=\"/SETUP/Control/Ch1/Vacuum/HighVacuumValve/TuningSet\" type=\"I\" min=\"0\" max=\"1\" descriptorList=\"Disable:0,Offset:1\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "OpenDoorPressure", "dataObject": "/SETUP/Control/Ch1/OpenDoorPressure", "type": "D", "min": "0", "max": "1000", "units": "Torr", "accuracy": "0.000000001", "default": "0.01"}}}
+      - {"xml": "<Param name=\"HighVacVlvOffsetParam\" dataObject=\"/SETUP/Control/Ch1/Vacuum/HighVacuumValve/OffsetParam\" type=\"I\" min=\"-10\" max=\"10\" units=\"\" accuracy=\"0.001\" default=\"0\" />", "after": {"tag": "Param", "attr": {"name": "OpenDoorPressure", "dataObject": "/SETUP/Control/Ch1/OpenDoorPressure", "type": "D", "min": "0", "max": "1000", "units": "Torr", "accuracy": "0.000000001", "default": "0.01"}}}
+      - {"xml": "<Param name=\"CompensType\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/CompensType\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,BySetup:1,ByRecipe:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "IdleOutputEn", "dataObject": "/SETUP/Control/Ch1/IdleOutputEn", "type": "I", "min": "0", "max": "1", "descriptorList": "Disable:0,Enable:1", "units": "", "default": "Disable"}}}
+
+  - name: Setup/Setup_Ch1.xml 升级
+    file: Setup/Setup_Ch1.xml
+    anchor: Ch1Setup/Option
+    set-text:
+      - {"tag": "Value", "old": "", "value": "/Ch1/idlerecipe;1", "attr": {"paramName": "IdleRecipeID"}}
+      - {"tag": "Value", "old": "No", "value": "Yes", "attr": {"paramName": "IdleRecipeResetClean"}}
+    add-xml:
+      - {"xml": "<Value paramName=\"SrcTimerThresholdOffset\">0</Value>", "after": {"tag": "Value", "attr": {"paramName": "SrcPowerRampInterval"}, "value": "250"}}
+      - {"xml": "<Value paramName=\"SourceDCCurrentMax\">70</Value>", "after": {"tag": "Value", "attr": {"paramName": "SrcPowerRampInterval"}, "value": "250"}}
+      - {"xml": "<Value paramName=\"MFC01IsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"MFC02IsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"BsMFCIsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"LowerBsMFCIsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"MFC01TuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"MFC02TuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"BsMFCTuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"LowerBsMFCTuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"HighVacVlvTuningSet\">Disable</Value>", "after": {"tag": "Value", "attr": {"paramName": "OpenDoorPressure"}, "value": "0.003"}}
+      - {"xml": "<Value paramName=\"HighVacVlvOffsetParam\">0</Value>", "after": {"tag": "Value", "attr": {"paramName": "OpenDoorPressure"}, "value": "0.003"}}
+      - {"xml": "<Value paramName=\"CompensType\">BySetup</Value>", "after": {"tag": "Value", "attr": {"paramName": "IdleOutputEn"}, "value": "Disable"}}
+
+  - name: Setup/Setup_Ch2.xml 升级
+    file: Setup/Setup_Ch2.xml
+    anchor: Ch2Setup
+    add-xml:
+      - {"xml": "<Param name=\"SrcTimerThresholdOffset\" dataObject=\"/SETUP/Control/Ch2/Source/TimerThresholdOffset\" type=\"D\" min=\"0\" max=\"6000\" units=\"s\" accuracy=\"0.1\" default=\"0.2\" />", "after": {"tag": "Param", "attr": {"name": "SrcPowerRampInterval", "dataObject": "/SETUP/Control/Ch2/Source/SourceDC/PowerRampInterval", "type": "I", "min": "250", "max": "1000", "descriptorList": "", "units": "ms", "default": "250"}}}
+      - {"xml": "<Param name=\"SourceDCCurrentMax\" dataObject=\"/SETUP/Control/Ch2/Source/SourceDC/CurrentOutputMaxPercent\" type=\"D\" min=\"0\" max=\"100\" units=\"%\" accuracy=\"0.1\" default=\"70\" />", "after": {"tag": "Param", "attr": {"name": "SrcPowerRampInterval", "dataObject": "/SETUP/Control/Ch2/Source/SourceDC/PowerRampInterval", "type": "I", "min": "250", "max": "1000", "descriptorList": "", "units": "ms", "default": "250"}}}
+      - {"xml": "<Param name=\"MFC01IsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch2/Vacuum/GasLine01/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch2/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"MFC02IsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch2/Vacuum/GasLine02/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch2/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"BsMFCIsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch2/Vacuum/BsGasLine/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch2/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"LowerBsMFCIsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch2/Vacuum/LowerBsGasLine/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch2/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"MFC01TuningSet\" dataObject=\"/SETUP/Control/Ch2/Vacuum/GasLine01/MFC01/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch2/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"MFC02TuningSet\" dataObject=\"/SETUP/Control/Ch2/Vacuum/GasLine02/MFC02/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch2/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"BsMFCTuningSet\" dataObject=\"/SETUP/Control/Ch2/Vacuum/BsGasLine/BsMFC/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch2/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"LowerBsMFCTuningSet\" dataObject=\"/SETUP/Control/Ch2/Vacuum/LowerBsGasLine/LowerBsMFC/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch2/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"HighVacVlvTuningSet\" dataObject=\"/SETUP/Control/Ch2/Vacuum/HighVacuumValve/TuningSet\" type=\"I\" min=\"0\" max=\"1\" descriptorList=\"Disable:0,Offset:1\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "OpenDoorPressure", "dataObject": "/SETUP/Control/Ch2/OpenDoorPressure", "type": "D", "min": "0", "max": "1000", "units": "Torr", "accuracy": "0.000000001", "default": "0.01"}}}
+      - {"xml": "<Param name=\"HighVacVlvOffsetParam\" dataObject=\"/SETUP/Control/Ch2/Vacuum/HighVacuumValve/OffsetParam\" type=\"I\" min=\"-10\" max=\"10\" units=\"\" accuracy=\"0.001\" default=\"0\" />", "after": {"tag": "Param", "attr": {"name": "OpenDoorPressure", "dataObject": "/SETUP/Control/Ch2/OpenDoorPressure", "type": "D", "min": "0", "max": "1000", "units": "Torr", "accuracy": "0.000000001", "default": "0.01"}}}
+      - {"xml": "<Param name=\"CompensType\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/CompensType\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,BySetup:1,ByRecipe:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "IdleOutputEn", "dataObject": "/SETUP/Control/Ch2/IdleOutputEn", "type": "I", "min": "0", "max": "1", "descriptorList": "Disable:0,Enable:1", "units": "", "default": "Disable"}}}
+
+  - name: Setup/Setup_Ch2.xml 升级
+    file: Setup/Setup_Ch2.xml
+    anchor: Ch2Setup/Option
+    set-text:
+      - {"tag": "Value", "old": "", "value": "/Ch2/idlerecipe;1", "attr": {"paramName": "IdleRecipeID"}}
+      - {"tag": "Value", "old": "No", "value": "Yes", "attr": {"paramName": "IdleRecipeResetClean"}}
+    add-xml:
+      - {"xml": "<Value paramName=\"SrcTimerThresholdOffset\">0</Value>", "after": {"tag": "Value", "attr": {"paramName": "SrcPowerRampInterval"}, "value": "250"}}
+      - {"xml": "<Value paramName=\"SourceDCCurrentMax\">70</Value>", "after": {"tag": "Value", "attr": {"paramName": "SrcPowerRampInterval"}, "value": "250"}}
+      - {"xml": "<Value paramName=\"MFC01IsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"MFC02IsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"BsMFCIsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"LowerBsMFCIsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"MFC01TuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"MFC02TuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"BsMFCTuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"LowerBsMFCTuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"HighVacVlvTuningSet\">Disable</Value>", "after": {"tag": "Value", "attr": {"paramName": "OpenDoorPressure"}, "value": "0.003"}}
+      - {"xml": "<Value paramName=\"HighVacVlvOffsetParam\">0</Value>", "after": {"tag": "Value", "attr": {"paramName": "OpenDoorPressure"}, "value": "0.003"}}
+      - {"xml": "<Value paramName=\"CompensType\">BySetup</Value>", "after": {"tag": "Value", "attr": {"paramName": "IdleOutputEn"}, "value": "Disable"}}
+
+  - name: Setup/Setup_Ch5.xml 升级
+    file: Setup/Setup_Ch5.xml
+    anchor: Ch5Setup
+    add-xml:
+      - {"xml": "<Param name=\"SrcTimerThresholdOffset\" dataObject=\"/SETUP/Control/Ch5/Source/TimerThresholdOffset\" type=\"D\" min=\"0\" max=\"6000\" units=\"s\" accuracy=\"0.1\" default=\"0.2\" />", "after": {"tag": "Param", "attr": {"name": "SrcPowerRampInterval", "dataObject": "/SETUP/Control/Ch5/Source/SourceDC/PowerRampInterval", "type": "I", "min": "250", "max": "1000", "descriptorList": "", "units": "ms", "default": "250"}}}
+      - {"xml": "<Param name=\"SourceDCCurrentMax\" dataObject=\"/SETUP/Control/Ch5/Source/SourceDC/CurrentOutputMaxPercent\" type=\"D\" min=\"0\" max=\"100\" units=\"%\" accuracy=\"0.1\" default=\"70\" />", "after": {"tag": "Param", "attr": {"name": "SrcPowerRampInterval", "dataObject": "/SETUP/Control/Ch5/Source/SourceDC/PowerRampInterval", "type": "I", "min": "250", "max": "1000", "descriptorList": "", "units": "ms", "default": "250"}}}
+      - {"xml": "<Param name=\"MFC01IsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch5/Vacuum/GasLine01/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch5/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"MFC02IsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch5/Vacuum/GasLine02/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch5/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"BsMFCIsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch5/Vacuum/BsGasLine/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch5/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"LowerBsMFCIsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch5/Vacuum/LowerBsGasLine/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch5/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"MFC01TuningSet\" dataObject=\"/SETUP/Control/Ch5/Vacuum/GasLine01/MFC01/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch5/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"MFC02TuningSet\" dataObject=\"/SETUP/Control/Ch5/Vacuum/GasLine02/MFC02/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch5/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"BsMFCTuningSet\" dataObject=\"/SETUP/Control/Ch5/Vacuum/BsGasLine/BsMFC/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch5/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"LowerBsMFCTuningSet\" dataObject=\"/SETUP/Control/Ch5/Vacuum/LowerBsGasLine/LowerBsMFC/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch5/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"HighVacVlvTuningSet\" dataObject=\"/SETUP/Control/Ch5/Vacuum/HighVacuumValve/TuningSet\" type=\"I\" min=\"0\" max=\"1\" descriptorList=\"Disable:0,Offset:1\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "OpenDoorPressure", "dataObject": "/SETUP/Control/Ch5/OpenDoorPressure", "type": "D", "min": "0", "max": "1000", "units": "Torr", "accuracy": "0.000000001", "default": "0.01"}}}
+      - {"xml": "<Param name=\"HighVacVlvOffsetParam\" dataObject=\"/SETUP/Control/Ch5/Vacuum/HighVacuumValve/OffsetParam\" type=\"I\" min=\"-10\" max=\"10\" units=\"\" accuracy=\"0.001\" default=\"0\" />", "after": {"tag": "Param", "attr": {"name": "OpenDoorPressure", "dataObject": "/SETUP/Control/Ch5/OpenDoorPressure", "type": "D", "min": "0", "max": "1000", "units": "Torr", "accuracy": "0.000000001", "default": "0.01"}}}
+      - {"xml": "<Param name=\"CompensType\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/CompensType\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,BySetup:1,ByRecipe:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "IdleOutputEn", "dataObject": "/SETUP/Control/Ch5/IdleOutputEn", "type": "I", "min": "0", "max": "1", "descriptorList": "Disable:0,Enable:1", "units": "", "default": "Disable"}}}
+
+  - name: Setup/Setup_Ch5.xml 升级
+    file: Setup/Setup_Ch5.xml
+    anchor: Ch5Setup/Option
+    set-text:
+      - {"tag": "Value", "old": "", "value": "/Ch5/idlerecipe;1", "attr": {"paramName": "IdleRecipeID"}}
+      - {"tag": "Value", "old": "No", "value": "Yes", "attr": {"paramName": "IdleRecipeResetClean"}}
+    add-xml:
+      - {"xml": "<Value paramName=\"SrcTimerThresholdOffset\">0</Value>", "after": {"tag": "Value", "attr": {"paramName": "SrcPowerRampInterval"}, "value": "250"}}
+      - {"xml": "<Value paramName=\"SourceDCCurrentMax\">70</Value>", "after": {"tag": "Value", "attr": {"paramName": "SrcPowerRampInterval"}, "value": "250"}}
+      - {"xml": "<Value paramName=\"MFC01IsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"MFC02IsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"BsMFCIsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"LowerBsMFCIsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"MFC01TuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"MFC02TuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"BsMFCTuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"LowerBsMFCTuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"HighVacVlvTuningSet\">Disable</Value>", "after": {"tag": "Value", "attr": {"paramName": "OpenDoorPressure"}, "value": "0.003"}}
+      - {"xml": "<Value paramName=\"HighVacVlvOffsetParam\">0</Value>", "after": {"tag": "Value", "attr": {"paramName": "OpenDoorPressure"}, "value": "0.003"}}
+      - {"xml": "<Value paramName=\"CompensType\">BySetup</Value>", "after": {"tag": "Value", "attr": {"paramName": "IdleOutputEn"}, "value": "Disable"}}
+
+  - name: Setup/Setup_Ch6.xml 升级
+    file: Setup/Setup_Ch6.xml
+    anchor: Ch6Setup
+    add-xml:
+      - {"xml": "<Param name=\"SrcTimerThresholdOffset\" dataObject=\"/SETUP/Control/Ch6/Source/TimerThresholdOffset\" type=\"D\" min=\"0\" max=\"6000\" units=\"s\" accuracy=\"0.1\" default=\"0.2\" />", "after": {"tag": "Param", "attr": {"name": "SrcPowerRampInterval", "dataObject": "/SETUP/Control/Ch6/Source/SourceDC/PowerRampInterval", "type": "I", "min": "250", "max": "1000", "descriptorList": "", "units": "ms", "default": "250"}}}
+      - {"xml": "<Param name=\"SourceDCCurrentMax\" dataObject=\"/SETUP/Control/Ch6/Source/SourceDC/CurrentOutputMaxPercent\" type=\"D\" min=\"0\" max=\"100\" units=\"%\" accuracy=\"0.1\" default=\"70\" />", "after": {"tag": "Param", "attr": {"name": "SrcPowerRampInterval", "dataObject": "/SETUP/Control/Ch6/Source/SourceDC/PowerRampInterval", "type": "I", "min": "250", "max": "1000", "descriptorList": "", "units": "ms", "default": "250"}}}
+      - {"xml": "<Param name=\"MFC01IsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch6/Vacuum/GasLine01/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch6/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"MFC02IsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch6/Vacuum/GasLine02/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch6/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"BsMFCIsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch6/Vacuum/BsGasLine/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch6/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"LowerBsMFCIsSelectedToRorCheck\" dataObject=\"/SETUP/Control/Ch6/Vacuum/LowerBsGasLine/IsSelectedToRorCheck\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"No:0,Yes:1,Ignore:2\" units=\"\" default=\"Yes\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch6/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"MFC01TuningSet\" dataObject=\"/SETUP/Control/Ch6/Vacuum/GasLine01/MFC01/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch6/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"MFC02TuningSet\" dataObject=\"/SETUP/Control/Ch6/Vacuum/GasLine02/MFC02/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch6/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"BsMFCTuningSet\" dataObject=\"/SETUP/Control/Ch6/Vacuum/BsGasLine/BsMFC/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch6/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"LowerBsMFCTuningSet\" dataObject=\"/SETUP/Control/Ch6/Vacuum/LowerBsGasLine/LowerBsMFC/TuningSet\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,Factor:1,Offset:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "LowerBsNeedRlsPresMinTime", "dataObject": "/SETUP/Control/Ch6/Vacuum/LowerBsGasLine/NeedRlsPresMinTime", "type": "I", "min": "0", "max": "500", "descriptorList": "", "units": "min", "default": "10"}}}
+      - {"xml": "<Param name=\"HighVacVlvTuningSet\" dataObject=\"/SETUP/Control/Ch6/Vacuum/HighVacuumValve/TuningSet\" type=\"I\" min=\"0\" max=\"1\" descriptorList=\"Disable:0,Offset:1\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "OpenDoorPressure", "dataObject": "/SETUP/Control/Ch6/OpenDoorPressure", "type": "D", "min": "0", "max": "1000", "units": "Torr", "accuracy": "0.000000001", "default": "0.01"}}}
+      - {"xml": "<Param name=\"HighVacVlvOffsetParam\" dataObject=\"/SETUP/Control/Ch6/Vacuum/HighVacuumValve/OffsetParam\" type=\"I\" min=\"-10\" max=\"10\" units=\"\" accuracy=\"0.001\" default=\"0\" />", "after": {"tag": "Param", "attr": {"name": "OpenDoorPressure", "dataObject": "/SETUP/Control/Ch6/OpenDoorPressure", "type": "D", "min": "0", "max": "1000", "units": "Torr", "accuracy": "0.000000001", "default": "0.01"}}}
+      - {"xml": "<Param name=\"CompensType\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/CompensType\" type=\"I\" min=\"0\" max=\"2\" descriptorList=\"Disable:0,BySetup:1,ByRecipe:2\" units=\"\" default=\"Disable\" />", "after": {"tag": "Param", "attr": {"name": "IdleOutputEn", "dataObject": "/SETUP/Control/Ch6/IdleOutputEn", "type": "I", "min": "0", "max": "1", "descriptorList": "Disable:0,Enable:1", "units": "", "default": "Disable"}}}
+
+  - name: Setup/Setup_Ch6.xml 升级
+    file: Setup/Setup_Ch6.xml
+    anchor: Ch6Setup/Option
+    set-text:
+      - {"tag": "Value", "old": "", "value": "/Ch6/idlerecipe;1", "attr": {"paramName": "IdleRecipeID"}}
+      - {"tag": "Value", "old": "No", "value": "Yes", "attr": {"paramName": "IdleRecipeResetClean"}}
+    add-xml:
+      - {"xml": "<Value paramName=\"SrcTimerThresholdOffset\">0</Value>", "after": {"tag": "Value", "attr": {"paramName": "SrcPowerRampInterval"}, "value": "250"}}
+      - {"xml": "<Value paramName=\"SourceDCCurrentMax\">70</Value>", "after": {"tag": "Value", "attr": {"paramName": "SrcPowerRampInterval"}, "value": "250"}}
+      - {"xml": "<Value paramName=\"MFC01IsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"MFC02IsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"BsMFCIsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"LowerBsMFCIsSelectedToRorCheck\">Yes</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"MFC01TuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"MFC02TuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"BsMFCTuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"LowerBsMFCTuningSet\">Factor</Value>", "after": {"tag": "Value", "attr": {"paramName": "LowerBsNeedRlsPresMinTime"}, "value": "1"}}
+      - {"xml": "<Value paramName=\"HighVacVlvTuningSet\">Disable</Value>", "after": {"tag": "Value", "attr": {"paramName": "OpenDoorPressure"}, "value": "0.003"}}
+      - {"xml": "<Value paramName=\"HighVacVlvOffsetParam\">0</Value>", "after": {"tag": "Value", "attr": {"paramName": "OpenDoorPressure"}, "value": "0.003"}}
+      - {"xml": "<Value paramName=\"CompensType\">BySetup</Value>", "after": {"tag": "Value", "attr": {"paramName": "IdleOutputEn"}, "value": "Disable"}}
+
+  - name: Setup/Setup_EFEM.xml 升级
+    file: Setup/Setup_EFEM.xml
+    anchor: EFEMSetup
+    set-attr:
+      - {"tag": "Param", "old": "/SETUP/Control/LP2/FuncLP2/PhyLP2//LoadPortTout", "name": "dataObject", "value": "/SETUP/Control/LP2/FuncLP2/PhyLP2/LoadPortTout", "attr": {"name": "LP2Tout", "type": "I", "min": "100", "max": "180000", "descriptorList": "", "units": "ms", "default": "60000"}}
+      - {"tag": "Param", "old": "/SETUP/Control/LP3/FuncLP3/PhyLP3//LoadPortTout", "name": "dataObject", "value": "/SETUP/Control/LP3/FuncLP3/PhyLP3/LoadPortTout", "attr": {"name": "LP3Tout", "type": "I", "min": "100", "max": "180000", "descriptorList": "", "units": "ms", "default": "60000"}}
+    add-xml:
+      - {"xml": "<Param name=\"LP1LoadCommandEnable\" dataObject=\"/SETUP/Control/LP1/LoadCommandEnable\" type=\"I\" min=\"0\" max=\"1\" descriptorList=\"No:0,Yes:1\" units=\"\" default=\"No\" />", "after": {"tag": "Param", "attr": {"name": "LP1MapResult", "dataObject": "/SETUP/Control/LP1/MapResult", "type": "S", "maxLength": "999", "default": ""}}}
+      - {"xml": "<Param name=\"LP2LoadCommandEnable\" dataObject=\"/SETUP/Control/LP2/LoadCommandEnable\" type=\"I\" min=\"0\" max=\"1\" descriptorList=\"No:0,Yes:1\" units=\"\" default=\"No\" />", "after": {"tag": "Param", "attr": {"name": "LP2MapResult", "dataObject": "/SETUP/Control/LP2/MapResult", "type": "S", "maxLength": "999", "default": ""}}}
+      - {"xml": "<Param name=\"LP3LoadCommandEnable\" dataObject=\"/SETUP/Control/LP3/LoadCommandEnable\" type=\"I\" min=\"0\" max=\"1\" descriptorList=\"No:0,Yes:1\" units=\"\" default=\"No\" />", "after": {"tag": "Param", "attr": {"name": "LP3MapResult", "dataObject": "/SETUP/Control/LP3/MapResult", "type": "S", "maxLength": "999", "default": ""}}}
+
+  - name: Setup/Setup_EFEM.xml 升级
+    file: Setup/Setup_EFEM.xml
+    anchor: EFEMSetup/Option
+    add-xml:
+      - {"xml": "<Value paramName=\"LP1LoadCommandEnable\">No</Value>", "after": {"tag": "Value", "attr": {"paramName": "LP1MapResult"}}}
+      - {"xml": "<Value paramName=\"LP2LoadCommandEnable\">No</Value>", "after": {"tag": "Value", "attr": {"paramName": "LP2MapResult"}}}
+      - {"xml": "<Value paramName=\"LP3LoadCommandEnable\">No</Value>", "after": {"tag": "Value", "attr": {"paramName": "LP3MapResult"}}}
+
+  - name: Setup/Setup_LA.xml 升级
+    file: Setup/Setup_LA.xml
+    anchor: LASetup
+    add-xml:
+      - {"xml": "<Param name=\"OverVentType\" dataObject=\"/SETUP/Control/LA/Vacuum/OverVentType\" type=\"I\" min=\"0\" max=\"4\" descriptorList=\"Disable:0,Slow:1,Fast:2\" units=\"\" default=\"Slow\" />", "after": {"tag": "Param", "attr": {"name": "T9", "dataObject": "/SETUP/Control/LA/T9", "type": "D", "min": "0", "max": "10", "units": "", "accuracy": "0.01", "default": "1"}}}
+
+  - name: Setup/Setup_LA.xml 升级
+    file: Setup/Setup_LA.xml
+    anchor: LASetup/Option
+    add-xml:
+      - {"xml": "<Value paramName=\"OverVentType\">Slow</Value>", "after": {"tag": "Value", "attr": {"paramName": "T9"}, "value": "1"}}
+
+  - name: Setup/Setup_LB.xml 升级
+    file: Setup/Setup_LB.xml
+    anchor: LBSetup
+    add-xml:
+      - {"xml": "<Param name=\"OverVentType\" dataObject=\"/SETUP/Control/LB/Vacuum/OverVentType\" type=\"I\" min=\"0\" max=\"4\" descriptorList=\"Disable:0,Slow:1,Fast:2\" units=\"\" default=\"Slow\" />", "after": {"tag": "Param", "attr": {"name": "T9", "dataObject": "/SETUP/Control/LB/T9", "type": "D", "min": "0", "max": "10", "units": "", "accuracy": "0.01", "default": "1"}}}
+
+  - name: Setup/Setup_LB.xml 升级
+    file: Setup/Setup_LB.xml
+    anchor: LBSetup/Option
+    add-xml:
+      - {"xml": "<Value paramName=\"OverVentType\">Slow</Value>", "after": {"tag": "Value", "attr": {"paramName": "T9"}, "value": "1"}}
+
+  - name: Setup/SpacingCompens_Ch1.xml 升级
+    file: Setup/SpacingCompens_Ch1.xml
+    anchor: Ch1SpacingCompens
+    remove-node:
+      - {"tag": "Param", "attr": {"name": "SpacingCompensA", "dataObject": "/SETUP/Ch1SpacingCompens/A", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensB", "dataObject": "/SETUP/Ch1SpacingCompens/B", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensC", "dataObject": "/SETUP/Ch1SpacingCompens/C", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensD", "dataObject": "/SETUP/Ch1SpacingCompens/D", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensE", "dataObject": "/SETUP/Ch1SpacingCompens/E", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensF", "dataObject": "/SETUP/Ch1SpacingCompens/F", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+    add-xml:
+      - {"xml": "<Param name=\"AlSpacingPieceCompens\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/Al/PositionPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"AlOSpacingPieceCompens\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/AlO/PositionPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet1\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PositionSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet2\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PositionSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet3\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PositionSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet4\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PositionSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet5\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PositionSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet6\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PositionSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet7\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PositionSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet8\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PositionSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet9\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PositionSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet10\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/PositionSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+
+  - name: Setup/SpacingCompens_Ch1.xml 升级
+    file: Setup/SpacingCompens_Ch1.xml
+    anchor: Ch1SpacingCompens/Option
+    remove-node:
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensA"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensB"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensC"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensD"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensE"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensF"}, "value": "0"}
+    add-xml:
+      - {"xml": "<Value paramName=\"AlSpacingPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"AlOSpacingPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet1\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet2\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet3\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet4\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet5\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet6\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet7\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet8\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet9\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet10\">0|0|0|0</Value>"}
+
+  - name: Setup/SpacingCompens_Ch2.xml 升级
+    file: Setup/SpacingCompens_Ch2.xml
+    anchor: Ch2SpacingCompens
+    remove-node:
+      - {"tag": "Param", "attr": {"name": "SpacingCompensA", "dataObject": "/SETUP/Ch2SpacingCompens/A", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensB", "dataObject": "/SETUP/Ch2SpacingCompens/B", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensC", "dataObject": "/SETUP/Ch2SpacingCompens/C", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensD", "dataObject": "/SETUP/Ch2SpacingCompens/D", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensE", "dataObject": "/SETUP/Ch2SpacingCompens/E", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensF", "dataObject": "/SETUP/Ch2SpacingCompens/F", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+    add-xml:
+      - {"xml": "<Param name=\"AlSpacingPieceCompens\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/Al/PositionPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"AlOSpacingPieceCompens\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/AlO/PositionPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet1\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PositionSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet2\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PositionSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet3\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PositionSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet4\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PositionSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet5\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PositionSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet6\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PositionSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet7\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PositionSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet8\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PositionSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet9\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PositionSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet10\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/PositionSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+
+  - name: Setup/SpacingCompens_Ch2.xml 升级
+    file: Setup/SpacingCompens_Ch2.xml
+    anchor: Ch2SpacingCompens/Option
+    remove-node:
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensA"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensB"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensC"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensD"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensE"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensF"}, "value": "0"}
+    add-xml:
+      - {"xml": "<Value paramName=\"AlSpacingPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"AlOSpacingPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet1\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet2\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet3\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet4\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet5\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet6\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet7\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet8\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet9\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet10\">0|0|0|0</Value>"}
+
+  - name: Setup/SpacingCompens_Ch5.xml 升级
+    file: Setup/SpacingCompens_Ch5.xml
+    anchor: Ch5SpacingCompens
+    remove-node:
+      - {"tag": "Param", "attr": {"name": "SpacingCompensA", "dataObject": "/SETUP/Ch5SpacingCompens/A", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensB", "dataObject": "/SETUP/Ch5SpacingCompens/B", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensC", "dataObject": "/SETUP/Ch5SpacingCompens/C", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensD", "dataObject": "/SETUP/Ch5SpacingCompens/D", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensE", "dataObject": "/SETUP/Ch5SpacingCompens/E", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensF", "dataObject": "/SETUP/Ch5SpacingCompens/F", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+    add-xml:
+      - {"xml": "<Param name=\"AlSpacingPieceCompens\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/Al/PositionPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"AlOSpacingPieceCompens\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/AlO/PositionPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet1\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PositionSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet2\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PositionSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet3\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PositionSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet4\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PositionSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet5\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PositionSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet6\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PositionSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet7\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PositionSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet8\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PositionSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet9\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PositionSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet10\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/PositionSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+
+  - name: Setup/SpacingCompens_Ch5.xml 升级
+    file: Setup/SpacingCompens_Ch5.xml
+    anchor: Ch5SpacingCompens/Option
+    remove-node:
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensA"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensB"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensC"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensD"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensE"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensF"}, "value": "0"}
+    add-xml:
+      - {"xml": "<Value paramName=\"AlSpacingPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"AlOSpacingPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet1\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet2\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet3\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet4\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet5\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet6\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet7\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet8\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet9\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet10\">0|0|0|0</Value>"}
+
+  - name: Setup/SpacingCompens_Ch6.xml 升级
+    file: Setup/SpacingCompens_Ch6.xml
+    anchor: Ch6SpacingCompens
+    remove-node:
+      - {"tag": "Param", "attr": {"name": "SpacingCompensA", "dataObject": "/SETUP/Ch6SpacingCompens/A", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensB", "dataObject": "/SETUP/Ch6SpacingCompens/B", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensC", "dataObject": "/SETUP/Ch6SpacingCompens/C", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensD", "dataObject": "/SETUP/Ch6SpacingCompens/D", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensE", "dataObject": "/SETUP/Ch6SpacingCompens/E", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "SpacingCompensF", "dataObject": "/SETUP/Ch6SpacingCompens/F", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.00001", "default": "0"}}
+    add-xml:
+      - {"xml": "<Param name=\"AlSpacingPieceCompens\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/Al/PositionPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"AlOSpacingPieceCompens\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/AlO/PositionPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet1\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PositionSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet2\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PositionSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet3\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PositionSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet4\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PositionSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet5\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PositionSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet6\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PositionSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet7\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PositionSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet8\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PositionSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet9\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PositionSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"SpacingSet10\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/PositionSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+
+  - name: Setup/SpacingCompens_Ch6.xml 升级
+    file: Setup/SpacingCompens_Ch6.xml
+    anchor: Ch6SpacingCompens/Option
+    remove-node:
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensA"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensB"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensC"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensD"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensE"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "SpacingCompensF"}, "value": "0"}
+    add-xml:
+      - {"xml": "<Value paramName=\"AlSpacingPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"AlOSpacingPieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet1\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet2\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet3\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet4\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet5\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet6\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet7\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet8\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet9\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"SpacingSet10\">0|0|0|0</Value>"}
+
+  - name: Setup/TimeCompens_Ch1.xml 升级
+    file: Setup/TimeCompens_Ch1.xml
+    anchor: Ch1TimeCompens
+    remove-node:
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/A", "dataObject": "/SETUP/Ch1TimeCompens/A", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/B", "dataObject": "/SETUP/Ch1TimeCompens/B", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/C", "dataObject": "/SETUP/Ch1TimeCompens/C", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/D", "dataObject": "/SETUP/Ch1TimeCompens/D", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/E", "dataObject": "/SETUP/Ch1TimeCompens/E", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/F", "dataObject": "/SETUP/Ch1TimeCompens/F", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+    add-xml:
+      - {"xml": "<Param name=\"AlTimePieceCompens\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/Al/TimePieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"AlOTimePieceCompens\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/AlO/TimePieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet1\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/TimeSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet2\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/TimeSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet3\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/TimeSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet4\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/TimeSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet5\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/TimeSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet6\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/TimeSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet7\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/TimeSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet8\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/TimeSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet9\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/TimeSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet10\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/TimeSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+
+  - name: Setup/TimeCompens_Ch1.xml 升级
+    file: Setup/TimeCompens_Ch1.xml
+    anchor: Ch1TimeCompens/Option
+    remove-node:
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/A"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/B"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/C"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/D"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/E"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/F"}, "value": "0.001"}
+    add-xml:
+      - {"xml": "<Value paramName=\"AlTimePieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"AlOTimePieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet1\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet2\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet3\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet4\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet5\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet6\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet7\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet8\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet9\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet10\">0|0|0|0</Value>"}
+
+  - name: Setup/TimeCompens_Ch2.xml 升级
+    file: Setup/TimeCompens_Ch2.xml
+    anchor: Ch2TimeCompens
+    remove-node:
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/A", "dataObject": "/SETUP/Ch2TimeCompens/A", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/B", "dataObject": "/SETUP/Ch2TimeCompens/B", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/C", "dataObject": "/SETUP/Ch2TimeCompens/C", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/D", "dataObject": "/SETUP/Ch2TimeCompens/D", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/E", "dataObject": "/SETUP/Ch2TimeCompens/E", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/F", "dataObject": "/SETUP/Ch2TimeCompens/F", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+    add-xml:
+      - {"xml": "<Param name=\"AlTimePieceCompens\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/Al/TimePieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"AlOTimePieceCompens\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/AlO/TimePieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet1\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/TimeSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet2\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/TimeSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet3\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/TimeSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet4\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/TimeSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet5\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/TimeSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet6\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/TimeSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet7\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/TimeSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet8\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/TimeSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet9\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/TimeSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet10\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/TimeSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+
+  - name: Setup/TimeCompens_Ch2.xml 升级
+    file: Setup/TimeCompens_Ch2.xml
+    anchor: Ch2TimeCompens/Option
+    remove-node:
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/A"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/B"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/C"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/D"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/E"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/F"}, "value": "0.001"}
+    add-xml:
+      - {"xml": "<Value paramName=\"AlTimePieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"AlOTimePieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet1\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet2\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet3\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet4\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet5\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet6\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet7\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet8\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet9\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet10\">0|0|0|0</Value>"}
+
+  - name: Setup/TimeCompens_Ch5.xml 升级
+    file: Setup/TimeCompens_Ch5.xml
+    anchor: Ch5TimeCompens
+    remove-node:
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/A", "dataObject": "/SETUP/Ch5TimeCompens/A", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/B", "dataObject": "/SETUP/Ch5TimeCompens/B", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/C", "dataObject": "/SETUP/Ch5TimeCompens/C", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/D", "dataObject": "/SETUP/Ch5TimeCompens/D", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/E", "dataObject": "/SETUP/Ch5TimeCompens/E", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/F", "dataObject": "/SETUP/Ch5TimeCompens/F", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+    add-xml:
+      - {"xml": "<Param name=\"AlTimePieceCompens\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/Al/TimePieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"AlOTimePieceCompens\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/AlO/TimePieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet1\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/TimeSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet2\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/TimeSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet3\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/TimeSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet4\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/TimeSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet5\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/TimeSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet6\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/TimeSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet7\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/TimeSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet8\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/TimeSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet9\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/TimeSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet10\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/TimeSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+
+  - name: Setup/TimeCompens_Ch5.xml 升级
+    file: Setup/TimeCompens_Ch5.xml
+    anchor: Ch5TimeCompens/Option
+    remove-node:
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/A"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/B"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/C"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/D"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/E"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/F"}, "value": "0.001"}
+    add-xml:
+      - {"xml": "<Value paramName=\"AlTimePieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"AlOTimePieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet1\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet2\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet3\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet4\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet5\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet6\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet7\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet8\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet9\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet10\">0|0|0|0</Value>"}
+
+  - name: Setup/TimeCompens_Ch6.xml 升级
+    file: Setup/TimeCompens_Ch6.xml
+    anchor: Ch6TimeCompens
+    remove-node:
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/A", "dataObject": "/SETUP/Ch6TimeCompens/A", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/B", "dataObject": "/SETUP/Ch6TimeCompens/B", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/C", "dataObject": "/SETUP/Ch6TimeCompens/C", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/D", "dataObject": "/SETUP/Ch6TimeCompens/D", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/E", "dataObject": "/SETUP/Ch6TimeCompens/E", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+      - {"tag": "Param", "attr": {"name": "RcpCompensationTime/F", "dataObject": "/SETUP/Ch6TimeCompens/F", "type": "D", "min": "0", "max": "500", "units": "", "accuracy": "0.001", "default": "0"}}
+    add-xml:
+      - {"xml": "<Param name=\"AlTimePieceCompens\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/Al/TimePieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"AlOTimePieceCompens\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/AlO/TimePieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet1\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/TimeSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet2\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/TimeSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet3\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/TimeSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet4\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/TimeSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet5\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/TimeSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet6\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/TimeSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet7\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/TimeSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet8\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/TimeSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet9\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/TimeSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+      - {"xml": "<Param name=\"TimeSet10\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/TimeSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />", "before": {"tag": "Option", "attr": {"index": "1"}}}
+
+  - name: Setup/TimeCompens_Ch6.xml 升级
+    file: Setup/TimeCompens_Ch6.xml
+    anchor: Ch6TimeCompens/Option
+    remove-node:
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/A"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/B"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/C"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/D"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/E"}, "value": "0"}
+      - {"tag": "Value", "attr": {"paramName": "RcpCompensationTime/F"}, "value": "0.001"}
+    add-xml:
+      - {"xml": "<Value paramName=\"AlTimePieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"AlOTimePieceCompens\">TargetLife#100:None;Otherwise:None</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet1\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet2\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet3\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet4\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet5\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet6\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet7\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet8\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet9\">0|0|0|0</Value>"}
+      - {"xml": "<Value paramName=\"TimeSet10\">0|0|0|0</Value>"}
+
+  - name: SysLog_config.xml 升级
+    file: SysLog_config.xml
+    anchor: SysLog
+    add-xml:
+      - {"xml": "<FileSize>10</FileSize>", "after": {"tag": "Threshold", "value": "1000"}}
+
+  - name: 新建 Setup/GasFlowCompens_Ch1.xml
+    new-file: Setup/GasFlowCompens_Ch1.xml
+    content: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n\r\n<Ch1GasFlowCompens comments=\"config parameters for Ch1 compensation Chamber\">\r\n  <Param name=\"AlGasFlowPieceCompens\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/Al/GasFlowPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"AlONGasFlowPieceCompens\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/AlO/GasFlowPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet1\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet2\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet3\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet4\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet5\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet6\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet7\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet8\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet9\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet10\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet11\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet11\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet12\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet12\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet13\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet13\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet14\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet14\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet15\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet15\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet16\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet16\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet17\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet17\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet18\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet18\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet19\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet19\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet20\" dataObject=\"/SETUP/Control/Ch1/CompensParamCalculator/GasFlowSet20\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Option index=\"1\">\r\n    <Value paramName=\"AlGasFlowPieceCompens\">0</Value>\r\n    <Value paramName=\"AlOGasFlowPieceCompens\">0</Value>\r\n    <Value paramName=\"GasFlowSet1\">0|0|0|1</Value>\r\n    <Value paramName=\"GasFlowSet2\">0|0|0|2</Value>\r\n    <Value paramName=\"GasFlowSet3\">0|0|0|3</Value>\r\n    <Value paramName=\"GasFlowSet4\">0|0|0|4</Value>\r\n    <Value paramName=\"GasFlowSet5\">0|0|0|5</Value>\r\n    <Value paramName=\"GasFlowSet6\">0|0|0|6</Value>\r\n    <Value paramName=\"GasFlowSet7\">0|0|0|7</Value>\r\n    <Value paramName=\"GasFlowSet8\">0|0|0|8</Value>\r\n    <Value paramName=\"GasFlowSet9\">0|0|0|9</Value>\r\n    <Value paramName=\"GasFlowSet10\">0|0|0|10</Value>\r\n    <Value paramName=\"GasFlowSet11\">0|0|0|1</Value>\r\n    <Value paramName=\"GasFlowSet12\">0|0|0|2</Value>\r\n    <Value paramName=\"GasFlowSet13\">0|0|0|3</Value>\r\n    <Value paramName=\"GasFlowSet14\">0|0|0|4</Value>\r\n    <Value paramName=\"GasFlowSet15\">0|0|0|5</Value>\r\n    <Value paramName=\"GasFlowSet16\">0|0|0|6</Value>\r\n    <Value paramName=\"GasFlowSet17\">0|0|0|7</Value>\r\n    <Value paramName=\"GasFlowSet18\">0|0|0|8</Value>\r\n    <Value paramName=\"GasFlowSet19\">0|0|0|9</Value>\r\n    <Value paramName=\"GasFlowSet20\">0|0|0|10</Value>\r\n  </Option>\r\n</Ch1GasFlowCompens>"
+
+  - name: 新建 Setup/GasFlowCompens_Ch2.xml
+    new-file: Setup/GasFlowCompens_Ch2.xml
+    content: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n\r\n<Ch2GasFlowCompens comments=\"config parameters for Ch2 compensation Chamber\">\r\n  <Param name=\"AlGasFlowPieceCompens\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/Al/GasFlowPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"AlONGasFlowPieceCompens\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/AlO/GasFlowPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet1\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet2\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet3\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet4\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet5\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet6\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet7\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet8\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet9\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet10\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet11\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet11\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet12\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet12\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet13\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet13\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet14\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet14\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet15\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet15\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet16\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet16\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet17\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet17\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet18\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet18\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet19\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet19\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet20\" dataObject=\"/SETUP/Control/Ch2/CompensParamCalculator/GasFlowSet20\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Option index=\"1\">\r\n    <Value paramName=\"AlGasFlowPieceCompens\">0</Value>\r\n    <Value paramName=\"AlOGasFlowPieceCompens\">0</Value>\r\n    <Value paramName=\"GasFlowSet1\">0|0|0|1</Value>\r\n    <Value paramName=\"GasFlowSet2\">0|0|0|2</Value>\r\n    <Value paramName=\"GasFlowSet3\">0|0|0|3</Value>\r\n    <Value paramName=\"GasFlowSet4\">0|0|0|4</Value>\r\n    <Value paramName=\"GasFlowSet5\">0|0|0|5</Value>\r\n    <Value paramName=\"GasFlowSet6\">0|0|0|6</Value>\r\n    <Value paramName=\"GasFlowSet7\">0|0|0|7</Value>\r\n    <Value paramName=\"GasFlowSet8\">0|0|0|8</Value>\r\n    <Value paramName=\"GasFlowSet9\">0|0|0|9</Value>\r\n    <Value paramName=\"GasFlowSet10\">0|0|0|10</Value>\r\n    <Value paramName=\"GasFlowSet11\">0|0|0|1</Value>\r\n    <Value paramName=\"GasFlowSet12\">0|0|0|2</Value>\r\n    <Value paramName=\"GasFlowSet13\">0|0|0|3</Value>\r\n    <Value paramName=\"GasFlowSet14\">0|0|0|4</Value>\r\n    <Value paramName=\"GasFlowSet15\">0|0|0|5</Value>\r\n    <Value paramName=\"GasFlowSet16\">0|0|0|6</Value>\r\n    <Value paramName=\"GasFlowSet17\">0|0|0|7</Value>\r\n    <Value paramName=\"GasFlowSet18\">0|0|0|8</Value>\r\n    <Value paramName=\"GasFlowSet19\">0|0|0|9</Value>\r\n    <Value paramName=\"GasFlowSet20\">0|0|0|10</Value>\r\n  </Option>\r\n</Ch2GasFlowCompens>"
+
+  - name: 新建 Setup/GasFlowCompens_Ch5.xml
+    new-file: Setup/GasFlowCompens_Ch5.xml
+    content: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n\r\n<Ch5GasFlowCompens comments=\"config parameters for Ch5 compensation Chamber\">\r\n  <Param name=\"AlGasFlowPieceCompens\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/Al/GasFlowPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"AlONGasFlowPieceCompens\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/AlO/GasFlowPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet1\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet2\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet3\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet4\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet5\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet6\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet7\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet8\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet9\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet10\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet11\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet11\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet12\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet12\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet13\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet13\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet14\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet14\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet15\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet15\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet16\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet16\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet17\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet17\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet18\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet18\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet19\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet19\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet20\" dataObject=\"/SETUP/Control/Ch5/CompensParamCalculator/GasFlowSet20\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Option index=\"1\">\r\n    <Value paramName=\"AlGasFlowPieceCompens\">0</Value>\r\n    <Value paramName=\"AlOGasFlowPieceCompens\">0</Value>\r\n    <Value paramName=\"GasFlowSet1\">0|0|0|1</Value>\r\n    <Value paramName=\"GasFlowSet2\">0|0|0|2</Value>\r\n    <Value paramName=\"GasFlowSet3\">0|0|0|3</Value>\r\n    <Value paramName=\"GasFlowSet4\">0|0|0|4</Value>\r\n    <Value paramName=\"GasFlowSet5\">0|0|0|5</Value>\r\n    <Value paramName=\"GasFlowSet6\">0|0|0|6</Value>\r\n    <Value paramName=\"GasFlowSet7\">0|0|0|7</Value>\r\n    <Value paramName=\"GasFlowSet8\">0|0|0|8</Value>\r\n    <Value paramName=\"GasFlowSet9\">0|0|0|9</Value>\r\n    <Value paramName=\"GasFlowSet10\">0|0|0|10</Value>\r\n    <Value paramName=\"GasFlowSet11\">0|0|0|1</Value>\r\n    <Value paramName=\"GasFlowSet12\">0|0|0|2</Value>\r\n    <Value paramName=\"GasFlowSet13\">0|0|0|3</Value>\r\n    <Value paramName=\"GasFlowSet14\">0|0|0|4</Value>\r\n    <Value paramName=\"GasFlowSet15\">0|0|0|5</Value>\r\n    <Value paramName=\"GasFlowSet16\">0|0|0|6</Value>\r\n    <Value paramName=\"GasFlowSet17\">0|0|0|7</Value>\r\n    <Value paramName=\"GasFlowSet18\">0|0|0|8</Value>\r\n    <Value paramName=\"GasFlowSet19\">0|0|0|9</Value>\r\n    <Value paramName=\"GasFlowSet20\">0|0|0|10</Value>\r\n  </Option>\r\n</Ch5GasFlowCompens>"
+
+  - name: 新建 Setup/GasFlowCompens_Ch6.xml
+    new-file: Setup/GasFlowCompens_Ch6.xml
+    content: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n\r\n<Ch6GasFlowCompens comments=\"config parameters for Ch6 compensation Chamber\">\r\n  <Param name=\"AlGasFlowPieceCompens\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/Al/GasFlowPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"AlONGasFlowPieceCompens\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/AlO/GasFlowPieceCompens\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet1\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet1\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet2\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet2\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet3\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet3\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet4\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet4\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet5\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet5\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet6\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet6\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet7\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet7\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet8\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet8\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet9\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet9\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet10\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet10\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet11\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet11\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet12\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet12\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet13\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet13\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet14\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet14\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet15\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet15\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet16\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet16\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet17\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet17\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet18\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet18\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet19\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet19\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Param name=\"GasFlowSet20\" dataObject=\"/SETUP/Control/Ch6/CompensParamCalculator/GasFlowSet20\" type=\"S\" maxLength=\"1000\" default=\"\" />\r\n  <Option index=\"1\">\r\n    <Value paramName=\"AlGasFlowPieceCompens\">0</Value>\r\n    <Value paramName=\"AlOGasFlowPieceCompens\">0</Value>\r\n    <Value paramName=\"GasFlowSet1\">0|0|0|1</Value>\r\n    <Value paramName=\"GasFlowSet2\">0|0|0|2</Value>\r\n    <Value paramName=\"GasFlowSet3\">0|0|0|3</Value>\r\n    <Value paramName=\"GasFlowSet4\">0|0|0|4</Value>\r\n    <Value paramName=\"GasFlowSet5\">0|0|0|5</Value>\r\n    <Value paramName=\"GasFlowSet6\">0|0|0|6</Value>\r\n    <Value paramName=\"GasFlowSet7\">0|0|0|7</Value>\r\n    <Value paramName=\"GasFlowSet8\">0|0|0|8</Value>\r\n    <Value paramName=\"GasFlowSet9\">0|0|0|9</Value>\r\n    <Value paramName=\"GasFlowSet10\">0|0|0|10</Value>\r\n    <Value paramName=\"GasFlowSet11\">0|0|0|1</Value>\r\n    <Value paramName=\"GasFlowSet12\">0|0|0|2</Value>\r\n    <Value paramName=\"GasFlowSet13\">0|0|0|3</Value>\r\n    <Value paramName=\"GasFlowSet14\">0|0|0|4</Value>\r\n    <Value paramName=\"GasFlowSet15\">0|0|0|5</Value>\r\n    <Value paramName=\"GasFlowSet16\">0|0|0|6</Value>\r\n    <Value paramName=\"GasFlowSet17\">0|0|0|7</Value>\r\n    <Value paramName=\"GasFlowSet18\">0|0|0|8</Value>\r\n    <Value paramName=\"GasFlowSet19\">0|0|0|9</Value>\r\n    <Value paramName=\"GasFlowSet20\">0|0|0|10</Value>\r\n  </Option>\r\n</Ch6GasFlowCompens>"
+
+  - name: 新建 Setup/ProcessDataStableTime_Ch1.xml
+    new-file: Setup/ProcessDataStableTime_Ch1.xml
+    content: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n\r\n<Ch1ProcessDataStableTime comments=\"\">\r\n  <Param name=\"SrcDcPower\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/SrcPwrStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"SrcDcVoltage\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/SrcVoltStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"SrcDcCurrent\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/SrcCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"TargetLife\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/TargetLifeStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"MFC01\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/MFC01StableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"MFC02\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/MFC02StableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"BsMFC\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/BsMFCStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"LowerBsMFC\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/LowerBsMFCStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"BG\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/BGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"LowerBG\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/LowerBGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"IG\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/IGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"PG\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/PGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"EscVolt\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/EscVoltStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"EscPosCur\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/EscPosCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"EscNegCur\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/EscNegCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"DCBias\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/DCBiasStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"PendulumPos\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/PendulumPosStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"PedTemp\" dataObject=\"/SETUP/Ch1/ProcessDataStableTime/PedTempStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Option index=\"1\">\r\n    <Value paramName=\"SrcDcPower\">1</Value>\r\n    <Value paramName=\"SrcDcVoltage\">1</Value>\r\n    <Value paramName=\"SrcDcCurrent\">1</Value>\r\n    <Value paramName=\"TargetLife\">1</Value>\r\n    <Value paramName=\"MFC01\">1</Value>\r\n    <Value paramName=\"MFC02\">1</Value>\r\n    <Value paramName=\"BsMFC\">1</Value>\r\n    <Value paramName=\"LowerBsMFC\">1</Value>\r\n    <Value paramName=\"BG\">1</Value>\r\n    <Value paramName=\"LowerBG\">1</Value>\r\n    <Value paramName=\"IG\">1</Value>\r\n    <Value paramName=\"PG\">1</Value>\r\n    <Value paramName=\"EscVolt\">1</Value>\r\n    <Value paramName=\"EscPosCur\">2</Value>\r\n    <Value paramName=\"EscNegCur\">2</Value>\r\n    <Value paramName=\"DCBias\">2</Value>\r\n    <Value paramName=\"PendulumPos\">1</Value>\r\n    <Value paramName=\"PedTemp\">1</Value>\r\n  </Option>\r\n</Ch1ProcessDataStableTime>"
+
+  - name: 新建 Setup/ProcessDataStableTime_Ch2.xml
+    new-file: Setup/ProcessDataStableTime_Ch2.xml
+    content: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n\r\n<Ch2ProcessDataStableTime comments=\"\">\r\n  <Param name=\"SrcDcPower\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/SrcPwrStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"SrcDcVoltage\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/SrcVoltStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"SrcDcCurrent\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/SrcCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"TargetLife\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/TargetLifeStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"MFC01\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/MFC01StableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"MFC02\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/MFC02StableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"BsMFC\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/BsMFCStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"LowerBsMFC\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/LowerBsMFCStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"BG\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/BGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"LowerBG\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/LowerBGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"IG\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/IGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"PG\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/PGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"EscVolt\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/EscVoltStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"EscPosCur\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/EscPosCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"EscNegCur\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/EscNegCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"DCBias\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/DCBiasStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"PendulumPos\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/PendulumPosStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"PedTemp\" dataObject=\"/SETUP/Ch2/ProcessDataStableTime/PedTempStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Option index=\"1\">\r\n    <Value paramName=\"SrcDcPower\">1</Value>\r\n    <Value paramName=\"SrcDcVoltage\">1</Value>\r\n    <Value paramName=\"SrcDcCurrent\">1</Value>\r\n    <Value paramName=\"TargetLife\">1</Value>\r\n    <Value paramName=\"MFC01\">1</Value>\r\n    <Value paramName=\"MFC02\">1</Value>\r\n    <Value paramName=\"BsMFC\">1</Value>\r\n    <Value paramName=\"LowerBsMFC\">1</Value>\r\n    <Value paramName=\"BG\">1</Value>\r\n    <Value paramName=\"LowerBG\">1</Value>\r\n    <Value paramName=\"IG\">1</Value>\r\n    <Value paramName=\"PG\">1</Value>\r\n    <Value paramName=\"EscVolt\">1</Value>\r\n    <Value paramName=\"EscPosCur\">2</Value>\r\n    <Value paramName=\"EscNegCur\">2</Value>\r\n    <Value paramName=\"DCBias\">2</Value>\r\n    <Value paramName=\"PendulumPos\">1</Value>\r\n    <Value paramName=\"PedTemp\">1</Value>\r\n  </Option>\r\n</Ch2ProcessDataStableTime>"
+
+  - name: 新建 Setup/ProcessDataStableTime_Ch5.xml
+    new-file: Setup/ProcessDataStableTime_Ch5.xml
+    content: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n\r\n<Ch5ProcessDataStableTime comments=\"\">\r\n  <Param name=\"SrcDcPower\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/SrcPwrStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"SrcDcVoltage\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/SrcVoltStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"SrcDcCurrent\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/SrcCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"TargetLife\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/TargetLifeStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"MFC01\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/MFC01StableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"MFC02\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/MFC02StableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"BsMFC\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/BsMFCStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"LowerBsMFC\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/LowerBsMFCStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"BG\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/BGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"LowerBG\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/LowerBGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"IG\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/IGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"PG\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/PGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"EscVolt\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/EscVoltStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"EscPosCur\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/EscPosCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"EscNegCur\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/EscNegCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"DCBias\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/DCBiasStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"PendulumPos\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/PendulumPosStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"PedTemp\" dataObject=\"/SETUP/Ch5/ProcessDataStableTime/PedTempStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Option index=\"1\">\r\n    <Value paramName=\"SrcDcPower\">1</Value>\r\n    <Value paramName=\"SrcDcVoltage\">1</Value>\r\n    <Value paramName=\"SrcDcCurrent\">1</Value>\r\n    <Value paramName=\"TargetLife\">1</Value>\r\n    <Value paramName=\"MFC01\">1</Value>\r\n    <Value paramName=\"MFC02\">1</Value>\r\n    <Value paramName=\"BsMFC\">1</Value>\r\n    <Value paramName=\"LowerBsMFC\">1</Value>\r\n    <Value paramName=\"BG\">1</Value>\r\n    <Value paramName=\"LowerBG\">1</Value>\r\n    <Value paramName=\"IG\">1</Value>\r\n    <Value paramName=\"PG\">1</Value>\r\n    <Value paramName=\"EscVolt\">1</Value>\r\n    <Value paramName=\"EscPosCur\">2</Value>\r\n    <Value paramName=\"EscNegCur\">2</Value>\r\n    <Value paramName=\"DCBias\">2</Value>\r\n    <Value paramName=\"PendulumPos\">1</Value>\r\n    <Value paramName=\"PedTemp\">1</Value>\r\n  </Option>\r\n</Ch5ProcessDataStableTime>"
+
+  - name: 新建 Setup/ProcessDataStableTime_Ch6.xml
+    new-file: Setup/ProcessDataStableTime_Ch6.xml
+    content: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n\r\n<Ch6ProcessDataStableTime comments=\"\">\r\n  <Param name=\"SrcDcPower\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/SrcPwrStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"SrcDcVoltage\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/SrcVoltStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"SrcDcCurrent\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/SrcCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"TargetLife\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/TargetLifeStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"MFC01\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/MFC01StableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"MFC02\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/MFC02StableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"BsMFC\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/BsMFCStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"LowerBsMFC\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/LowerBsMFCStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"BG\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/BGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"LowerBG\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/LowerBGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"IG\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/IGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"PG\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/PGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"EscVolt\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/EscVoltStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"EscPosCur\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/EscPosCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"EscNegCur\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/EscNegCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"DCBias\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/DCBiasStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"PendulumPos\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/PendulumPosStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"PedTemp\" dataObject=\"/SETUP/Ch6/ProcessDataStableTime/PedTempStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Option index=\"1\">\r\n    <Value paramName=\"SrcDcPower\">1</Value>\r\n    <Value paramName=\"SrcDcVoltage\">1</Value>\r\n    <Value paramName=\"SrcDcCurrent\">1</Value>\r\n    <Value paramName=\"TargetLife\">1</Value>\r\n    <Value paramName=\"MFC01\">1</Value>\r\n    <Value paramName=\"MFC02\">1</Value>\r\n    <Value paramName=\"BsMFC\">1</Value>\r\n    <Value paramName=\"LowerBsMFC\">1</Value>\r\n    <Value paramName=\"BG\">1</Value>\r\n    <Value paramName=\"LowerBG\">1</Value>\r\n    <Value paramName=\"IG\">1</Value>\r\n    <Value paramName=\"PG\">1</Value>\r\n    <Value paramName=\"EscVolt\">1</Value>\r\n    <Value paramName=\"EscPosCur\">2</Value>\r\n    <Value paramName=\"EscNegCur\">2</Value>\r\n    <Value paramName=\"DCBias\">2</Value>\r\n    <Value paramName=\"PendulumPos\">1</Value>\r\n    <Value paramName=\"PedTemp\">1</Value>\r\n  </Option>\r\n</Ch6ProcessDataStableTime>"
+
+  - name: 新建 Setup/ProcessDataStableTime_ChC.xml
+    new-file: Setup/ProcessDataStableTime_ChC.xml
+    content: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n\r\n<ChCProcessDataStableTime comments=\"\">\r\n  <Param name=\"IG\" dataObject=\"/SETUP/ChC/ProcessDataStableTime/IGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"HeaterTemp\" dataObject=\"/SETUP/ChC/ProcessDataStableTime/HeaterTempStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"LampInnerCurrent\" dataObject=\"/SETUP/ChC/ProcessDataStableTime/LampInnerCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"LampOuterCurrent\" dataObject=\"/SETUP/ChC/ProcessDataStableTime/LampOuterCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Option index=\"1\">\r\n    <Value paramName=\"IG\">1</Value>\r\n    <Value paramName=\"HeaterTemp\">1</Value>\r\n    <Value paramName=\"LampInnerCurrent\">1</Value>\r\n    <Value paramName=\"LampOuterCurrent\">1</Value>\r\n  </Option>\r\n</ChCProcessDataStableTime>"
+
+  - name: 新建 Setup/ProcessDataStableTime_ChD.xml
+    new-file: Setup/ProcessDataStableTime_ChD.xml
+    content: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n\r\n<ChDProcessDataStableTime comments=\"\">\r\n  <Param name=\"IG\" dataObject=\"/SETUP/ChD/ProcessDataStableTime/IGStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"HeaterTemp\" dataObject=\"/SETUP/ChD/ProcessDataStableTime/HeaterTempStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"LampInnerCurrent\" dataObject=\"/SETUP/ChD/ProcessDataStableTime/LampInnerCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Param name=\"LampOuterCurrent\" dataObject=\"/SETUP/ChD/ProcessDataStableTime/LampOuterCurStableTime\" type=\"D\" min=\"0\" max=\"10\" units=\"s\" accuracy=\"0.01\" default=\"1\" />\r\n  <Option index=\"1\">\r\n    <Value paramName=\"IG\">1</Value>\r\n    <Value paramName=\"HeaterTemp\">1</Value>\r\n    <Value paramName=\"LampInnerCurrent\">1</Value>\r\n    <Value paramName=\"LampOuterCurrent\">1</Value>\r\n  </Option>\r\n</ChDProcessDataStableTime>"
