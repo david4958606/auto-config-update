@@ -27,3 +27,9 @@ wheels/
 *.exe
 *.tar.gz
 .idea
+
+# 本地验证工作区
+/.gocache/
+/.upgrade-work/
+example-config
+.omo

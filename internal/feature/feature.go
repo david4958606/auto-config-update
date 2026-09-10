@@ -29,9 +29,13 @@ type Feature struct {
 func (f *Feature) Ver() string { return f.Version.Value }
 
 // Step 是一个有序步骤。
+//
+// File 非空时为"文件级步骤"：不参与腔室循环，直接对该文件(相对 config/)执行一次；
+// anchor 相对该文件根元素解析(首段可匹配根自身)。
 type Step struct {
 	Name         string        `yaml:"name"`
 	Anchor       string        `yaml:"anchor"`
+	File         string        `yaml:"file"`
 	Where        *WhereSpec    `yaml:"where"`
 	Require      []yaml.Node   `yaml:"require"` // 单键 map 列表
 	Bind         []yaml.Node   `yaml:"bind"`    // 单键 map 列表
@@ -42,7 +46,93 @@ type Step struct {
 	RemoveMethod []MethodSpec  `yaml:"remove-method"`
 	AddIO        []AddIOSpec   `yaml:"add-io"`
 	AddData      []AddDataSpec `yaml:"add-data"`
+
+	// 原地改写 / 删除 / 注释开关 / 普通元素(见 doc/config-upgrade-design.md §3)。
+	SetText    []SetTextSpec    `yaml:"set-text"`
+	SetAttr    []SetAttrSpec    `yaml:"set-attr"`
+	RemoveNode []RemoveNodeSpec `yaml:"remove-node"`
+	Wrap       []WrapSpec       `yaml:"wrap"`
+	Uncomment  []UncommentSpec  `yaml:"uncomment"`
+	AddElement []AddElementSpec `yaml:"add-element"`
+	AddXML     []AddXMLSpec     `yaml:"add-xml"`
 }
+
+// AddXMLSpec 描述一个 add-xml 动作：把一段内联 XML 片段插入 anchor 下(可用占位符)。
+// 片段在解析后作为合成子树渲染，按"结构完全一致"判重(幂等)。
+type AddXMLSpec struct {
+	XML    string   `yaml:"xml"`
+	Before *SelSpec `yaml:"before"`
+	After  *SelSpec `yaml:"after"`
+}
+
+// SelSpec 是一个元素选择器：tag 相同 + attr 全等 + value 文本相等(可选)。
+type SelSpec struct {
+	Tag   string            `yaml:"tag"`
+	Attr  map[string]string `yaml:"attr"`
+	Value *string           `yaml:"value"`
+}
+
+// SetTextSpec 描述一个 set-text 动作：把 anchor 下 tag(可选再下沉 child)的元素文本改成 value。
+// Old 非 nil 时只匹配"当前文本 == old"的元素。
+type SetTextSpec struct {
+	Tag   string            `yaml:"tag"`
+	Child string            `yaml:"child"`
+	Attr  map[string]string `yaml:"attr"`
+	Old   *string           `yaml:"old"`
+	Value string            `yaml:"value"`
+}
+
+// SetAttrSpec 描述一个 set-attr 动作：把 anchor 下匹配元素的 name 属性设为 value。
+type SetAttrSpec struct {
+	Tag   string            `yaml:"tag"`
+	Child string            `yaml:"child"`
+	Attr  map[string]string `yaml:"attr"`
+	Old   *string           `yaml:"old"` // 可选：当前 name 属性值须等于 old
+	Name  string            `yaml:"name"`
+	Value string            `yaml:"value"`
+}
+
+// RemoveNodeSpec 描述一个 remove-node 动作：删除 anchor 下匹配的元素(含子树)。
+// Has 是附加条件：该元素须含有匹配此选择器的直接子元素(用于区分同名但内容不同的节点)。
+type RemoveNodeSpec struct {
+	Tag   string            `yaml:"tag"`
+	Child string            `yaml:"child"`
+	Attr  map[string]string `yaml:"attr"`
+	Value *string           `yaml:"value"`
+	Has   *SelSpec          `yaml:"has"`
+}
+
+// WrapSpec 描述一个 wrap 动作：用 open/close 把 select 命中的节点区间包起来。
+// Comment=true 时取 <!-- / -->；否则用显式 open/close(如 CDATA)。
+type WrapSpec struct {
+	Comment bool      `yaml:"comment"`
+	Open    string    `yaml:"open"`
+	Close   string    `yaml:"close"`
+	Child   string    `yaml:"child"`
+	Select  []SelSpec `yaml:"select"`
+}
+
+// UncommentSpec 描述一个 uncomment 动作：放开(或 drop=true 删除)包住 find 的注释块。
+type UncommentSpec struct {
+	Find  string `yaml:"find"`
+	Open  string `yaml:"open"`
+	Close string `yaml:"close"`
+	Drop  bool   `yaml:"drop"`
+}
+
+// AddElementSpec 描述一个 add-element 动作：新增一个普通元素(非 method/io/data)。
+type AddElementSpec struct {
+	Tag         string    `yaml:"tag"`
+	Attrs       yaml.Node `yaml:"attrs"`
+	Text        string    `yaml:"text"`
+	SelfClose   bool      `yaml:"self-close"`
+	PairedEmpty bool      `yaml:"paired-empty"`
+	Before      *SelSpec  `yaml:"before"`
+	After       *SelSpec  `yaml:"after"`
+}
+
+// AttrPairs 按书写顺序返回 add-element 的属性键值对。
+func (a *AddElementSpec) AttrPairs() []xmldoc.Attr { return mapPairs(&a.Attrs) }
 
 // WhereSpec 是 leaf 谓词 + 可选的插入定位。
 //   - tag-glob / attr：筛选命中哪个 leaf 实例。
@@ -64,6 +154,8 @@ type AddNodeSpec struct {
 	Class         string    `yaml:"class"`
 	Attrs         yaml.Node `yaml:"attrs"` // 保留书写顺序
 	IncludeEntity string    `yaml:"include-entity"`
+	Before        *SelSpec  `yaml:"before"` // 可选：插到该兄弟之前
+	After         *SelSpec  `yaml:"after"`  // 可选：插到该兄弟之后
 }
 
 // AttrPairs 按书写顺序返回 attrs 的键值对。
@@ -84,6 +176,8 @@ type AddIOSpec struct {
 	DescriptorList []DescItem `yaml:"DescriptorList"` // 渲染成 <DescriptorList>name:value,...</DescriptorList>
 	Unit           *string    `yaml:"Unit"`           // nil=未配不加；否则 <Unit>值</Unit>(空串→<Unit/>)
 	IncludeEntity  string     `yaml:"include-entity"` // 非空=按 glob 从顶层声明解析真名，于点位内部末尾追加 &真名;(同 add-node)
+	Before         *SelSpec   `yaml:"before"`         // 可选：插到该兄弟之前
+	After          *SelSpec   `yaml:"after"`          // 可选：插到该兄弟之后
 }
 
 // AddDataSpec 描述一个 add-data 动作：在 anchor(如 <Heater>)下建一个数据点位。
@@ -101,6 +195,8 @@ type AddDataSpec struct {
 	DescriptorList []DescItem `yaml:"DescriptorList"` // 渲染成 <DescriptorList>name:value,...</DescriptorList>
 	Unit           yaml.Node  `yaml:"Unit"`           // Kind==0=未配不加；否则 <Unit>值</Unit>(NULL/空串→成对空标签 <Unit></Unit>)
 	IncludeEntity  string     `yaml:"include-entity"` // 非空=按 glob 从顶层声明解析真名，于点位内部末尾追加 &真名;(同 add-node)
+	Before         *SelSpec   `yaml:"before"`         // 可选：插到该兄弟之前
+	After          *SelSpec   `yaml:"after"`          // 可选：插到该兄弟之后
 }
 
 // AttrPairs 按书写顺序返回数据点位属性的键值对(不含 type="data")。
@@ -148,9 +244,11 @@ func joinDescriptors(list []DescItem) string {
 
 // MethodSpec 描述一个 add-method / remove-method 动作。
 type MethodSpec struct {
-	Name  string    `yaml:"name"`
-	Value *string   `yaml:"value"` // nil = 无值(标志型方法)
-	Attrs yaml.Node `yaml:"attrs"` // 额外属性(如 comment=...)，保留书写顺序；type="method" 由 ops 置于最前
+	Name   string    `yaml:"name"`
+	Value  *string   `yaml:"value"`  // nil = 无值(标志型方法)
+	Attrs  yaml.Node `yaml:"attrs"`  // 额外属性(如 comment=...)，保留书写顺序；type="method" 由 ops 置于最前
+	Before *SelSpec  `yaml:"before"` // 可选：插到该兄弟之前(优先于 where.before-method)
+	After  *SelSpec  `yaml:"after"`  // 可选：插到该兄弟之后
 }
 
 // AttrPairs 按书写顺序返回方法额外属性的键值对(不含 type="method")。

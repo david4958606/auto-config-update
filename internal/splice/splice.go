@@ -43,6 +43,7 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 			}
 			at := insertOffset(src, anchorOff)
 			block := xmldoc.Render(e.Child, xmldoc.RealDepth(e.Parent)+1) + "\n"
+			block = matchNewline(block, detectNewline(src))
 			if _, ok := insertText[at]; !ok {
 				insertOrder = append(insertOrder, at)
 			}
@@ -52,6 +53,33 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 				s, end := lineSpan(src, t.Start, t.End)
 				patches = append(patches, patch{start: s, end: end})
 			}
+		case xmldoc.SetText:
+			for _, t := range e.Targets {
+				patches = append(patches, setTextPatch(src, t, e.Text))
+			}
+		case xmldoc.Wrap:
+			if lo, hi, ok := wrapSpan(e.Targets); ok {
+				patches = append(patches, patch{start: lo, end: lo, text: e.Open})
+				patches = append(patches, patch{start: hi, end: hi, text: e.Close})
+			}
+		case xmldoc.InsertRaw:
+			if e.Parent.Synthetic {
+				continue
+			}
+			anchorOff := e.Parent.CloseStart
+			if e.Before != nil && e.Before.Start >= 0 {
+				anchorOff = e.Before.Start
+			} else if ent := trailingEntity(e.Parent); ent != nil {
+				anchorOff = ent.Start
+			}
+			at := insertOffset(src, anchorOff)
+			block := matchNewline(strings.TrimRight(e.Text, "\r\n"), detectNewline(src)) + detectNewline(src)
+			if _, ok := insertText[at]; !ok {
+				insertOrder = append(insertOrder, at)
+			}
+			insertText[at] += block
+		case xmldoc.Replace:
+			patches = append(patches, patch{start: e.Start, end: e.End, text: e.Text})
 		}
 	}
 	for _, at := range insertOrder {
@@ -69,6 +97,52 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 		out = next
 	}
 	return out
+}
+
+// detectNewline 返回文件主导换行符(有 CRLF 就是 "\r\n"，否则 "\n")。
+// 配置片段多为 CRLF；插入的新行须沿用，避免同文件混用换行。
+func detectNewline(src []byte) string {
+	if strings.Contains(string(src), "\r\n") {
+		return "\r\n"
+	}
+	return "\n"
+}
+
+// matchNewline 把 block 的换行统一成 nl(先归一到 \n 再展开，避免重复 \r)。
+func matchNewline(block, nl string) string {
+	if nl == "\n" {
+		return block
+	}
+	return strings.ReplaceAll(strings.ReplaceAll(block, "\r\n", "\n"), "\n", nl)
+}
+
+// setTextPatch 生成"把 t 的文本改成 text"的字节替换：
+//   - 成对标签：只替换开标签之后 ~ 闭标签之前的 inner 区间(标签/属性/缩进原文不动)。
+//   - 自闭合标签：整段重渲染成 <tag attrs>text</tag>。
+func setTextPatch(src []byte, t *xmldoc.Node, text string) patch {
+	if t.CloseStart >= 0 && t.OpenEnd >= 0 {
+		return patch{start: t.OpenEnd, end: t.CloseStart, text: xmldoc.EscapeText(text)}
+	}
+	open := strings.TrimRight(string(src[t.Start:t.End]), " \t\r\n")
+	open = strings.TrimSuffix(open, "/")
+	return patch{start: t.Start, end: t.End, text: open + ">" + xmldoc.EscapeText(text) + "</" + t.Tag + ">"}
+}
+
+// wrapSpan 返回一组节点覆盖的最小字节区间 [min(Start), max(End))。
+func wrapSpan(targets []*xmldoc.Node) (int, int, bool) {
+	lo, hi := -1, -1
+	for _, t := range targets {
+		if t == nil || t.Start < 0 || t.End < 0 {
+			continue
+		}
+		if lo < 0 || t.Start < lo {
+			lo = t.Start
+		}
+		if t.End > hi {
+			hi = t.End
+		}
+	}
+	return lo, hi, lo >= 0 && hi > lo
 }
 
 // trailingEntity 返回父节点末尾连续"永远在最后"的原文实体引用(Start>=0)中最靠前的一个；

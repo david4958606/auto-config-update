@@ -50,9 +50,17 @@ steps:                     # 有序步骤列表，见下
 | `add-method` | 动作 | 加方法调用。见 §7.3。 |
 | `remove-method` | 动作 | 删方法调用。见 §7.4。 |
 | `add-io` | 动作 | 建 IO 点位，可内嵌实体引用。见 §7.5。 |
+| `add-element` | 动作 | 建普通元素(`<Param>`/`<Value>`/`<FileSize>`/`<spare>`)。见 §7.8。 |
+| `add-xml` | 动作 | 插入一段**内联 XML 片段**(整棵子树，逐字保留实体书写)。见 §7.9。 |
+| `set-text` | 动作 | 改写已存在元素的文本。见 §7.10。 |
+| `set-attr` | 动作 | 改写/新增已存在元素的属性。见 §7.10。 |
+| `remove-node` | 动作 | 删除已存在元素(含子树)。见 §7.11。 |
+| `wrap` | 动作 | 用 `open`/`close` 包裹一段节点区间(注释掉 / CDATA 化)。见 §7.12。 |
+| `uncomment` | 动作 | 放开(或删除)包住某段文本的注释块。见 §7.13。 |
 
 同一 step 内动作的**执行顺序固定**（与 YAML 中书写顺序无关）：
-`add-node` → `add-data` → `add-blank` → `add-comment` → `add-method` → `remove-method` → `add-io`（见 §8）。
+`add-node` → `add-data` → `add-element` → `add-xml` → `set-text`/`set-attr`/`remove-node` →
+`wrap` → `uncomment` → `add-blank` → `add-comment` → `add-method` → `remove-method` → `add-io`（见 §8）。
 > 需要把注释/空行放到方法块**之后**时，另起一个**同 anchor 的 step**单独写 `add-comment`（追加落在末尾）。
 
 ---
@@ -341,6 +349,131 @@ add-comment:
   - "<!--PG_INFICON-->"                 # 方法块前的段注释
 ```
 
+### 7.8 `add-element` —— 新增普通元素
+
+建一个不带头部约定(既不是 method、也不是 io/data)的元素，如 Setup 的 `<Param>`/`<Value>`、
+SysLog 的 `<FileSize>`、IO 的 `<spare>`。
+
+| 字段 | 说明 |
+|------|------|
+| `tag` | 元素标签。判重键的一部分。 |
+| `attrs` | 属性(保留书写顺序，值支持占位符)。 |
+| `text` | 文本(空串=无文本)。 |
+| `self-close` | true → 渲染成 `<tag .../>`。 |
+| `paired-empty` | 文本为空且非自闭合时渲染成 `<tag></tag>`。 |
+| `before` / `after` | 可选选择器 `{tag, attr, value}`：插到该兄弟之前/之后；缺省追加末尾。 |
+
+判重：已存在"同 tag + 同 attrs + 同 text"的子元素即 no-op。
+
+```yaml
+add-element:
+  - tag: Value
+    attrs: { paramName: Heater1TcTempDiffMax }
+    text: "10"
+    after: { tag: Value, attr: { paramName: HeaterWaterVlvOpenTemp } }
+  - { tag: Param, attrs: { name: X, dataObject: /SETUP/.../X, type: D, min: 0, max: 300, units: K, accuracy: 0.0000001, default: 0 }, self-close: true, after: { tag: Param, attr: { name: HeaterWaterVlvOpenTemp } } }
+```
+
+### 7.9 `add-xml` —— 插入内联 XML 片段
+
+把一个完整的 XML 子树原样插入 anchor 下。片段**不经过渲染器**（逐字落盘、按父深度重排缩进），
+因此 `&amp;&amp;`、`&lt;` 这类实体书写原封不动——设备配置里大量表达式的写法必须靠它才能保真。
+
+| 字段 | 说明 |
+|------|------|
+| `xml` | 片段原文(支持占位符)；应为单个根元素。 |
+| `before` / `after` | 可选插入定位。 |
+
+判重：anchor 下已存在**结构与文本完全一致**的兄弟节点即 no-op(所以同名新方法可以成批插)。
+
+```yaml
+add-xml:
+  - xml: |
+      <SrcDcPower class="VInterlock" type="instance" alias="">
+        <setDurationTrigger type="method">(((/IO/LoadRack/Ch4/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch4/SourceDC/OnoffDO == Off))&amp;&amp;(/Control/Ch4/VInterlocks/SourceStatus == OffAbnormal)),4000</setDurationTrigger>
+        <setIntlkAlarm type="method">Alarm,ERROR,Ch4 chamber turn off SourceDC failed.</setIntlkAlarm>
+        &SimulatedFlag_Ch4;
+        <acceptUnknown type="method">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>
+      </SrcDcPower>
+```
+
+### 7.10 `set-text` / `set-attr` —— 原地改写
+
+```yaml
+set-text:
+  - { tag: Max, old: "600", value: "3276.7" }                 # 改 anchor 直接子元素 <Max> 的文本
+  - { tag: LoadBtnRlsDI, child: Bd, old: "1001", value: "31" } # 改孙元素 <LoadBtnRlsDI><Bd> 的文本
+set-attr:
+  - { tag: addCmdAI, old: "Ch = 1080 Spare", name: comment, value: "Ch = 1080 PcwWtrFlowAI" }
+```
+
+| 字段 | 说明 |
+|------|------|
+| `tag` / `child` | 目标元素(或再下沉一层到 `child`)。 |
+| `attr` | 目标元素须**存在且相等**的属性(用 `{alias: ""}` 可区分"空值"与"没有该属性")。 |
+| `old` | 可选：只命中"当前文本/当前属性值 == old"的节点。 |
+| `value` | 新文本 / 新属性值(支持占位符)。 |
+| `name` | `set-attr` 专有：要改写的属性名(不存在则插入到开标签 `>` 之前)。 |
+
+判重：文本/属性已是目标值即 no-op。文本比较用元素内部**全部**字符数据（含实体之后的文本）。
+
+### 7.11 `remove-node` —— 删除已存在元素
+
+```yaml
+remove-node:
+  - { tag: PcwWtrFlowAI, has: { tag: Ch, value: "1240" } }   # 只删内部 Ch=1240 的那一个
+  - { tag: addCmdAI, value: "1240" }
+```
+
+`has` 是附加条件(该元素须含有匹配此选择器的直接子元素)，用于区分同名但内容不同的节点。
+命中多个则全部删除；无命中即 no-op。
+
+> 设备配置里"停用"某块常写成把它注释掉；注释内容不参与解析，故**删除与注释在语义上等价**，
+> 本工具两者都支持（删除用 `remove-node`，保留原文用 `wrap comment`）。
+
+### 7.12 `wrap` —— 包裹一段节点区间(注释掉 / CDATA 化)
+
+```yaml
+wrap:
+  - comment: true                     # 等价 open="<!--" close="-->"
+    select:
+      - { tag: createCheckerAlarm, value: "RobotExToCh4,ERROR,Robot extended to Ch4 chamber." }
+      - { tag: addChecker, value: "(/IO/Platform/Plc/Ch4/SvClosedDI == Closed),SlotVlvNotClosed" }
+  - open: "<![CDATA["
+    close: "]]>"
+    select: [ { tag: Chiller } ]
+```
+
+区间 = 全部命中节点的 `[min(Start), max(End))`；`open`/`close` 直接插在区间两端。
+紧邻处已有该标记或命中为空 → no-op。被 `<!-- -->`/`<![CDATA[ ]]>` 包住的内容解析器本就跳过，
+所以二次 apply 自然无匹配。
+
+### 7.13 `uncomment` —— 放开/删除注释块
+
+```yaml
+uncomment:
+  - { find: "HeatExchanger class=\"VInterlock\"", drop: false }   # 去掉包住它的 <!-- -->
+  - { find: "platformtype_12k", drop: true }                      # 连注释内容一起删
+```
+
+在原文里定位 `find`，向前找最近的 `open`(缺省 `<!--`)、向后找最近的 `close`(缺省 `-->`)，
+校验该区间确实包住 `find` 后去掉标记(或整段删除)。找不到 → no-op。
+
+### 7.14 文件级步骤 `file:`
+
+Setup/SysLog/主文件这类**不属于 Control/IO 片段**的文件，用 `file:` 直接定位：
+
+```yaml
+steps:
+  - name: SysLog 增加 FileSize
+    file: SysLog_config.xml      # 相对 config/ 的路径
+    anchor: SysLog               # 相对该文件根元素(首段可匹配根自身)
+    add-element:
+      - { tag: FileSize, text: "10", after: { tag: Threshold } }
+```
+
+声明了 `file:` 的步骤不参与腔室循环，在腔室步骤之后按声明顺序各执行一次，直接读该文件、改完写回。
+
 ---
 
 ## 8. 执行顺序与幂等
@@ -349,7 +482,8 @@ add-comment:
   不满足 → 自动跳过并打印原因。
 - **step 级**：按 `steps` 顺序，后一步可见前一步在内存树上挂的新节点（跨步引用）。
 - **同一 step 内动作顺序**（固定，与书写顺序无关）：
-  `add-node` → `add-data` → `add-blank` → `add-comment` → `add-method` → `remove-method` → `add-io`。
+  `add-node` → `add-data` → `add-element` → `add-xml` → `set-text`/`set-attr`/`remove-node` →
+  `wrap` → `uncomment` → `add-blank` → `add-comment` → `add-method` → `remove-method` → `add-io`。
 - **幂等**：每个原语先判重，已达目标即 no-op（`-`），不产生字节编辑；重复运行安全。
 
 `plan` 与 `apply` 打印**完全一致**的语义 diff，区别只在 `apply` 会落盘。每行前缀：

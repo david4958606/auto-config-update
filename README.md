@@ -25,6 +25,7 @@ make win64    # windows/amd64 -> auto-config-update.exe
 ./auto-config-update apply --feature features/... --chamber Ch1 Ch4 # 限定腔室(缺省=全部)
 ```
 
+- `--feature` 可简写 `-f`;`--chamber` 可简写 `-c`,均支持连续多值(`-c Ch1 Ch2 Ch3`)。
 - `plan` / `apply` 打印一致的**语义 diff**,区别只在 `apply` 落盘。
 - 行前缀:`+` 有改动、`-` 已达目标(幂等 no-op)、`!` 告警;每个声明动作都出一行。
 - 原语速查见 [doc/feature-primitives.md](doc/feature-primitives.md)。
@@ -73,6 +74,13 @@ steps:
 | `add-node` | 建对象节点;可带 `attrs`、`include-entity`(内嵌声明的实体引用)。 |
 | `add-method` / `remove-method` | 加/删方法调用;有 `value` 渲染 `<name type="method">值</name>`,无 `value` 自闭合。删按 名+值 匹配。 |
 | `add-io` / `add-data` | 建 IO/数据点位,按 `name` 判重。子元素按序 `Bd`(`auto`=推断板号)/`Ch`/`Min`/`Max`/`Accuracy`/`DescriptorList`/`Unit`;`add-data` 首属性固定 `type="data"`。 |
+| `add-blank` / `add-comment` | 在方法块前插入空行 / 段注释。`add-blank: N` 插 N 行空行;`add-comment` 是注释原文列表(须自带 `<!-- -->`)。二者不进解析树,按 anchor 原始字节区间判重(已存在即 no-op)。 |
+| `add-element` | 建普通元素(如 Setup 的 `<Param>`/`<Value>`、`<FileSize>`、`<spare>`),可 `before`/`after` 定位。 |
+| `add-xml` | 插入一段**内联 XML 片段**(整棵新对象子树),逐字保留 `&amp;&amp;` 等实体书写。 |
+| `set-text` / `set-attr` | 改写已存在元素的文本 / 属性(按 `tag`+`attr`+可选 `old` 定位)。 |
+| `remove-node` | 删除已存在元素(含子树);`has` 子条件可区分同名不同内容的节点。 |
+| `wrap` / `uncomment` | 用任意 `open`/`close` 包裹一段节点区间(注释掉 / CDATA 化) / 放开(或删除)注释块。 |
+| `file:`(step 级) | 让某个 step 直接作用于 `config/<file>`(Setup、SysLog、master 等非片段文件)。 |
 
 **占位符**:`{类名}` = anchor 路径上该 class 命中的实例标签名(逐实例绑定);`add-node` 建出的对象登记 `{标签}`→`./标签` 供后续步骤引用;`require`/`bind` 变量同理。
 
@@ -104,11 +112,38 @@ config/
   - `xmldoc` —— 按字节偏移解析 XML、实体容忍(声明不展开)、外科回写的编辑记录
   - `config` —— master+实体装配、逻辑 IO/Control 视图、实体真名解析
   - `anchor` —— class 路径定位 + 同类多实例 fan-out + `where` 筛选
-  - `ops` —— 幂等原语:`add-node`/`add-method`/`remove-method`/`add-io`/`add-data`/`add-entity-ref`
+  - `ops` —— 幂等原语:`add-node`/`add-method`/`remove-method`/`add-io`/`add-data`/`add-blank`/`add-comment`/`add-entity-ref`/`add-element`/`add-xml`/`set-text`/`set-attr`/`remove-node`/`wrap`/`uncomment`
+  - `xmlcmp` —— 语义比对(忽略空白/注释/属性序,比对元素树+实体+停用区),用于升级验收
   - `feature` —— 功能 YAML 加载 + `require`/`bind` 绑定
   - `splice` —— 外科式字节拼接写盘
   - `engine` —— steps 编排:逐腔室、逐步、逐实例执行并落盘
 - `features/*.yaml` —— 功能定义 · `config/` —— 演示夹具 · `Makefile` —— 出包脚本
 - `legacy/` —— Python 原版,保留作参考
 
-> 移植计划见 [GO_PORT_PLAN.md](GO_PORT_PLAN.md)。回归测试见 `internal/engine/engine_test.go` 与 `testdata/golden/`(golden 由 Go 引擎输出生成)。
+> 移植计划见 [GO_PORT_PLAN.md](GO_PORT_PLAN.md)。回归测试见 `internal/engine/engine_test.go` 与 `testdata/golden/`(golden 由 Go 引擎输出生成,`go test ./internal/engine -update-golden` 可重生成)。
+
+## 用真实配置验证:config_old → config 升级
+
+`example-config/` 下是一份**真实配置**的新旧两版(`config_old` = 升级前,`config` = 人工改好的升级后)。
+仓库里的 `features/upgrade-*.yaml` 就是这次升级的完整声明:
+
+| feature | 覆盖 |
+|---------|------|
+| `features/upgrade-files.yaml` | `Setup/*.xml`、`SysLog_config.xml`、`Control/Control_config.xml`(由 `hack/gen_upgrade_files.py` 生成) |
+| `features/upgrade-io.yaml` | IO 片段量程/板号、`IO_Platform` 段停用、`IO_Facility` 新点位、`Driver_Facility` 通道模式 |
+| `features/upgrade-control.yaml` | 加热器温差、EzZone 校准、互锁/报警、机器人安全互锁(由 `hack/gen_upgrade_control.py` 依结构差异生成) |
+
+```bash
+hack/run-upgrade.sh /tmp/up apply          # 拷 config_old → /tmp/up/config 并按序升级
+go test ./internal/engine -run TestUpgradeExampleConfig   # 语义比对 + 幂等校验
+```
+
+`TestUpgradeExampleConfig` 会把 `config_old` 当输入、依次 apply 三个 feature,再用 `internal/xmlcmp`
+与 `config` 做**语义比对**:忽略缩进/空行/属性书写顺序/`<x/>` 与 `<x></x>` 之别,但严格比对元素层级、
+属性、叶子文本、实体引用,以及"哪些块被注释掉 / CDATA 化"。Setup 另有一项专项校验:`<Param name>`
+与 `<Option>/<Value paramName>` 两条序列必须**数量相同、逐项同名同序**,并与目标一致。随后再 apply
+一遍验证**幂等**。
+设计与原语取舍见 [doc/config-upgrade-design.md](doc/config-upgrade-design.md)。
+
+> 说明:该迁移把目标里"注释掉/ CDATA 包住"的块实现为**删除**——注释内容不参与解析,两者语义等价。
+> 需要保留原文时可改用 `wrap`(本仓库对 `IO_Platform` 的 V6DO、CDATA 段就是这么做的)。

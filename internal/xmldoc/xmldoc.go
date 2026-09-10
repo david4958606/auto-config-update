@@ -16,9 +16,14 @@ import (
 )
 
 // Attr 是一个属性，保留书写顺序。
+//
+// ValueStart/ValueEnd 记录该属性【值内容】在源文件里的字节区间(不含引号)；合成属性为 -1。
+// 供 set-attr 做原位替换；值里含转义实体时 Value 是解析后的文本(本工具的目标值均为普通文本)。
 type Attr struct {
-	Name  string
-	Value string
+	Name       string
+	Value      string
+	ValueStart int
+	ValueEnd   int
 }
 
 // Node 是树里的一个节点：可能是元素、也可能是实体引用(IsEntity)。
@@ -33,6 +38,10 @@ type Node struct {
 	// Text 是【首个子元素之前】的字符数据(等价 lxml 的 .text)。
 	// 对方法叶子节点(<setPgValve ...>值</setPgValve>)即其值，供幂等判重。
 	Text string
+
+	// InnerText 是该元素内部**全部**字符数据的顺序拼接(含实体引用之后的文本)。
+	// 配置里大量出现 "A &amp;&amp; B" 这类混合内容，Text 只留首段；InnerText 用于比较/判重。
+	InnerText string
 
 	IsEntity bool   // true 表示这是 &EntName; 这类实体引用节点
 	EntName  string // 实体名(去掉 & 与 ;)
@@ -53,6 +62,7 @@ type Node struct {
 
 	Start      int // 元素/实体在源文件的起始字节(指向 '<' 或 '&')；合成节点 = -1
 	End        int // 结束字节(其后第一个字节，半开区间)；合成节点 = -1
+	OpenEnd    int // 开标签 '>' 之后第一个字节；实体/合成 = -1
 	CloseStart int // '</tag>' 中 '<' 的字节偏移；自闭合/实体/合成 = -1
 }
 
@@ -70,6 +80,16 @@ func (n *Node) Attr(name string) string {
 		}
 	}
 	return ""
+}
+
+// HasAttr 报告是否存在名为 name 的属性(与取值为空串区分开)。
+func (n *Node) HasAttr(name string) bool {
+	for _, a := range n.Attrs {
+		if a.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // Class 是 class 属性的快捷取值。
@@ -152,8 +172,12 @@ func Parse(src []byte) (*Document, error) {
 			// 文本记到当前元素的 Text 上(等价 lxml .text)，供方法节点幂等判重。
 			start := p.pos
 			p.skipText()
-			if t := top(); t != doc && len(t.Children) == 0 {
-				t.Text += string(src[start:p.pos])
+			if t := top(); t != doc {
+				chunk := string(src[start:p.pos])
+				if len(t.Children) == 0 {
+					t.Text += chunk
+				}
+				t.InnerText += chunk
 			}
 		}
 	}
@@ -218,7 +242,7 @@ func (p *parser) readEntity() (*Node, error) {
 	p.pos = end
 	return &Node{
 		IsEntity: true, EntName: name,
-		Start: start, End: end, CloseStart: -1,
+		Start: start, End: end, OpenEnd: -1, CloseStart: -1,
 	}, nil
 }
 
@@ -251,12 +275,14 @@ func (p *parser) readStartTag() (*Node, error) {
 		case '>':
 			p.pos++
 			node.End = p.pos // 非自闭合：End 暂设到 '>' 后，遇 </tag> 再更新
+			node.OpenEnd = p.pos
 			return node, nil
 		case '/':
 			if p.has("/>") {
 				p.pos += 2
 				node.SelfClose = true
 				node.End = p.pos
+				node.OpenEnd = p.pos
 				return node, nil
 			}
 			return nil, fmt.Errorf("字节 %d: 标签 <%s 里出现意外的 '/'", p.pos, tag)
@@ -267,16 +293,17 @@ func (p *parser) readStartTag() (*Node, error) {
 			}
 			p.skipSpace()
 			val := ""
+			vstart, vend := -1, -1
 			if p.pos < len(p.src) && p.src[p.pos] == '=' {
 				p.pos++
 				p.skipSpace()
-				v, err := p.readQuoted()
+				vs, ve, err := p.readQuotedSpan()
 				if err != nil {
 					return nil, err
 				}
-				val = v
+				val, vstart, vend = string(p.src[vs:ve]), vs, ve
 			}
-			node.Attrs = append(node.Attrs, Attr{Name: name, Value: val})
+			node.Attrs = append(node.Attrs, Attr{Name: name, Value: val, ValueStart: vstart, ValueEnd: vend})
 		}
 	}
 }
@@ -294,10 +321,10 @@ func (p *parser) readName() string {
 	return string(p.src[start:p.pos])
 }
 
-// readQuoted 读带引号的属性值，返回引号内内容。
-func (p *parser) readQuoted() (string, error) {
+// readQuotedSpan 读带引号的属性值，返回引号内内容的字节区间 [start,end)。
+func (p *parser) readQuotedSpan() (int, int, error) {
 	if p.pos >= len(p.src) || (p.src[p.pos] != '"' && p.src[p.pos] != '\'') {
-		return "", fmt.Errorf("字节 %d: 属性值缺少引号", p.pos)
+		return 0, 0, fmt.Errorf("字节 %d: 属性值缺少引号", p.pos)
 	}
 	q := p.src[p.pos]
 	p.pos++
@@ -306,11 +333,11 @@ func (p *parser) readQuoted() (string, error) {
 		p.pos++
 	}
 	if p.pos >= len(p.src) {
-		return "", fmt.Errorf("字节 %d: 属性值引号未闭合", start)
+		return 0, 0, fmt.Errorf("字节 %d: 属性值引号未闭合", start)
 	}
-	val := string(p.src[start:p.pos])
+	end := p.pos
 	p.pos++ // 跳过右引号
-	return val, nil
+	return start, end, nil
 }
 
 func (p *parser) skipSpace() {

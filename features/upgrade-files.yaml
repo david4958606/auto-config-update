@@ -1,0 +1,608 @@
+# 文件级升级：Setup/*.xml、SysLog_config.xml、Control_config.xml
+# 这些文件不属于 Control/IO 片段，用 file: 直接定位；见 doc/config-upgrade-design.md §3.8。
+# 由 hack/gen_upgrade_files.py 生成。
+id: upgrade-files
+description: 文件级配置升级（Setup 参数、SysLog FileSize、TimeSynchronizer 方法）
+version: 1
+
+steps:
+  # ── SysLog：新增 FileSize ──
+  - name: SysLog 新增 FileSize
+    file: SysLog_config.xml
+    anchor: SysLog
+    add-element:
+      - { tag: FileSize, text: "10", after: { tag: Threshold } }
+
+  # ── Control 主文件：TimeSynchronizer 增加一秒定时更新 ──
+  - name: TimeSynchronizer 增加 enableOneSecTimerUpdate
+    file: Control/Control_config.xml
+    anchor: /Control/TimeSynchronizer
+    add-method:
+      - { name: enableOneSecTimerUpdate }
+
+  # ── CleanRuleRtInfo：延迟时间串改为新腔室布局 ──
+  - name: CleanRuleRtInfo 更新 CleanRuleDelayTimeInfo
+    file: Setup/CleanRuleRtInfo.xml
+    anchor: CleanRuleRtInfo/Option
+    set-text:
+      - { tag: Value, attr: { paramName: CleanRuleDelayTimeInfo }, value: "Ch1:5000!Ch2:5000!Ch3:5000!Ch4:5000!Ch5:5000!Ch6:5000!ChE:5000!ChF:5000!" }
+
+  # ── Ch1Setup：新增 2 个 Param 与一一对应的 2 个 Value ──
+  - name: Ch1Setup 增补参数声明
+    file: Setup/Ch1Setup.xml
+    anchor: Ch1Setup
+    add-element:
+      - tag: Param
+        attrs: { name: Heater1TcTempDiffMax, dataObject: "/SETUP/Control/Ch1/Heater/PhyHeater/TcTempDiffMax", type: D, min: 0, max: 300, units: K, accuracy: 0.0000001, default: 0 }
+        self-close: true
+        after: { tag: Param, attr: { name: HeaterWaterVlvOpenTemp } }
+      - tag: Param
+        attrs: { name: Heater2TcTempDiffMax, dataObject: "/SETUP/Control/Ch1/Heater/PhyHeater2/TcTempDiffMax", type: D, min: 0, max: 300, units: K, accuracy: 0.0000001, default: 0 }
+        self-close: true
+        after: { tag: Param, attr: { name: HeaterWaterVlvOpenTemp } }
+  - name: Ch1Setup 增补取值
+    file: Setup/Ch1Setup.xml
+    anchor: Ch1Setup/Option
+    add-element:
+      - tag: Value
+        attrs: { paramName: Heater1TcTempDiffMax }
+        text: "10"
+        after: { tag: Value, attr: { paramName: HeaterWaterVlvOpenTemp } }
+      - tag: Value
+        attrs: { paramName: Heater2TcTempDiffMax }
+        text: "10"
+        after: { tag: Value, attr: { paramName: HeaterWaterVlvOpenTemp } }
+
+  # ── Ch2Setup：新增 2 个 Param 与一一对应的 2 个 Value ──
+  - name: Ch2Setup 增补参数声明
+    file: Setup/Ch2Setup.xml
+    anchor: Ch2Setup
+    add-element:
+      - tag: Param
+        attrs: { name: Heater1TcTempDiffMax, dataObject: "/SETUP/Control/Ch2/Heater/PhyHeater/TcTempDiffMax", type: D, min: 0, max: 300, units: K, accuracy: 0.0000001, default: 0 }
+        self-close: true
+        after: { tag: Param, attr: { name: HeaterWaterVlvOpenTemp } }
+      - tag: Param
+        attrs: { name: Heater2TcTempDiffMax, dataObject: "/SETUP/Control/Ch2/Heater/PhyHeater2/TcTempDiffMax", type: D, min: 0, max: 300, units: K, accuracy: 0.0000001, default: 0 }
+        self-close: true
+        after: { tag: Param, attr: { name: HeaterWaterVlvOpenTemp } }
+  - name: Ch2Setup 增补取值
+    file: Setup/Ch2Setup.xml
+    anchor: Ch2Setup/Option
+    add-element:
+      - tag: Value
+        attrs: { paramName: Heater1TcTempDiffMax }
+        text: "10"
+        after: { tag: Value, attr: { paramName: HeaterWaterVlvOpenTemp } }
+      - tag: Value
+        attrs: { paramName: Heater2TcTempDiffMax }
+        text: "10"
+        after: { tag: Value, attr: { paramName: HeaterWaterVlvOpenTemp } }
+
+  # ── ChCSetup：新增 1 个 Param 与一一对应的 1 个 Value ──
+  - name: ChCSetup 增补参数声明
+    file: Setup/ChCSetup.xml
+    anchor: ChCSetup
+    add-element:
+      - tag: Param
+        attrs: { name: HeaterTcTempDiffMax, dataObject: "/SETUP/Control/ChC/Heater/TcTempDiffMax", type: D, min: 0, max: 50, units: "", accuracy: 0.001, default: 30 }
+        self-close: true
+        after: { tag: Param, attr: { name: HeaterWaterVlvOpenTemp } }
+  - name: ChCSetup 增补取值
+    file: Setup/ChCSetup.xml
+    anchor: ChCSetup/Option
+    add-element:
+      - tag: Value
+        attrs: { paramName: HeaterTcTempDiffMax }
+        text: "10"
+        after: { tag: Value, attr: { paramName: HeaterWaterVlvOpenTemp } }
+
+  # ── ChDSetup：新增 1 个 Param 与一一对应的 1 个 Value ──
+  - name: ChDSetup 增补参数声明
+    file: Setup/ChDSetup.xml
+    anchor: ChDSetup
+    add-element:
+      - tag: Param
+        attrs: { name: HeaterTcTempDiffMax, dataObject: "/SETUP/Control/ChD/Heater/TcTempDiffMax", type: D, min: 0, max: 50, units: "", accuracy: 0.001, default: 30 }
+        self-close: true
+        after: { tag: Param, attr: { name: HeaterWaterVlvOpenTemp } }
+  - name: ChDSetup 增补取值
+    file: Setup/ChDSetup.xml
+    anchor: ChDSetup/Option
+    add-element:
+      - tag: Value
+        attrs: { paramName: HeaterTcTempDiffMax }
+        text: "10"
+        after: { tag: Value, attr: { paramName: HeaterWaterVlvOpenTemp } }
+
+  # ── ChETempControl：删除旧的 Ped 校准参数/取值（成对） ──
+  - name: ChETempControl 删除旧的 Ped 校准Param
+    file: Setup/ChETempControl.xml
+    anchor: ChETempControl
+    remove-node:
+      - { tag: Param, attr: { name: HeaterCalibrationOffset } }
+      - { tag: Param, attr: { name: HeaterTcTempDiffMax } }
+  - name: ChETempControl 删除旧的 Ped 校准Value
+    file: Setup/ChETempControl.xml
+    anchor: ChETempControl/Option
+    remove-node:
+      - { tag: Value, attr: { paramName: HeaterCalibrationOffset } }
+      - { tag: Value, attr: { paramName: HeaterTcTempDiffMax } }
+  - name: ChETempControl 增补 28 个 Param 声明
+    file: Setup/ChETempControl.xml
+    anchor: ChETempControl
+    add-element:
+      - tag: Param
+        attrs: { name: Zone35TempHigh, dataObject: "/SETUP/Control/ChE/Zone35TempHigh", type: D, min: 0, max: 300, units: degC, accuracy: 0.01, default: 75 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone35TempLow, dataObject: "/SETUP/Control/ChE/Zone35TempLow", type: D, min: 0, max: 300, units: degC, accuracy: 0.01, default: 55 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone1CalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/Zone1/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone1TcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/Zone1/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone3CalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/Zone3/CalibrationOffset", type: D, min: -25, max: 300, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone3TcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/Zone3/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone4CalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/Zone4/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone4TcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/Zone4/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone5CalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/Zone5/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone5TcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/Zone5/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone6CalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/Zone6/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone6TcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/Zone6/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone7CalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/Zone7/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone7TcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/Zone7/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone8CalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/Zone8/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone8TcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/Zone8/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone9CalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/Zone9/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone9TcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/Zone9/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone10CalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/Zone10/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone10TcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/Zone10/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone13CalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/Zone13/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone13TcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/Zone13/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone16CalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/Zone16/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone16TcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/Zone16/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: PedCalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/Ped/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: PedTcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/Ped/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: LidShowerheadCalibrationOffset, dataObject: "/SETUP/Control/ChE/TempControl/LidShowerhead/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: LidShowerheadTcTempDiffMax, dataObject: "/SETUP/Control/ChE/TempControl/LidShowerhead/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+  - name: ChETempControl 增补 28 个一一对应的 Value 取值
+    file: Setup/ChETempControl.xml
+    anchor: ChETempControl/Option
+    add-element:
+      - tag: Value
+        attrs: { paramName: Zone35TempHigh }
+        text: "75"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone35TempLow }
+        text: "55"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone1CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone1TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone3CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone3TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone4CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone4TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone5CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone5TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone6CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone6TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone7CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone7TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone8CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone8TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone9CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone9TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone10CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone10TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone13CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone13TcTempDiffMax }
+        text: "20"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone16CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone16TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: PedCalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: PedTcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: LidShowerheadCalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: LidShowerheadTcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+
+  # ── ChFTempControl：删除旧的 Ped 校准参数/取值（成对） ──
+  - name: ChFTempControl 删除旧的 Ped 校准Param
+    file: Setup/ChFTempControl.xml
+    anchor: ChFTempControl
+    remove-node:
+      - { tag: Param, attr: { name: HeaterCalibrationOffset } }
+      - { tag: Param, attr: { name: HeaterTcTempDiffMax } }
+  - name: ChFTempControl 删除旧的 Ped 校准Value
+    file: Setup/ChFTempControl.xml
+    anchor: ChFTempControl/Option
+    remove-node:
+      - { tag: Value, attr: { paramName: HeaterCalibrationOffset } }
+      - { tag: Value, attr: { paramName: HeaterTcTempDiffMax } }
+  - name: ChFTempControl 增补 28 个 Param 声明
+    file: Setup/ChFTempControl.xml
+    anchor: ChFTempControl
+    add-element:
+      - tag: Param
+        attrs: { name: Zone35TempHigh, dataObject: "/SETUP/Control/ChF/Zone35TempHigh", type: D, min: 0, max: 300, units: degC, accuracy: 0.01, default: 75 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone35TempLow, dataObject: "/SETUP/Control/ChF/Zone35TempLow", type: D, min: 0, max: 300, units: degC, accuracy: 0.01, default: 55 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone1CalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/Zone1/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone1TcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/Zone1/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone3CalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/Zone3/CalibrationOffset", type: D, min: -25, max: 300, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone3TcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/Zone3/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone4CalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/Zone4/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone4TcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/Zone4/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone5CalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/Zone5/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone5TcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/Zone5/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone6CalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/Zone6/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone6TcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/Zone6/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone7CalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/Zone7/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone7TcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/Zone7/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone8CalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/Zone8/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone8TcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/Zone8/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone9CalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/Zone9/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone9TcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/Zone9/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone10CalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/Zone10/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone10TcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/Zone10/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone13CalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/Zone13/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone13TcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/Zone13/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone16CalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/Zone16/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: Zone16TcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/Zone16/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: PedCalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/Ped/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: PedTcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/Ped/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: LidShowerheadCalibrationOffset, dataObject: "/SETUP/Control/ChF/TempControl/LidShowerhead/CalibrationOffset", type: D, min: -25, max: 25, units: degC, accuracy: 0.01, default: 0 }
+        self-close: true
+        before: { tag: Option }
+      - tag: Param
+        attrs: { name: LidShowerheadTcTempDiffMax, dataObject: "/SETUP/Control/ChF/TempControl/LidShowerhead/TcTempDiffMax", type: D, min: 0, max: 30, units: degC, accuracy: 0.01, default: 10 }
+        self-close: true
+        before: { tag: Option }
+  - name: ChFTempControl 增补 28 个一一对应的 Value 取值
+    file: Setup/ChFTempControl.xml
+    anchor: ChFTempControl/Option
+    add-element:
+      - tag: Value
+        attrs: { paramName: Zone35TempHigh }
+        text: "75"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone35TempLow }
+        text: "55"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone1CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone1TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone3CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone3TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone4CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone4TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone5CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone5TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone6CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone6TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone7CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone7TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone8CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone8TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone9CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone9TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone10CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone10TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone13CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone13TcTempDiffMax }
+        text: "20"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone16CalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: Zone16TcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: PedCalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: PedTcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: LidShowerheadCalibrationOffset }
+        text: "0"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }
+      - tag: Value
+        attrs: { paramName: LidShowerheadTcTempDiffMax }
+        text: "15"
+        after: { tag: Value, attr: { paramName: "LidShowerhead (TOS) ms" } }

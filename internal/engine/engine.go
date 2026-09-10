@@ -7,6 +7,9 @@
 //	    每步 anchor 定位(leaf 多实例则 fan-out) →
 //	      每个实例：并入腔室级绑定 → require/bind → 执行动作(幂等) →
 //	该腔室有改动才回写它自己的片段(保留 &实体; 与原格式；master/其它片段不动)。
+//
+// 另外支持"文件级步骤"(step.file 非空)：不参与腔室循环，在腔室步骤之后按声明顺序
+// 对 config/<file> 各执行一次(用于 Setup/*.xml、SysLog_config.xml、Control_config.xml)。
 package engine
 
 import (
@@ -27,6 +30,7 @@ import (
 
 // Engine 持有只读逻辑索引与实体声明(构建一次，跨腔室复用)。
 type Engine struct {
+	configDir     string
 	controlMaster string
 	driverMaster  string // Driver_config.xml(根 <IOBridge>)；不存在时 IOBridge 步骤跳过
 	ioMaster      string // IO_config.xml(根 <IO>)；不存在时 IO 步骤跳过
@@ -47,7 +51,7 @@ func New(configDir string) (*Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Engine{controlMaster: controlMaster, driverMaster: driverMaster, ioMaster: ioMaster, idx: idx, declared: declared}, nil
+	return &Engine{configDir: configDir, controlMaster: controlMaster, driverMaster: driverMaster, ioMaster: ioMaster, idx: idx, declared: declared}, nil
 }
 
 // target 是一个域(Control/IOBridge)在某腔室的落点：一份片段文档 + 累积的字节编辑。
@@ -94,10 +98,24 @@ func loadFragByChamber(master string) (map[string]*target, error) {
 	return out, nil
 }
 
+// SplitSteps 把 steps 分成"腔室级"与"文件级"两组(保持各自声明顺序)。
+func SplitSteps(steps []feature.Step) (chamber, files []feature.Step) {
+	for _, s := range steps {
+		if s.File != "" {
+			files = append(files, s)
+		} else {
+			chamber = append(chamber, s)
+		}
+	}
+	return
+}
+
 // ApplyFeature 对选定腔室(nil=全部)应用 feature；write=true 才落盘。
 // 每个腔室同时持有 Control 与 IOBridge(Driver) 两个域的片段，按 anchor 首段路由；
 // 跨域共享 chamberBinds(如 Control 侧绑定的 {ITO}=Ch1 供 IOBridge 步骤的 ${ITO} 使用)。
+// 声明了 file: 的步骤在腔室循环之后对相应文件各执行一次。
 func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool, log func(string)) error {
+	chamberSteps, fileSteps := SplitSteps(f.Steps)
 	frags, err := config.FragmentFiles(e.controlMaster)
 	if err != nil {
 		return err
@@ -135,6 +153,9 @@ func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool,
 		if want != nil && !want[chamber] {
 			continue
 		}
+		if len(chamberSteps) == 0 {
+			continue // 纯文件级 feature：不必逐腔室空转
+		}
 
 		log(fmt.Sprintf("[%s] (%s)", chamber, filepath.Base(fr.Path)))
 
@@ -152,8 +173,8 @@ func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool,
 		if cls := croot.Class(); cls != "" {
 			chamberBinds[cls] = chamber
 		}
-		for i := range f.Steps {
-			e.runStep(&f.Steps[i], doms, chamberBinds, chamber, log)
+		for i := range chamberSteps {
+			e.runStep(&chamberSteps[i], doms, chamberBinds, chamber, log)
 		}
 
 		// 分域回写(各自片段独立)；driver 片段可能跨腔室共用一个 doc，故按 path 落。
@@ -168,6 +189,55 @@ func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool,
 				}
 				log(fmt.Sprintf("[%s] + 已写回 %s（%d 处编辑，其余字节不动）", chamber, filepath.Base(tg.path), len(tg.edits)))
 			}
+		}
+	}
+
+	// 文件级步骤(Setup/*.xml、SysLog_config.xml、Control_config.xml 等)。
+	return e.runFileSteps(fileSteps, write, log)
+}
+
+// runFileSteps 逐条执行文件级步骤：每个文件只读一次、改完(可选)写回。
+func (e *Engine) runFileSteps(steps []feature.Step, write bool, log func(string)) error {
+	for i := range steps {
+		step := &steps[i]
+		path := filepath.Join(e.configDir, filepath.FromSlash(step.File))
+		src, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("读取 %s: %w", step.File, err)
+		}
+		doc, err := xmldoc.Parse(src)
+		if err != nil {
+			return fmt.Errorf("解析 %s: %w", step.File, err)
+		}
+		if len(doc.Roots) == 0 {
+			log(fmt.Sprintf("[文件 %s] 跳过：无顶层元素", step.File))
+			continue
+		}
+		log(fmt.Sprintf("[文件 %s]", step.File))
+		tg := &target{doc: doc, path: path, roots: doc.Roots}
+		segs := parseAnchorPlain(step.Anchor)
+		var where *anchor.Where
+		if step.Where != nil {
+			where = &anchor.Where{TagGlob: step.Where.TagGlob, HasGlob: step.Where.TagGlob != "", Attr: step.Where.Attr}
+		}
+		var matches []anchor.Match
+		for _, root := range doc.Roots {
+			matches = append(matches, anchor.Resolve(root, segs, where)...)
+		}
+		if len(matches) == 0 {
+			log(fmt.Sprintf("  步[%s] 跳过：anchor %s 无匹配", step.Name, step.Anchor))
+			continue
+		}
+		croot := doc.Roots[0]
+		for _, m := range matches {
+			e.applyActions(step, tg, m, map[string]string{}, "", croot, log)
+		}
+		if write && len(tg.edits) > 0 {
+			outBytes := splice.Apply(tg.doc.Src, tg.edits)
+			if err := os.WriteFile(tg.path, outBytes, 0o644); err != nil {
+				return err
+			}
+			log(fmt.Sprintf("[文件 %s] + 已写回 %s（%d 处编辑，其余字节不动）", step.File, step.File, len(tg.edits)))
 		}
 	}
 	return nil
@@ -218,17 +288,29 @@ func isDomain(s string) bool { return s == "Control" || s == "IO" || s == "IOBri
 //   - 首段是 Control/IO/IOBridge → 作域；否则默认 Control(兼容老式无域前缀 anchor)。
 //   - {X} 或裸 X → 按 class 匹配；${X} → 按标签名匹配(Match 待用 chamberBinds 解析)。
 func parseAnchor(a string) (string, []anchor.Seg) {
+	parts := splitAnchor(a)
+	domain := "Control"
+	if len(parts) > 0 && isDomain(parts[0]) {
+		domain = parts[0]
+		parts = parts[1:]
+	}
+	return domain, anchorSegs(parts)
+}
+
+// parseAnchorPlain 用于文件级步骤：不做域前缀剥离，整条路径相对文件根元素解析。
+func parseAnchorPlain(a string) []anchor.Seg { return anchorSegs(splitAnchor(a)) }
+
+func splitAnchor(a string) []string {
 	var parts []string
 	for _, p := range strings.Split(a, "/") {
 		if p != "" {
 			parts = append(parts, p)
 		}
 	}
-	domain := "Control"
-	if len(parts) > 0 && isDomain(parts[0]) {
-		domain = parts[0]
-		parts = parts[1:]
-	}
+	return parts
+}
+
+func anchorSegs(parts []string) []anchor.Seg {
 	segs := make([]anchor.Seg, 0, len(parts))
 	for _, p := range parts {
 		switch {
@@ -242,7 +324,7 @@ func parseAnchor(a string) (string, []anchor.Seg) {
 			segs = append(segs, anchor.Seg{Match: p, Bind: p})
 		}
 	}
-	return domain, segs
+	return segs
 }
 
 func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBinds map[string]string, chamber string, log func(string)) {
@@ -272,184 +354,364 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 	for _, root := range tg.roots {
 		matches = append(matches, anchor.Resolve(root, segs, where)...)
 	}
-	croot := tg.roots[0] // 腔室根:供 include-entity 实体解析(Control 域 1 腔室 1 root)
 	if len(matches) == 0 {
 		log(fmt.Sprintf("  步[%s] 跳过：anchor %s 无匹配", step.Name, step.Anchor))
 		return
 	}
-
+	croot := tg.roots[0] // 腔室根:供 include-entity 实体解析(Control 域 1 腔室 1 root)
 	for _, m := range matches {
-		inst := fmt.Sprintf("%s(class=%s)", m.Node.Tag, m.Node.Class())
-		// 并入跨步对象引用；anchor 绑定优先。
-		tags := make(map[string]string, len(chamberBinds)+len(m.Tags))
-		for k, v := range chamberBinds {
-			tags[k] = v
-		}
-		for k, v := range m.Tags {
-			tags[k] = v
-		}
+		e.applyActions(step, tg, m, chamberBinds, chamber, croot, log)
+	}
+}
 
-		tags, notes, err := feature.ResolveBindings(*step, tags, e.idx)
-		if err != nil {
-			log(fmt.Sprintf("  步[%s] %s 跳过：%s", step.Name, inst, err.Error()))
-			continue
-		}
-		for _, n := range notes {
-			where := "?"
-			if n.Path != "" {
-				where = filepath.Base(n.Path)
-			}
-			log(fmt.Sprintf("  步[%s] %s: %s 命中于 %s（绑定 {%s}）", step.Name, inst, n.Logical, where, n.Var))
-		}
+// toSel 把 feature 选择器转成 ops 选择器，并做占位符替换。
+func toSel(s *feature.SelSpec, tags map[string]string) *ops.Sel {
+	if s == nil {
+		return nil
+	}
+	attrs := make(map[string]string, len(s.Attr))
+	for k, v := range s.Attr {
+		attrs[k] = feature.Format(v, tags)
+	}
+	sel := &ops.Sel{Tag: feature.Format(s.Tag, tags), Attrs: attrs}
+	if s.Value != nil {
+		val := feature.Format(*s.Value, tags)
+		sel.Value = &val
+	}
+	return sel
+}
 
-		var results []ops.Result
-		// resolveEntity 把 include-entity 的 glob 按顶层声明解析成真名；无匹配→""并告警(供 add-io/add-data 复用)。
-		resolveEntity := func(glob string) string {
-			g := feature.Format(glob, tags)
-			name := config.ResolveEntityName(e.declared, g, croot)
-			if name == "" {
-				log(fmt.Sprintf("  步[%s] %s: ! include-entity 未在 Control_config.xml 找到匹配 %s 的实体", step.Name, inst, g))
-			}
-			return name
-		}
-		for _, nd := range step.AddNode {
-			attrs := make([]xmldoc.Attr, 0, 4)
-			for _, a := range nd.AttrPairs() {
-				attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
-			}
-			results = append(results, ops.AddNode(m.Node, nd.Tag, nd.Class, attrs))
-			chamberBinds[nd.Tag] = "./" + nd.Tag // 登记对象引用，供后续步骤 {标签}
+// resolveBefore 把 before/after 选择器解析成"插到哪个既有兄弟之前"。
+func resolveBefore(anchorNode *xmldoc.Node, sel *feature.SelSpec, after bool, tags map[string]string) *xmldoc.Node {
+	os := toSel(sel, tags)
+	if os == nil {
+		return nil
+	}
+	if after {
+		return ops.InsertAfterNode(anchorNode, *os)
+	}
+	return ops.InsertBeforeNode(anchorNode, os, "")
+}
 
-			if nd.IncludeEntity != "" {
-				target := xmldoc.FindChild(m.Node, nd.Tag) // 新建或既有目标
-				entName := config.ResolveEntityName(e.declared, feature.Format(nd.IncludeEntity, tags), croot)
-				if entName != "" && target != nil {
-					results = append(results, ops.AddEntityRef(target, entName))
-				} else {
-					log(fmt.Sprintf("  步[%s] %s: ! include-entity 未在 Control_config.xml 找到匹配 %s 的实体",
-						step.Name, inst, feature.Format(nd.IncludeEntity, tags)))
-				}
-			}
-		}
-		// add-data 先于 add-method 处理：数据点位在本节点里排在方法调用之前(与 YAML 声明序一致)，
-		// 且方法(如 setTempB4Offset)常引用该数据节点(./TempB4OffsetVp)。
-		for i := range step.AddData {
-			d := &step.AddData[i]
-			attrs := make([]xmldoc.Attr, 0, 4)
-			for _, a := range d.AttrPairs() {
-				attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
-			}
-			children := make([]xmldoc.Attr, 0, 7)
-			for _, f := range []struct {
-				name string
-				node *yaml.Node
-			}{
-				{"Bd", &d.Bd}, {"Ch", &d.Ch}, {"Min", &d.Min}, {"Max", &d.Max}, {"Accuracy", &d.Accuracy},
-			} {
-				if f.node.Kind == 0 {
-					continue
-				}
-				val := feature.Format(feature.ScalarText(f.node), tags)
-				if f.name == "Bd" && val == "auto" {
-					val = inferBd(m.Node, chamber)
-				}
-				children = append(children, xmldoc.Attr{Name: f.name, Value: val})
-			}
-			// DescriptorList / Unit 顺序对齐 add-io：置于 Accuracy 之后。
-			if desc := feature.Format(d.Descriptors(), tags); desc != "" {
-				children = append(children, xmldoc.Attr{Name: "DescriptorList", Value: desc})
-			}
-			// Unit 与 Bd/Ch/Min/Max/Accuracy 同族：Kind==0 缺省跳过，NULL/空串→<Unit></Unit>。
-			if d.Unit.Kind != 0 {
-				children = append(children, xmldoc.Attr{Name: "Unit", Value: feature.Format(feature.ScalarText(&d.Unit), tags)})
-			}
-			entity := ""
-			if d.IncludeEntity != "" {
-				entity = resolveEntity(d.IncludeEntity)
-			}
-			results = append(results, ops.AddData(m.Node, d.Name, attrs, children, entity))
-		}
-		// add-blank / add-comment：空行与注释，作为方法块的前置注解，排在 add-method 之前。
-		// 注释/空行不进解析树，故判重按 anchor 的原始字节区间(open..close)整串扫描——二次 apply 幂等。
-		innerRaw := ""
-		if m.Node.Start >= 0 && m.Node.CloseStart >= 0 {
-			innerRaw = string(tg.doc.Src[m.Node.Start:m.Node.CloseStart])
-		}
-		if step.AddBlank > 0 {
-			results = append(results, ops.AddBlank(m.Node, step.AddBlank, innerRaw))
-		}
-		for _, raw := range step.AddComment {
-			results = append(results, ops.AddComment(m.Node, feature.Format(raw, tags), innerRaw))
-		}
-		// where.before-method：把本步新增方法插到该既有方法之前(而非追加末尾)。
-		var before *xmldoc.Node
-		if step.Where != nil && step.Where.BeforeMethod != nil {
-			name := step.Where.BeforeMethod.Name
-			if before = xmldoc.FindChild(m.Node, name); before == nil {
-				log(fmt.Sprintf("  步[%s] %s: ! before-method 未找到方法 %s，改为追加末尾", step.Name, inst, name))
-			}
-		}
-		for _, mm := range step.AddMethod {
-			val := ""
-			hasVal := mm.Value != nil
-			if hasVal {
-				val = feature.Format(*mm.Value, tags)
-			}
-			var extra []xmldoc.Attr
-			for _, a := range mm.AttrPairs() {
-				extra = append(extra, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
-			}
-			results = append(results, ops.AddMethod(m.Node, mm.Name, val, hasVal, extra, before))
-		}
-		for _, mm := range step.RemoveMethod {
-			val := ""
-			if mm.Value != nil {
-				val = feature.Format(*mm.Value, tags)
-			}
-			results = append(results, ops.RemoveMethod(m.Node, mm.Name, val))
-		}
-		for i := range step.AddIO {
-			io := &step.AddIO[i]
-			attrs := make([]xmldoc.Attr, 0, 4)
-			for _, a := range io.AttrPairs() {
-				attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
-			}
-			bd := io.Bd.Value
-			if bd == "auto" {
-				bd = inferBd(m.Node, chamber)
-			}
-			children := []xmldoc.Attr{{Name: "Bd", Value: bd}, {Name: "Ch", Value: io.Ch.Value}}
-			if io.Min.Kind != 0 {
-				children = append(children, xmldoc.Attr{Name: "Min", Value: io.Min.Value})
-			}
-			if io.Max.Kind != 0 {
-				children = append(children, xmldoc.Attr{Name: "Max", Value: io.Max.Value})
-			}
-			if io.Accuracy.Kind != 0 {
-				children = append(children, xmldoc.Attr{Name: "Accuracy", Value: feature.Format(feature.ScalarText(&io.Accuracy), tags)})
-			}
-			if desc := feature.Format(io.Descriptors(), tags); desc != "" {
-				children = append(children, xmldoc.Attr{Name: "DescriptorList", Value: desc})
-			}
-			if io.Unit != nil {
-				children = append(children, xmldoc.Attr{Name: "Unit", Value: feature.Format(*io.Unit, tags)})
-			}
-			entity := ""
-			if io.IncludeEntity != "" {
-				entity = resolveEntity(io.IncludeEntity)
-			}
-			results = append(results, ops.AddIO(m.Node, io.Name, attrs, children, entity))
-		}
+// applyActions 对一个 anchor 命中实例执行该步的全部动作。
+func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, chamberBinds map[string]string, chamber string, croot *xmldoc.Node, log func(string)) {
+	inst := fmt.Sprintf("%s(class=%s)", m.Node.Tag, m.Node.Class())
+	// 并入跨步对象引用；anchor 绑定优先。
+	tags := make(map[string]string, len(chamberBinds)+len(m.Tags))
+	for k, v := range chamberBinds {
+		tags[k] = v
+	}
+	for k, v := range m.Tags {
+		tags[k] = v
+	}
 
-		for _, r := range results {
-			mark := "-"
-			if r.Changed {
-				mark = "+"
-			}
-			log(fmt.Sprintf("  步[%s] %s: %s %s", step.Name, inst, mark, r.Message))
-			if r.Edit != nil {
-				tg.edits = append(tg.edits, *r.Edit)
+	tags, notes, err := feature.ResolveBindings(*step, tags, e.idx)
+	if err != nil {
+		log(fmt.Sprintf("  步[%s] %s 跳过：%s", step.Name, inst, err.Error()))
+		return
+	}
+	for _, n := range notes {
+		where := "?"
+		if n.Path != "" {
+			where = filepath.Base(n.Path)
+		}
+		log(fmt.Sprintf("  步[%s] %s: %s 命中于 %s（绑定 {%s}）", step.Name, inst, n.Logical, where, n.Var))
+	}
+
+	var results []ops.Result
+	src := tg.doc.Src
+	// resolveEntity 把 include-entity 的 glob 按顶层声明解析成真名；无匹配→""并告警(供 add-io/add-data 复用)。
+	resolveEntity := func(glob string) string {
+		g := feature.Format(glob, tags)
+		name := config.ResolveEntityName(e.declared, g, croot)
+		if name == "" {
+			log(fmt.Sprintf("  步[%s] %s: ! include-entity 未在 Control_config.xml 找到匹配 %s 的实体", step.Name, inst, g))
+		}
+		return name
+	}
+	for _, nd := range step.AddNode {
+		attrs := make([]xmldoc.Attr, 0, 4)
+		for _, a := range nd.AttrPairs() {
+			attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
+		}
+		before := resolveBefore(m.Node, nd.Before, false, tags)
+		if before == nil && nd.After != nil {
+			before = resolveBefore(m.Node, nd.After, true, tags)
+		}
+		results = append(results, ops.AddNode(m.Node, feature.Format(nd.Tag, tags), nd.Class, attrs, before))
+		chamberBinds[feature.Format(nd.Tag, tags)] = "./" + feature.Format(nd.Tag, tags) // 登记对象引用，供后续步骤 {标签}
+
+		if nd.IncludeEntity != "" {
+			target := xmldoc.FindChild(m.Node, feature.Format(nd.Tag, tags)) // 新建或既有目标
+			entName := config.ResolveEntityName(e.declared, feature.Format(nd.IncludeEntity, tags), croot)
+			if entName != "" && target != nil {
+				results = append(results, ops.AddEntityRef(target, entName))
+			} else {
+				log(fmt.Sprintf("  步[%s] %s: ! include-entity 未在 Control_config.xml 找到匹配 %s 的实体",
+					step.Name, inst, feature.Format(nd.IncludeEntity, tags)))
 			}
 		}
 	}
+	// add-data 先于 add-method 处理：数据点位在本节点里排在方法调用之前(与 YAML 声明序一致)，
+	// 且方法(如 setTempB4Offset)常引用该数据节点(./TempB4OffsetVp)。
+	for i := range step.AddData {
+		d := &step.AddData[i]
+		attrs := make([]xmldoc.Attr, 0, 4)
+		for _, a := range d.AttrPairs() {
+			attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
+		}
+		children := make([]xmldoc.Attr, 0, 7)
+		for _, f := range []struct {
+			name string
+			node *yaml.Node
+		}{
+			{"Bd", &d.Bd}, {"Ch", &d.Ch}, {"Min", &d.Min}, {"Max", &d.Max}, {"Accuracy", &d.Accuracy},
+		} {
+			if f.node.Kind == 0 {
+				continue
+			}
+			val := feature.Format(feature.ScalarText(f.node), tags)
+			if f.name == "Bd" && val == "auto" {
+				val = inferBd(m.Node, chamber)
+			}
+			children = append(children, xmldoc.Attr{Name: f.name, Value: val})
+		}
+		// DescriptorList / Unit 顺序对齐 add-io：置于 Accuracy 之后。
+		if desc := feature.Format(d.Descriptors(), tags); desc != "" {
+			children = append(children, xmldoc.Attr{Name: "DescriptorList", Value: desc})
+		}
+		// Unit 与 Bd/Ch/Min/Max/Accuracy 同族：Kind==0 缺省跳过，NULL/空串→<Unit></Unit>。
+		if d.Unit.Kind != 0 {
+			children = append(children, xmldoc.Attr{Name: "Unit", Value: feature.Format(feature.ScalarText(&d.Unit), tags)})
+		}
+		entity := ""
+		if d.IncludeEntity != "" {
+			entity = resolveEntity(d.IncludeEntity)
+		}
+		before := resolveBefore(m.Node, d.Before, false, tags)
+		if before == nil && d.After != nil {
+			before = resolveBefore(m.Node, d.After, true, tags)
+		}
+		results = append(results, ops.AddData(m.Node, feature.Format(d.Name, tags), attrs, children, entity, before))
+	}
+	// 普通元素(Param/Value/FileSize/spare 等)。
+	for i := range step.AddElement {
+		ae := &step.AddElement[i]
+		attrs := make([]xmldoc.Attr, 0, 4)
+		for _, a := range ae.AttrPairs() {
+			attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
+		}
+		before := resolveBefore(m.Node, ae.Before, false, tags)
+		if before == nil && ae.After != nil {
+			before = resolveBefore(m.Node, ae.After, true, tags)
+		}
+		results = append(results, ops.AddElement(m.Node, feature.Format(ae.Tag, tags), attrs,
+			feature.Format(ae.Text, tags), ae.SelfClose, ae.PairedEmpty, before))
+	}
+	// add-xml：内联 XML 片段(新对象/新方法块)，按结构判重。
+	for i := range step.AddXML {
+		ax := &step.AddXML[i]
+		raw := feature.Format(ax.XML, tags)
+		sub, err := xmldoc.Parse([]byte(raw))
+		if err != nil || len(sub.Roots) == 0 {
+			log(fmt.Sprintf("  步[%s] %s: ! add-xml 片段解析失败: %v", step.Name, inst, err))
+			continue
+		}
+		frag := sub.Roots[0]
+		xmldoc.MarkSynthetic(frag)
+		before := resolveBefore(m.Node, ax.Before, false, tags)
+		if before == nil && ax.After != nil {
+			before = resolveBefore(m.Node, ax.After, true, tags)
+		}
+		results = append(results, ops.AddRawFragment(m.Node, frag, indentBlock(raw, xmldoc.RealDepth(m.Node)+1), before))
+	}
+	// set-text / set-attr / remove-node：原地改写已存在节点。
+	for i := range step.SetText {
+		st := &step.SetText[i]
+		sel := ops.Sel{Tag: feature.Format(st.Tag, tags), Attrs: formatAttrs(st.Attr, tags)}
+		old := ""
+		hasOld := st.Old != nil
+		if hasOld {
+			old = feature.Format(*st.Old, tags)
+		}
+		results = append(results, ops.SetText(m.Node, sel, st.Child, old, hasOld, feature.Format(st.Value, tags)))
+	}
+	for i := range step.SetAttr {
+		sa := &step.SetAttr[i]
+		sel := ops.Sel{Tag: feature.Format(sa.Tag, tags), Attrs: formatAttrs(sa.Attr, tags)}
+		old := ""
+		hasOld := sa.Old != nil
+		if hasOld {
+			old = feature.Format(*sa.Old, tags)
+		}
+		results = append(results, ops.SetAttr(m.Node, sel, sa.Child, old, hasOld,
+			feature.Format(sa.Name, tags), feature.Format(sa.Value, tags)))
+	}
+	for i := range step.RemoveNode {
+		rn := &step.RemoveNode[i]
+		sel := ops.Sel{Tag: feature.Format(rn.Tag, tags), Attrs: formatAttrs(rn.Attr, tags), Has: toSel(rn.Has, tags)}
+		if rn.Value != nil {
+			v := feature.Format(*rn.Value, tags)
+			sel.Value = &v
+		}
+		results = append(results, ops.RemoveNode(m.Node, sel, rn.Child))
+	}
+	// wrap：注释掉 / CDATA 化一段节点区间。
+	for i := range step.Wrap {
+		wr := &step.Wrap[i]
+		open, close := wr.Open, wr.Close
+		if wr.Comment {
+			open, close = "<!--", "-->"
+		}
+		if open == "" {
+			open = "<!--"
+		}
+		if close == "" {
+			close = "-->"
+		}
+		sels := make([]ops.Sel, 0, len(wr.Select))
+		for j := range wr.Select {
+			sel := ops.Sel{Tag: feature.Format(wr.Select[j].Tag, tags), Attrs: formatAttrs(wr.Select[j].Attr, tags)}
+			if wr.Select[j].Value != nil {
+				v := feature.Format(*wr.Select[j].Value, tags)
+				sel.Value = &v
+			}
+			sels = append(sels, sel)
+		}
+		results = append(results, ops.WrapRange(m.Node, sels, wr.Child, open, close, src))
+	}
+	// uncomment：放开/删除被注释包住的块(文本级)。
+	for i := range step.Uncomment {
+		uc := &step.Uncomment[i]
+		open, close := uc.Open, uc.Close
+		if open == "" {
+			open = "<!--"
+		}
+		if close == "" {
+			close = "-->"
+		}
+		results = append(results, ops.Uncomment(src, feature.Format(uc.Find, tags), open, close, uc.Drop))
+	}
+	// add-blank / add-comment：空行与注释，作为方法块的前置注解，排在 add-method 之前。
+	// 注释/空行不进解析树，故判重按 anchor 的原始字节区间(open..close)整串扫描——二次 apply 幂等。
+	innerRaw := ""
+	if m.Node.Start >= 0 && m.Node.CloseStart >= 0 {
+		innerRaw = string(src[m.Node.Start:m.Node.CloseStart])
+	}
+	if step.AddBlank > 0 {
+		results = append(results, ops.AddBlank(m.Node, step.AddBlank, innerRaw))
+	}
+	for _, raw := range step.AddComment {
+		results = append(results, ops.AddComment(m.Node, feature.Format(raw, tags), innerRaw))
+	}
+	// where.before-method：把本步新增方法插到该既有方法之前(而非追加末尾)。
+	var stepBefore *xmldoc.Node
+	if step.Where != nil && step.Where.BeforeMethod != nil {
+		name := feature.Format(step.Where.BeforeMethod.Name, tags)
+		if stepBefore = xmldoc.FindChild(m.Node, name); stepBefore == nil {
+			log(fmt.Sprintf("  步[%s] %s: ! before-method 未找到方法 %s，改为追加末尾", step.Name, inst, name))
+		}
+	}
+	for _, mm := range step.AddMethod {
+		val := ""
+		hasVal := mm.Value != nil
+		if hasVal {
+			val = feature.Format(*mm.Value, tags)
+		}
+		var extra []xmldoc.Attr
+		for _, a := range mm.AttrPairs() {
+			extra = append(extra, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
+		}
+		before := stepBefore
+		if mm.Before != nil {
+			before = resolveBefore(m.Node, mm.Before, false, tags)
+		} else if mm.After != nil {
+			before = resolveBefore(m.Node, mm.After, true, tags)
+		}
+		results = append(results, ops.AddMethod(m.Node, feature.Format(mm.Name, tags), val, hasVal, extra, before))
+	}
+	for _, mm := range step.RemoveMethod {
+		val := ""
+		if mm.Value != nil {
+			val = feature.Format(*mm.Value, tags)
+		}
+		results = append(results, ops.RemoveMethod(m.Node, feature.Format(mm.Name, tags), val))
+	}
+	for i := range step.AddIO {
+		io := &step.AddIO[i]
+		attrs := make([]xmldoc.Attr, 0, 4)
+		for _, a := range io.AttrPairs() {
+			attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
+		}
+		bd := io.Bd.Value
+		if bd == "auto" {
+			bd = inferBd(m.Node, chamber)
+		}
+		children := []xmldoc.Attr{{Name: "Bd", Value: bd}, {Name: "Ch", Value: io.Ch.Value}}
+		if io.Min.Kind != 0 {
+			children = append(children, xmldoc.Attr{Name: "Min", Value: io.Min.Value})
+		}
+		if io.Max.Kind != 0 {
+			children = append(children, xmldoc.Attr{Name: "Max", Value: io.Max.Value})
+		}
+		if io.Accuracy.Kind != 0 {
+			children = append(children, xmldoc.Attr{Name: "Accuracy", Value: feature.Format(feature.ScalarText(&io.Accuracy), tags)})
+		}
+		if desc := feature.Format(io.Descriptors(), tags); desc != "" {
+			children = append(children, xmldoc.Attr{Name: "DescriptorList", Value: desc})
+		}
+		if io.Unit != nil {
+			children = append(children, xmldoc.Attr{Name: "Unit", Value: feature.Format(*io.Unit, tags)})
+		}
+		entity := ""
+		if io.IncludeEntity != "" {
+			entity = resolveEntity(io.IncludeEntity)
+		}
+		before := resolveBefore(m.Node, io.Before, false, tags)
+		if before == nil && io.After != nil {
+			before = resolveBefore(m.Node, io.After, true, tags)
+		}
+		results = append(results, ops.AddIO(m.Node, feature.Format(io.Name, tags), attrs, children, entity, before))
+	}
+
+	for _, r := range results {
+		mark := "-"
+		if r.Changed {
+			mark = "+"
+		}
+		log(fmt.Sprintf("  步[%s] %s: %s %s", step.Name, inst, mark, r.Message))
+		if r.Edit != nil {
+			tg.edits = append(tg.edits, *r.Edit)
+		}
+		for i := range r.Edits {
+			tg.edits = append(tg.edits, r.Edits[i])
+		}
+	}
+}
+
+// indentBlock 给多行XML原文的每一行加上 depth 层缩进(4 空格/层)，首尾空行去掉。
+func indentBlock(raw string, depth int) string {
+	pad := strings.Repeat("    ", depth)
+	lines := strings.Split(strings.Trim(raw, "\r\n"), "\n")
+	for i, l := range lines {
+		l = strings.TrimRight(l, "\r")
+		if strings.TrimSpace(l) == "" {
+			lines[i] = ""
+			continue
+		}
+		lines[i] = pad + strings.TrimLeft(l, " \t")
+	}
+	return strings.Join(lines, "\n")
+}
+
+// formatAttrs 把 attr 映射做占位符替换。
+func formatAttrs(attrs map[string]string, tags map[string]string) map[string]string {
+	if len(attrs) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(attrs))
+	for k, v := range attrs {
+		out[k] = feature.Format(v, tags)
+	}
+	return out
 }

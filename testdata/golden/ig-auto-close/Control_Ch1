@@ -470,6 +470,6 @@
     </IonGauge>
     <enableTurnOffIonGaugeInProcess type="method"/>
     <setIonGauge type="method">./IonGauge</setIonGauge>
-    <setPgValve type="method">./Vacuum/PgValve</setPgValve>
+    <setPgValve type="method">/Control/Ch1/Vacuum/PgValve</setPgValve>
 </Ch1>
 

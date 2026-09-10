@@ -1,0 +1,398 @@
+# IOBridge 侧升级：IO 片段、IO_Platform、IO_Facility、Driver_Facility。
+# 这些文件用 file: 直接定位（见 doc/config-upgrade-design.md §3.8），避免腔室/域路由。
+id: upgrade-io
+description: IOBridge 侧配置升级（IO 量程/板号、dry-pump 段停用、Facility IO 点位、Driver 通道模式）
+version: 1
+
+steps:
+  # ── Ch1：温度量程 600 → 3276.7 ──
+  - name: Ch1/PedTempAI 量程改为 3276.7
+    file: IOBridge/IO_Ch1
+    anchor: Ch1/PedTempAI
+    set-text:
+      - { tag: Max, old: "600", value: "3276.7" }
+  - name: Ch1/ESCOuterTempAI 量程改为 3276.7
+    file: IOBridge/IO_Ch1
+    anchor: Ch1/ESCOuterTempAI
+    set-text:
+      - { tag: Max, old: "600", value: "3276.7" }
+  - name: Ch1/ESCInnerTempAI 量程改为 3276.7
+    file: IOBridge/IO_Ch1
+    anchor: Ch1/ESCInnerTempAI
+    set-text:
+      - { tag: Max, old: "600", value: "3276.7" }
+  - name: Ch1/DnBusStatus 板号改为 100
+    file: IOBridge/IO_Ch1
+    anchor: Ch1/DnBusStatus
+    set-text:
+      - { tag: Bd, value: "100" }
+
+  # ── Ch2：温度量程 600 → 3276.7 ──
+  - name: Ch2/PedTempAI 量程改为 3276.7
+    file: IOBridge/IO_Ch2
+    anchor: Ch2/PedTempAI
+    set-text:
+      - { tag: Max, old: "600", value: "3276.7" }
+  - name: Ch2/ESCOuterTempAI 量程改为 3276.7
+    file: IOBridge/IO_Ch2
+    anchor: Ch2/ESCOuterTempAI
+    set-text:
+      - { tag: Max, old: "600", value: "3276.7" }
+  - name: Ch2/ESCInnerTempAI 量程改为 3276.7
+    file: IOBridge/IO_Ch2
+    anchor: Ch2/ESCInnerTempAI
+    set-text:
+      - { tag: Max, old: "600", value: "3276.7" }
+  - name: Ch2/DnBusStatus 板号改为 200
+    file: IOBridge/IO_Ch2
+    anchor: Ch2/DnBusStatus
+    set-text:
+      - { tag: Bd, value: "200" }
+
+  # ── Ch4：DnBusStatus / BakeoutCommErrDI 板号 ──
+  - name: Ch4/DnBusStatus 板号改为 400
+    file: IOBridge/IO_Ch4
+    anchor: Ch4/DnBusStatus
+    set-text:
+      - { tag: Bd, old: "1", value: "400" }
+  - name: Ch4/BakeoutCommErrDI 板号改为 400
+    file: IOBridge/IO_Ch4
+    anchor: Ch4/BakeoutCommErrDI
+    set-text:
+      - { tag: Bd, old: "200", value: "400" }
+
+  # ── Ch5：DnBusStatus / BakeoutCommErrDI 板号 ──
+  - name: Ch5/DnBusStatus 板号改为 500
+    file: IOBridge/IO_Ch5
+    anchor: Ch5/DnBusStatus
+    set-text:
+      - { tag: Bd, old: "1", value: "500" }
+  - name: Ch5/BakeoutCommErrDI 板号改为 500
+    file: IOBridge/IO_Ch5
+    anchor: Ch5/BakeoutCommErrDI
+    set-text:
+      - { tag: Bd, old: "200", value: "500" }
+
+  # ── Ch6：DnBusStatus / BakeoutCommErrDI 板号 ──
+  - name: Ch6/DnBusStatus 板号改为 600
+    file: IOBridge/IO_Ch6
+    anchor: Ch6/DnBusStatus
+    set-text:
+      - { tag: Bd, old: "1", value: "600" }
+  - name: Ch6/BakeoutCommErrDI 板号改为 600
+    file: IOBridge/IO_Ch6
+    anchor: Ch6/BakeoutCommErrDI
+    set-text:
+      - { tag: Bd, old: "200", value: "600" }
+
+  # ── IO_Platform：dry-pump/turbo 段停用(CDATA)、V6DO 注释、LoadBtnRlsDI 板号 ──
+  - name: IO_Platform LA 涡轮/干泵段 用 CDATA 停用
+    file: IOBridge/IO_Platform
+    anchor: Platform
+    wrap:
+      - open: "<![CDATA["
+        close: "]]>"
+        select:
+          - { tag: TpBrakingDI, attr: { alias: "/IO/LAExports/Plc_TpBrakingDI" } }
+          - { tag: DPRunDI, attr: { alias: "/IO/LAExports/Plc_DPRunDI" } }
+  - name: IO_Platform LB 涡轮/干泵段 用 CDATA 停用
+    file: IOBridge/IO_Platform
+    anchor: Platform
+    wrap:
+      - open: "<![CDATA["
+        close: "]]>"
+        select:
+          - { tag: TpBrakingDI, attr: { alias: "/IO/LBExports/Plc_TpBrakingDI" } }
+          - { tag: DPRunDI, attr: { alias: "/IO/LBExports/Plc_DPRunDI" } }
+  - name: IO_Platform Buffer 涡轮/干泵段 用 CDATA 停用
+    file: IOBridge/IO_Platform
+    anchor: Platform
+    wrap:
+      - open: "<![CDATA["
+        close: "]]>"
+        select:
+          - { tag: DPRunDI, attr: { alias: "/IO/BufferExports/Plc_DPRunDI" } }
+          - { tag: TpOnoffDO, attr: { alias: "/IO/BufferExports/Plc_TpOnoffDO" } }
+  - name: IO_Platform Transfer 涡轮/干泵段 用 CDATA 停用
+    file: IOBridge/IO_Platform
+    anchor: Platform
+    wrap:
+      - open: "<![CDATA["
+        close: "]]>"
+        select:
+          - { tag: DPRunDI, attr: { alias: "/IO/TransferExports/Plc_DPRunDI" } }
+          - { tag: TpOnoffDO, attr: { alias: "/IO/TransferExports/Plc_TpOnoffDO" } }
+  - name: IO_Platform 注释 BufferExports 的 V6DO
+    file: IOBridge/IO_Platform
+    anchor: Platform
+    wrap:
+      - comment: true
+        select:
+          - { tag: V6DO, attr: { alias: "/IO/BufferExports/Solenoid_V6DO" } }
+  - name: IO_Platform 注释 ChCExports 的 V6DO
+    file: IOBridge/IO_Platform
+    anchor: Platform
+    wrap:
+      - comment: true
+        select:
+          - { tag: V6DO, attr: { alias: "/IO/ChCExports/Solenoid_V6DO" } }
+  - name: IO_Platform 注释 ChDExports 的 V6DO
+    file: IOBridge/IO_Platform
+    anchor: Platform
+    wrap:
+      - comment: true
+        select:
+          - { tag: V6DO, attr: { alias: "/IO/ChDExports/Solenoid_V6DO" } }
+  - name: IO_Platform LoadBtnRlsDI 板号改为 31
+    file: IOBridge/IO_Platform
+    anchor: Platform/LP1
+    set-text:
+      - { tag: LoadBtnRlsDI, child: Bd, old: "1001", value: "31" }
+
+  # ── Driver_Facility：8→10 通道模式、AI 通道表 ──
+  - name: Driver_Facility 1080 通道改名
+    file: IOBridge/Driver_Facility
+    anchor: HeatExchanger
+    set-attr:
+      - tag: addCmdAI
+        old: "Ch = 1080 Spare                        "
+        name: comment
+        value: "Ch = 1080 PcwWtrFlowAI               "
+  - name: Driver_Facility 1240 通道改名
+    file: IOBridge/Driver_Facility
+    anchor: HeatExchanger
+    set-attr:
+      - tag: addCmdAI
+        old: "Ch = 1240 PcwFlowAI                    "
+        name: comment
+        value: "Ch = 1240 ReturnFlow9AI              "
+  - name: Driver_Facility 切换 10 通道模式
+    file: IOBridge/Driver_Facility
+    anchor: HeatExchanger
+    remove-method:
+      - { name: enable8ChannelMode }
+    add-method:
+      - { name: enable10ChannelMode }
+  - name: Driver_Facility 增补 AI 通道
+    file: IOBridge/Driver_Facility
+    anchor: HeatExchanger
+    add-method:
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1256 ReturnFlow10AI             " }
+        value: "256"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1272 CycleWtrTemp2AI            " }
+        value: "272"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1288 ReturnWtrTempAI            " }
+        value: "288"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1304 PcwWtrTempAI               " }
+        value: "304"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1320 ReturnTemp1AI              " }
+        value: "320"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1336 ReturnTemp2AI              " }
+        value: "336"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1352 ReturnTemp3AI              " }
+        value: "352"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1368 ReturnTemp4AI              " }
+        value: "368"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1384 ReturnTemp5AI              " }
+        value: "384"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1400 ReturnTemp6AI              " }
+        value: "400"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1416 ReturnTemp7AI              " }
+        value: "416"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1432 ReturnTemp8AI              " }
+        value: "432"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1448 ReturnTemp9AI              " }
+        value: "448"
+      - name: addCmdAI
+        attrs: { comment: "Ch = 1464 ReturnTemp10AI             " }
+        value: "464"
+  - name: Driver_Facility 注明停用的方法
+    file: IOBridge/Driver_Facility
+    anchor: HeatExchanger
+    add-comment:
+      - '<!--enable10ChannelMode type="method"/>'
+      - '<!--printVerboseLog type="method"/-->'
+
+  # ── IO_Facility：PcwWtrFlowAI 移位 + 新增换热器 AI 点位 + Chiller 停用 ──
+  - name: IO_Facility 删除旧 PcwWtrFlowAI
+    file: IOBridge/IO_Facility
+    anchor: Platform/HeatExchanger
+    remove-node:
+      # 只删旧点位(Ch=1240/Unit=GPM)；新点位 Ch=1080，二次 apply 不会误删。
+      - { tag: PcwWtrFlowAI, has: { tag: Ch, value: "1240" } }
+  - name: IO_Facility 增补换热器 AI 点位
+    file: IOBridge/IO_Facility
+    anchor: Platform/HeatExchanger
+    add-io:
+      - name: PcwWtrFlowAI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_PcwWtrFlowAI" }
+        Bd: 51
+        Ch: 1080
+        Min: 0
+        Max: 1000
+        Accuracy: 0.01
+        Unit: "LPM"
+        include-entity: SimulatedFlag_System
+      - name: ReturnFlow9AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnFlow9AI" }
+        Bd: 51
+        Ch: 1240
+        Min: 0
+        Max: 1000
+        Accuracy: 0.01
+        Unit: "LPM"
+        include-entity: SimulatedFlag_System
+      - name: ReturnFlow10AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnFlow10AI" }
+        Bd: 51
+        Ch: 1256
+        Min: 0
+        Max: 1000
+        Accuracy: 0.01
+        Unit: "LPM"
+        include-entity: SimulatedFlag_System
+      - name: CycleWtrTemp2AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_CycleWtrTemp2AI" }
+        Bd: 51
+        Ch: 1272
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+      - name: ReturnWtrTempAI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnWtrTempAI" }
+        Bd: 51
+        Ch: 1288
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+      - name: PcwWtrTempAI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_PcwWtrTempAI" }
+        Bd: 51
+        Ch: 1304
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+      - name: ReturnTemp1AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnTemp1AI" }
+        Bd: 51
+        Ch: 1320
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+      - name: ReturnTemp2AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnTemp2AI" }
+        Bd: 51
+        Ch: 1336
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+      - name: ReturnTemp3AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnTemp3AI" }
+        Bd: 51
+        Ch: 1352
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+      - name: ReturnTemp4AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnTemp4AI" }
+        Bd: 51
+        Ch: 1368
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+      - name: ReturnTemp5AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnTemp5AI" }
+        Bd: 51
+        Ch: 1384
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+      - name: ReturnTemp6AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnTemp6AI" }
+        Bd: 51
+        Ch: 1400
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+      - name: ReturnTemp7AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnTemp7AI" }
+        Bd: 51
+        Ch: 1416
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+      - name: ReturnTemp8AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnTemp8AI" }
+        Bd: 51
+        Ch: 1432
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+      - name: ReturnTemp9AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnTemp9AI" }
+        Bd: 51
+        Ch: 1448
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+      - name: ReturnTemp10AI
+        attrs: { dataType: "D", accessMode: "R", alias: "/IO/SystemExports/HeatExchanger_ReturnTemp10AI" }
+        Bd: 51
+        Ch: 1464
+        Min: -60
+        Max: 160
+        Accuracy: 0.01
+        Unit: ""
+        include-entity: SimulatedFlag_System
+  - name: IO_Facility 1080 通道占位
+    file: IOBridge/IO_Facility
+    anchor: Platform/HeatExchanger
+    add-element:
+      - tag: spare
+        text: "Ch=1080"
+        after: { tag: PcwWtrFlowAI }
+  - name: IO_Facility Chiller 用 CDATA 停用
+    file: IOBridge/IO_Facility
+    anchor: Platform
+    wrap:
+      - open: "<![CDATA["
+        close: "]]>"
+        select:
+          - { tag: Chiller }

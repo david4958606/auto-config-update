@@ -1,0 +1,1410 @@
+# Control 侧升级（腔室/互锁片段）。
+# 由 hack/gen_upgrade_control.py 依据 config_old → config 的结构差异生成；
+# 全部为文件级步骤(file:)，anchor 相对该文件根元素。
+id: upgrade-control
+description: Control 侧配置升级（加热器温差、EzZone 校准、互锁/互锁报警、机器人安全互锁）
+version: 1
+
+steps:
+  - name: Control/Control_Ch1 新增节点
+    file: Control/Control_Ch1
+    anchor: Ch1/Heater/PhyHeater
+    where: { tag-glob: "PhyHeater" }
+    add-xml:
+      - xml: "<setMonitorTempVp type=\"method\">/IO/Ch1Exports/Plc_ESCOuterTempAI</setMonitorTempVp>"
+      - xml: "<setTempB4Offset type=\"method\">./Heater1TempB4OffsetVp</setTempB4Offset>"
+      - xml: "<Heater1TempB4OffsetVp type=\"data\" dataType=\"D\" accessMode=\"R\" simulated=\"true\" alias=\"/IO/Ch1Exports/Heater1_TempB4Offset\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min></Min>\n                <Max></Max>\n                <Accuracy>0.00000001</Accuracy>\n            </Heater1TempB4OffsetVp>"
+  - name: Control/Control_Ch1 新增节点
+    file: Control/Control_Ch1
+    anchor: Ch1/Heater/PhyHeater2
+    where: { tag-glob: "PhyHeater2" }
+    add-xml:
+      - xml: "<setMonitorTempVp type=\"method\">/IO/Ch1Exports/Plc_ESCInnerTempAI</setMonitorTempVp>"
+      - xml: "<setTempB4Offset type=\"method\">./Heater2TempB4OffsetVp</setTempB4Offset>"
+      - xml: "<Heater2TempB4OffsetVp type=\"data\" dataType=\"D\" accessMode=\"R\" simulated=\"true\" alias=\"/IO/Ch1Exports/Heater2_TempB4Offset\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min></Min>\n                <Max></Max>\n                <Accuracy>0.00000001</Accuracy>\n            </Heater2TempB4OffsetVp>"
+  - name: Control/Control_Ch2 新增节点
+    file: Control/Control_Ch2
+    anchor: Ch2/Heater/PhyHeater
+    where: { tag-glob: "PhyHeater" }
+    add-xml:
+      - xml: "<setMonitorTempVp type=\"method\">/IO/Ch2Exports/Plc_ESCOuterTempAI</setMonitorTempVp>"
+      - xml: "<setTempB4Offset type=\"method\">./Heater1TempB4OffsetVp</setTempB4Offset>"
+      - xml: "<Heater1TempB4OffsetVp type=\"data\" dataType=\"D\" accessMode=\"R\" simulated=\"true\" alias=\"/IO/Ch2Exports/Heater1_TempB4Offset\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min></Min>\n                <Max></Max>\n                <Accuracy>0.00000001</Accuracy>\n            </Heater1TempB4OffsetVp>"
+  - name: Control/Control_Ch2 新增节点
+    file: Control/Control_Ch2
+    anchor: Ch2/Heater/PhyHeater2
+    where: { tag-glob: "PhyHeater2" }
+    add-xml:
+      - xml: "<setMonitorTempVp type=\"method\">/IO/Ch2Exports/Plc_ESCInnerTempAI</setMonitorTempVp>"
+      - xml: "<setTempB4Offset type=\"method\">./Heater2TempB4OffsetVp</setTempB4Offset>"
+      - xml: "<Heater2TempB4OffsetVp type=\"data\" dataType=\"D\" accessMode=\"R\" simulated=\"true\" alias=\"/IO/Ch2Exports/Heater2_TempB4Offset\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min></Min>\n                <Max></Max>\n                <Accuracy>0.00000001</Accuracy>\n            </Heater2TempB4OffsetVp>"
+  - name: Control/Control_ChC 新增节点
+    file: Control/Control_ChC
+    anchor: ChC/Heater
+    where: { tag-glob: "Heater" }
+    add-xml:
+      - xml: "<setMonitorTempVp type=\"method\">/IO/Platform/Plc/ChC/HeaterTcAI</setMonitorTempVp>"
+      - xml: "<setTempB4Offset type=\"method\">./TempB4OffsetVp</setTempB4Offset>"
+      - xml: "<TempB4OffsetVp type=\"data\" dataType=\"D\" accessMode=\"R\" simulated=\"true\" alias=\"/IO/ChCExports/Heater_TempB4Offset\">\n            <Bd></Bd>\n            <Ch></Ch>\n            <Min></Min>\n            <Max></Max>\n            <Accuracy>0.00000001</Accuracy>\n        </TempB4OffsetVp>"
+  - name: Control/Control_ChD 新增节点
+    file: Control/Control_ChD
+    anchor: ChD/Heater
+    where: { tag-glob: "Heater" }
+    add-xml:
+      - xml: "<setMonitorTempVp type=\"method\">/IO/Platform/Plc/ChD/HeaterTcAI</setMonitorTempVp>"
+      - xml: "<setTempB4Offset type=\"method\">./TempB4OffsetVp</setTempB4Offset>"
+      - xml: "<TempB4OffsetVp type=\"data\" dataType=\"D\" accessMode=\"R\" simulated=\"true\" alias=\"/IO/ChDExports/Heater_TempB4Offset\">\n            <Bd></Bd>\n            <Ch></Ch>\n            <Min></Min>\n            <Max></Max>\n            <Accuracy>0.00000001</Accuracy>\n        </TempB4OffsetVp>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/Ped
+    where: { tag-glob: "Ped" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChE/EzZoneTc/Zone25MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone25CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone25TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone25CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChEExports/EzZoneTC_Zone25CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone25CalibrationOffsetAO>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/Zone1
+    where: { tag-glob: "Zone1" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChE/EzZoneTc/Zone1MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone1CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone1TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone1CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\"  alias=\"/IO/ChEExports/EzZoneTC_Zone1CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone1CalibrationOffsetAO>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/Zone3
+    where: { tag-glob: "Zone3" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChE/EzZoneTc/Zone3MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone3CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone3TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone3CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChEExports/EzZoneTC_Zone3CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone3CalibrationOffsetAO>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/Zone4
+    where: { tag-glob: "Zone4" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChE/EzZoneTc/Zone4MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone4CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone4TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone4CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChEExports/EzZoneTC_Zone4CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone4CalibrationOffsetAO>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/Zone5
+    where: { tag-glob: "Zone5" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChE/EzZoneTc/Zone5MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone5CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone5TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone5CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChEExports/EzZoneTC_Zone5CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone5CalibrationOffsetAO>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/Zone6
+    where: { tag-glob: "Zone6" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChE/EzZoneTc/Zone6MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone6CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone6TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone6CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChEExports/EzZoneTC_Zone6CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone6CalibrationOffsetAO>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/Zone7
+    where: { tag-glob: "Zone7" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChE/EzZoneTc/Zone7MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone7CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone7TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone7CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChEExports/EzZoneTC_Zone7CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone7CalibrationOffsetAO>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/Zone8
+    where: { tag-glob: "Zone8" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChE/EzZoneTc/Zone8MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone8CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone8TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone8CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChEExports/EzZoneTC_Zone8CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone8CalibrationOffsetAO>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/Zone9
+    where: { tag-glob: "Zone9" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChE/EzZoneTc/Zone9MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone9CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone9TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone9CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChEExports/EzZoneTC_Zone9CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone9CalibrationOffsetAO>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/Zone10
+    where: { tag-glob: "Zone10" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChE/EzZoneTc/Zone10MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone10CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone10TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone10CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChEExports/EzZoneTC_Zone10CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone10CalibrationOffsetAO>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/Zone13
+    where: { tag-glob: "Zone13" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChE/EzZoneTc/Zone13MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone13CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone13TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone13CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChEExports/EzZoneTC_Zone13CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone13CalibrationOffsetAO>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/Zone16
+    where: { tag-glob: "Zone16" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChE/EzZoneTc/Zone16MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone16CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone16TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone16CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChEExports/EzZoneTC_Zone16CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone16CalibrationOffsetAO>"
+  - name: Control/Control_ChE 新增节点
+    file: Control/Control_ChE
+    anchor: ChE/TempControl/LidShowerhead
+    where: { tag-glob: "LidShowerhead" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChEExports/EzZoneTC_Zone35MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone35CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChEExports/Zone35TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone35CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChEExports/EzZoneTC_Zone35CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChE;\n            </Zone35CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/Ped
+    where: { tag-glob: "Ped" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChF/EzZoneTc/Zone25MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone25CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone25TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone25CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChFExports/EzZoneTC_Zone25CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone25CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/Zone1
+    where: { tag-glob: "Zone1" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChF/EzZoneTc/Zone1MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone1CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone1TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone1CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\"  alias=\"/IO/ChFExports/EzZoneTC_Zone1CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone1CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/Zone3
+    where: { tag-glob: "Zone3" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChF/EzZoneTc/Zone3MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone3CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone3TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone3CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChFExports/EzZoneTC_Zone3CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone3CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/Zone4
+    where: { tag-glob: "Zone4" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChF/EzZoneTc/Zone4MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone4CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone4TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone4CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChFExports/EzZoneTC_Zone4CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone4CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/Zone5
+    where: { tag-glob: "Zone5" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChF/EzZoneTc/Zone5MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone5CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone5TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone5CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChFExports/EzZoneTC_Zone5CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone5CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/Zone6
+    where: { tag-glob: "Zone6" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChF/EzZoneTc/Zone6MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone6CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone6TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone6CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChFExports/EzZoneTC_Zone6CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone6CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/Zone7
+    where: { tag-glob: "Zone7" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChF/EzZoneTc/Zone7MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone7CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone7TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone7CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChFExports/EzZoneTC_Zone7CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone7CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/Zone8
+    where: { tag-glob: "Zone8" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChF/EzZoneTc/Zone8MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone8CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone8TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone8CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChFExports/EzZoneTC_Zone8CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone8CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/Zone9
+    where: { tag-glob: "Zone9" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChF/EzZoneTc/Zone9MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone9CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone9TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone9CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChFExports/EzZoneTC_Zone9CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone9CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/Zone10
+    where: { tag-glob: "Zone10" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChF/EzZoneTc/Zone10MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone10CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone10TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone10CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChFExports/EzZoneTC_Zone10CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone10CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/Zone13
+    where: { tag-glob: "Zone13" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChF/EzZoneTc/Zone13MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone13CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone13TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone13CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChFExports/EzZoneTC_Zone13CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone13CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/Zone16
+    where: { tag-glob: "Zone16" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChF/EzZoneTc/Zone16MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone16CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone16TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone16CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChFExports/EzZoneTC_Zone16CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone16CalibrationOffsetAO>"
+  - name: Control/Control_ChF 新增节点
+    file: Control/Control_ChF
+    anchor: ChF/TempControl/LidShowerhead
+    where: { tag-glob: "LidShowerhead" }
+    add-xml:
+      - xml: "<setTempMonitorVp type=\"method\">/IO/ChFExports/EzZoneTC_Zone35MonitorAI</setTempMonitorVp>"
+      - xml: "<setCalibrationOffsetSp type=\"method\">./Zone35CalibrationOffsetAO</setCalibrationOffsetSp>"
+      - xml: "<exportTempMonitorAfterOffset type=\"method\">/IO/ChFExports/Zone35TempAfterOffsetAI</exportTempMonitorAfterOffset>"
+      - xml: "<Zone35CalibrationOffsetAO type=\"data\" dataType=\"D\" accessMode=\"RW\" simulated=\"true\" alias=\"/IO/ChFExports/EzZoneTC_Zone35CalibrationOffsetAO\">\n                <Bd></Bd>\n                <Ch></Ch>\n                <Min>-50</Min>\n                <Max>60</Max> \n                <Unit>C</Unit>\n                &SimulatedFlag_ChF;\n            </Zone35CalibrationOffsetAO>"
+  - name: Control/Interlock_Ch1 删除已停用节点
+    file: Control/Interlock_Ch1
+    anchor: Ch1/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch1 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch1/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch1 删除已停用节点
+    file: Control/Interlock_Ch1
+    anchor: Ch1/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch1 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch1/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch1 删除已停用节点
+    file: Control/Interlock_Ch1
+    anchor: Ch1/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch1 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch1/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch1 删除已停用节点
+    file: Control/Interlock_Ch1
+    anchor: Ch1/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotValveNotClosed,ERROR,Ch1 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch1/SvClosedDI == Closed),SlotValveNotClosed"}
+  - name: Control/Interlock_Ch1 改写文本
+    file: Control/Interlock_Ch1
+    anchor: Ch1/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh1,ERROR,Robot extended to Ch1 chamber.", "value": "ShutterHomeNotReady,ERROR,Robot extended to Ch1 chamber."}
+  - name: Control/Interlock_Ch1 改写文本
+    file: Control/Interlock_Ch1
+    anchor: Ch1/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch1/VtrExSensorDI == NotExtended),RobotExToCh1", "value": "((/IO/Platform/Plc/Ch1/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch1/SvClosedDI == Closed)),ShutterHomeNotReady"}
+  - name: Control/Interlock_Ch1 改写文本
+    file: Control/Interlock_Ch1
+    anchor: Ch1/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh1,ERROR,Robot extended to Ch1 chamber.", "value": "ShutterMoveNotReady,ERROR,Robot extended to Ch1 chamber."}
+  - name: Control/Interlock_Ch1 改写文本
+    file: Control/Interlock_Ch1
+    anchor: Ch1/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch1/VtrExSensorDI == NotExtended),RobotExToCh1", "value": "((/IO/Platform/Plc/Ch1/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch1/SvClosedDI == Closed)),ShutterMoveNotReady"}
+  - name: Control/Interlock_Ch1 改写文本
+    file: Control/Interlock_Ch1
+    anchor: Ch1/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh1,ERROR,Robot extended to Ch1 chamber.", "value": "PinHomeNotReady,ERROR,Robot extended to Ch1 chamber."}
+  - name: Control/Interlock_Ch1 改写文本
+    file: Control/Interlock_Ch1
+    anchor: Ch1/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch1/VtrExSensorDI == NotExtended),RobotExToCh1", "value": "((/IO/Platform/Plc/Ch1/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch1/SvClosedDI == Closed)),PinHomeNotReady"}
+  - name: Control/Interlock_Ch1 改写文本
+    file: Control/Interlock_Ch1
+    anchor: Ch1/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh1,ERROR,Robot extended to Ch1 chamber.", "value": "PedHomeNotReady,ERROR,Robot extended to Ch1 chamber."}
+  - name: Control/Interlock_Ch1 改写文本
+    file: Control/Interlock_Ch1
+    anchor: Ch1/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch1/VtrExSensorDI == NotExtended),RobotExToCh1", "value": "((/IO/Platform/Plc/Ch1/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch1/SvClosedDI == Closed)),PedHomeNotReady"}
+  - name: Control/Interlock_Ch1 新增节点
+    file: Control/Interlock_Ch1
+    anchor: Ch1/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    add-xml:
+      - xml: "<DevicenetCh1SourceDC class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/LoadRack/DnStatus/Ch1SourceDC != 2)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,LoadRack chamber Ch1SourceDC module devicenet is abnormal.</setIntlkAlarm>\n            &SimulatedFlag_Ch1;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </DevicenetCh1SourceDC>"
+      - xml: "<SourceStatus type=\"data\" dataType=\"I\" accessMode=\"RW\" alias=\"\">\n            <Bd></Bd>\n            <Ch></Ch>\n            <DescriptorList>On:0,OffNormal:1,OffAbnormal:2</DescriptorList>\n            &SimulatedFlag_Ch1;\n        </SourceStatus>"
+      - xml: "<SrcDcPower class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setDurationTrigger type=\"method\">(((/IO/LoadRack/Ch1/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch1/SourceDC/OnoffDO == Off))&amp;&amp;(/Control/Ch1/VInterlocks/SourceStatus == OffAbnormal)),4000</setDurationTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,Ch1 chamber turn off SourceDC failed.</setIntlkAlarm>\n            &SimulatedFlag_Ch1;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </SrcDcPower>"
+      - xml: "<SrcDcStatusOn class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">((/IO/LoadRack/Ch1/SourceDC/PowerAO > 0.0) || (/IO/LoadRack/Ch1/SourceDC/OnoffDO == On))</setTrigger>\n            &SimulatedFlag_Ch1;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch1/VInterlocks/SourceStatus,On</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOn>"
+      - xml: "<SrcDcStatusOffAbnormal class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(((/IO/LoadRack/Ch1/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch1/SourceDC/OnoffDO == Off))&amp;&amp;(/IO/LoadRack/Ch1/SourceDC/PowerAI > 50.0))</setTrigger>\n            &SimulatedFlag_Ch1;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch1/VInterlocks/SourceStatus,OffAbnormal</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOffAbnormal>"
+      - xml: "<SrcDcStatusOffNormal class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(((/IO/LoadRack/Ch1/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch1/SourceDC/OnoffDO == Off))&amp;&amp;(/IO/LoadRack/Ch1/SourceDC/PowerAI &lt; 50.0))</setTrigger>\n            &SimulatedFlag_Ch1;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch1/VInterlocks/SourceStatus,OffNormal</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOffNormal>"
+  - name: Control/Interlock_Ch2 删除已停用节点
+    file: Control/Interlock_Ch2
+    anchor: Ch2/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch2 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch2/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch2 删除已停用节点
+    file: Control/Interlock_Ch2
+    anchor: Ch2/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch2 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch2/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch2 删除已停用节点
+    file: Control/Interlock_Ch2
+    anchor: Ch2/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch2 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch2/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch2 删除已停用节点
+    file: Control/Interlock_Ch2
+    anchor: Ch2/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotValveNotClosed,ERROR,Ch2 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch2/SvClosedDI == Closed),SlotValveNotClosed"}
+  - name: Control/Interlock_Ch2 改写文本
+    file: Control/Interlock_Ch2
+    anchor: Ch2/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh2,ERROR,Robot extended to Ch2 chamber.", "value": "ShutterHomeNotReady,ERROR,Robot extended to Ch2 chamber."}
+  - name: Control/Interlock_Ch2 改写文本
+    file: Control/Interlock_Ch2
+    anchor: Ch2/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch2/VtrExSensorDI == NotExtended),RobotExToCh2", "value": "((/IO/Platform/Plc/Ch2/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch2/SvClosedDI == Closed)),ShutterHomeNotReady"}
+  - name: Control/Interlock_Ch2 改写文本
+    file: Control/Interlock_Ch2
+    anchor: Ch2/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh2,ERROR,Robot extended to Ch2 chamber.", "value": "ShutterMoveNotReady,ERROR,Robot extended to Ch2 chamber."}
+  - name: Control/Interlock_Ch2 改写文本
+    file: Control/Interlock_Ch2
+    anchor: Ch2/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch2/VtrExSensorDI == NotExtended),RobotExToCh2", "value": "((/IO/Platform/Plc/Ch2/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch2/SvClosedDI == Closed)),ShutterMoveNotReady"}
+  - name: Control/Interlock_Ch2 改写文本
+    file: Control/Interlock_Ch2
+    anchor: Ch2/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh2,ERROR,Robot extended to Ch2 chamber.", "value": "PinHomeNotReady,ERROR,Robot extended to Ch2 chamber."}
+  - name: Control/Interlock_Ch2 改写文本
+    file: Control/Interlock_Ch2
+    anchor: Ch2/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch2/VtrExSensorDI == NotExtended),RobotExToCh2", "value": "((/IO/Platform/Plc/Ch2/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch2/SvClosedDI == Closed)),PinHomeNotReady"}
+  - name: Control/Interlock_Ch2 改写文本
+    file: Control/Interlock_Ch2
+    anchor: Ch2/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh2,ERROR,Robot extended to Ch2 chamber.", "value": "PedHomeNotReady,ERROR,Robot extended to Ch2 chamber."}
+  - name: Control/Interlock_Ch2 改写文本
+    file: Control/Interlock_Ch2
+    anchor: Ch2/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch2/VtrExSensorDI == NotExtended),RobotExToCh2", "value": "((/IO/Platform/Plc/Ch2/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch2/SvClosedDI == Closed)),PedHomeNotReady"}
+  - name: Control/Interlock_Ch2 新增节点
+    file: Control/Interlock_Ch2
+    anchor: Ch2/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    add-xml:
+      - xml: "<DevicenetCh2SourceDC class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/LoadRack/DnStatus/Ch2SourceDC != 2)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,LoadRack chamber Ch2SourceDC module devicenet is abnormal.</setIntlkAlarm>\n            &SimulatedFlag_Ch2;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </DevicenetCh2SourceDC>"
+      - xml: "<SourceStatus type=\"data\" dataType=\"I\" accessMode=\"RW\" alias=\"\">\n            <Bd></Bd>\n            <Ch></Ch>\n            <DescriptorList>On:0,OffNormal:1,OffAbnormal:2</DescriptorList>\n            &SimulatedFlag_Ch2;\n        </SourceStatus>"
+      - xml: "<SrcDcPower class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setDurationTrigger type=\"method\">(((/IO/LoadRack/Ch2/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch2/SourceDC/OnoffDO == Off))&amp;&amp;(/Control/Ch2/VInterlocks/SourceStatus == OffAbnormal)),4000</setDurationTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,Ch2 chamber turn off SourceDC failed.</setIntlkAlarm>\n            &SimulatedFlag_Ch2;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </SrcDcPower>"
+      - xml: "<SrcDcStatusOn class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">((/IO/LoadRack/Ch2/SourceDC/PowerAO > 0.0) || (/IO/LoadRack/Ch2/SourceDC/OnoffDO == On))</setTrigger>\n            &SimulatedFlag_Ch2;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch2/VInterlocks/SourceStatus,On</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOn>"
+      - xml: "<SrcDcStatusOffAbnormal class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(((/IO/LoadRack/Ch2/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch2/SourceDC/OnoffDO == Off))&amp;&amp;(/IO/LoadRack/Ch2/SourceDC/PowerAI > 50.0))</setTrigger>\n            &SimulatedFlag_Ch2;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch2/VInterlocks/SourceStatus,OffAbnormal</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOffAbnormal>"
+      - xml: "<SrcDcStatusOffNormal class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(((/IO/LoadRack/Ch2/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch2/SourceDC/OnoffDO == Off))&amp;&amp;(/IO/LoadRack/Ch2/SourceDC/PowerAI &lt; 50.0))</setTrigger>\n            &SimulatedFlag_Ch2;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch2/VInterlocks/SourceStatus,OffNormal</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOffNormal>"
+  - name: Control/Interlock_Ch4 删除已停用节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    remove-node:
+      - {"tag": "PIBBoxOpen", "attr": {"class": "VInterlock", "type": "instance", "alias": ""}}
+      - {"tag": "BiasMatchSafety", "attr": {"class": "VInterlock", "type": "instance", "alias": ""}}
+  - name: Control/Interlock_Ch4 删除已停用节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch4 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch4/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch4 删除已停用节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch4 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch4/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch4 删除已停用节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch4 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch4/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch4 删除已停用节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotValveNotClosed,ERROR,Ch4 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch4/SvClosedDI == Closed),SlotValveNotClosed"}
+  - name: Control/Interlock_Ch4 改写文本
+    file: Control/Interlock_Ch4
+    anchor: Ch4/VInterlocks/SourceCover
+    where: { tag-glob: "SourceCover" }
+    set-text:
+      - {"tag": "setIntlkAlarm", "attr": {"type": "method"}, "old": "Alarm,ERROR,Ch4 chamber Source Cover is not closed.", "value": "Alarm,ERROR,Ch4 chamber SrcCover is NOT closed."}
+  - name: Control/Interlock_Ch4 改写文本
+    file: Control/Interlock_Ch4
+    anchor: Ch4/VInterlocks/EMagBoxNotClosed
+    where: { tag-glob: "EMagBoxNotClosed" }
+    set-text:
+      - {"tag": "setIntlkAlarm", "attr": {"type": "method"}, "old": "EMagBoxNotClosed,NOTICE,Ch4 chamber EMagBox is not closed.", "value": "Alarm,ERROR,Ch4 chamber EMagBox is not closed."}
+  - name: Control/Interlock_Ch4 改写文本
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh4,ERROR,Robot extended to Ch4 chamber.", "value": "ShutterHomeNotReady,ERROR,Robot extended to Ch4 chamber."}
+  - name: Control/Interlock_Ch4 改写文本
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch4/VtrExSensorDI == NotExtended),RobotExToCh4", "value": "((/IO/Platform/Plc/Ch4/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch4/SvClosedDI == Closed)),ShutterHomeNotReady"}
+  - name: Control/Interlock_Ch4 改写文本
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh4,ERROR,Robot extended to Ch4 chamber.", "value": "ShutterMoveNotReady,ERROR,Robot extended to Ch4 chamber."}
+  - name: Control/Interlock_Ch4 改写文本
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch4/VtrExSensorDI == NotExtended),RobotExToCh4", "value": "((/IO/Platform/Plc/Ch4/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch4/SvClosedDI == Closed)),ShutterMoveNotReady"}
+  - name: Control/Interlock_Ch4 改写文本
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh4,ERROR,Robot extended to Ch4 chamber.", "value": "PinHomeNotReady,ERROR,Robot extended to Ch4 chamber."}
+  - name: Control/Interlock_Ch4 改写文本
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch4/VtrExSensorDI == NotExtended),RobotExToCh4", "value": "((/IO/Platform/Plc/Ch4/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch4/SvClosedDI == Closed)),PinHomeNotReady"}
+  - name: Control/Interlock_Ch4 改写文本
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh4,ERROR,Robot extended to Ch4 chamber.", "value": "PedHomeNotReady,ERROR,Robot extended to Ch4 chamber."}
+  - name: Control/Interlock_Ch4 改写文本
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch4/VtrExSensorDI == NotExtended),RobotExToCh4", "value": "((/IO/Platform/Plc/Ch4/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch4/SvClosedDI == Closed)),PedHomeNotReady"}
+  - name: Control/Interlock_Ch4 新增节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/VInterlocks/Chamber
+    where: { tag-glob: "Chamber" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">BiasRfOff,NOTICE,Ch4 chamber bias RF generator is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/BiasRF/OnoffDO,Off,BiasRfOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">SrcDcOff,NOTICE,Ch4 chamber source DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch4/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag1DcOff,NOTICE,EMag1 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag1/PowerOnoffDO,Off,EMag1DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag1/CurrentAO,0.0,EMag1DcOff</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag2DcOff,NOTICE,EMag2 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag2/PowerOnoffDO,Off,EMag2DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag2/CurrentAO,0.0,EMag2DcOff</addDoubleValueAction>"
+  - name: Control/Interlock_Ch4 新增节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/VInterlocks/WaterLeak
+    where: { tag-glob: "WaterLeak" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">BakeoutOff,NOTICE,Ch4 chamber Bakeout will turn off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/Ch4/Plc/BakeoutOnoffDO,Off,BakeoutOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/Ch4/Plc/BakeoutOutputAO,0.0,BakeoutOff</addDoubleValueAction>"
+      - xml: "<addIntDescriptorAction type=\"method\">IO/Ch4/Plc/BakeoutEnDO,Disable,BakeoutOff</addIntDescriptorAction>"
+  - name: Control/Interlock_Ch4 新增节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/VInterlocks/LidOpen
+    where: { tag-glob: "LidOpen" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">BiasRfOff,NOTICE,BiasRf is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/BiasRF/OnoffDO,Off,BiasRfOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">SrcDcOff,NOTICE,Ch4 chamber source DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch4/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag1DcOff,NOTICE,EMag1 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag1/PowerOnoffDO,Off,EMag1DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag1/CurrentAO,0.0,EMag1DcOff</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag2DcOff,NOTICE,EMag2 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag2/PowerOnoffDO,Off,EMag2DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag2/CurrentAO,0.0,EMag2DcOff</addDoubleValueAction>"
+  - name: Control/Interlock_Ch4 新增节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/VInterlocks/SourceCover
+    where: { tag-glob: "SourceCover" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">BiasRfOff,NOTICE,Ch4 chamber bias RF generator is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/BiasRF/OnoffDO,Off,BiasRfOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">SrcDcOff,NOTICE,Ch4 chamber source DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch4/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">BakeoutOff,NOTICE,Ch4 chamber bake out is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/Ch4/Plc/BakeoutOnoffDO,Off,BakeoutOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">BakeoutEnOff,NOTICE,Ch4 chamber Bakeout Enable will turn off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">IO/Ch4/Plc/BakeoutEnDO,Disable,BakeoutEnOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">BakeoutSet,NOTICE,Ch4 chamber Bakeout output will set 0.</createActionAlarm>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/Ch4/Plc/BakeoutOutputAO,0.0,BakeoutSet</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag1DcOff,NOTICE,EMag1 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag1/PowerOnoffDO,Off,EMag1DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag1/CurrentAO,0.0,EMag1DcOff</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag2DcOff,NOTICE,EMag2 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag2/PowerOnoffDO,Off,EMag2DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag2/CurrentAO,0.0,EMag2DcOff</addDoubleValueAction>"
+  - name: Control/Interlock_Ch4 新增节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/VInterlocks/CombinerBoxOpen
+    where: { tag-glob: "CombinerBoxOpen" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">RfOff,NOTICE,Rf is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/BiasRF/OnoffDO,Off,RfOff</addIntDescriptorAction>"
+  - name: Control/Interlock_Ch4 新增节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/VInterlocks/EMagBoxNotClosed
+    where: { tag-glob: "EMagBoxNotClosed" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">EMag1DcOff,NOTICE,EMag1 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag1/PowerOnoffDO,Off,EMag1DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag1/CurrentAO,0.0,EMag1DcOff</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag2DcOff,NOTICE,EMag2 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag2/PowerOnoffDO,Off,EMag2DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch4/EMag2/CurrentAO,0.0,EMag2DcOff</addDoubleValueAction>"
+  - name: Control/Interlock_Ch4 新增节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    add-xml:
+      - xml: "<DevicenetCh4SourceDC class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/LoadRack/DnStatus/Ch4SourceDC != 2)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,LoadRack chamber Ch4SourceDC module devicenet is abnormal.</setIntlkAlarm>\n            &SimulatedFlag_Ch4;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </DevicenetCh4SourceDC>"
+      - xml: "<SourceStatus type=\"data\" dataType=\"I\" accessMode=\"RW\" alias=\"\">\n            <Bd></Bd>\n            <Ch></Ch>\n            <DescriptorList>On:0,OffNormal:1,OffAbnormal:2</DescriptorList>\n            &SimulatedFlag_Ch4;\n        </SourceStatus>"
+      - xml: "<SrcDcPower class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setDurationTrigger type=\"method\">(((/IO/LoadRack/Ch4/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch4/SourceDC/OnoffDO == Off))&amp;&amp;(/Control/Ch4/VInterlocks/SourceStatus == OffAbnormal)),4000</setDurationTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,Ch4 chamber turn off SourceDC failed.</setIntlkAlarm>\n            &SimulatedFlag_Ch4;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </SrcDcPower>"
+      - xml: "<SrcDcStatusOn class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">((/IO/LoadRack/Ch4/SourceDC/PowerAO > 0.0) || (/IO/LoadRack/Ch4/SourceDC/OnoffDO == On))</setTrigger>\n            &SimulatedFlag_Ch4;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch4/VInterlocks/SourceStatus,On</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOn>"
+      - xml: "<SrcDcStatusOffAbnormal class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(((/IO/LoadRack/Ch4/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch4/SourceDC/OnoffDO == Off))&amp;&amp;(/IO/LoadRack/Ch4/SourceDC/PowerAI > 50.0))</setTrigger>\n            &SimulatedFlag_Ch4;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch4/VInterlocks/SourceStatus,OffAbnormal</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOffAbnormal>"
+      - xml: "<SrcDcStatusOffNormal class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(((/IO/LoadRack/Ch4/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch4/SourceDC/OnoffDO == Off))&amp;&amp;(/IO/LoadRack/Ch4/SourceDC/PowerAI &lt; 50.0))</setTrigger>\n            &SimulatedFlag_Ch4;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch4/VInterlocks/SourceStatus,OffNormal</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOffNormal>"
+      - xml: "<PIBBoxOpen type=\"instance\" class=\"VInterlock\">\n            <setTrigger type=\"method\">(/IO/Ch4/Plc/PIBCoverClosedDI == NotClosed)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,Ch4 chamber PIBBox is not closed.</setIntlkAlarm>\n            &SimulatedFlag_Ch4;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n            \n            <createActionAlarm type=\"method\">RfOff,NOTICE,Rf is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/BiasRF/OnoffDO,Off,RfOff</addIntDescriptorAction>\n            \n            <!--createActionAlarm type=\"method\">CoilRfOff,NOTICE,CoilRf is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/CoilRF/OnoffDO,Off,CoilRfOff</addIntDescriptorAction-->\n\n            <createActionAlarm type=\"method\">SrcDcOff,NOTICE,Source DC is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch4/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>\n        </PIBBoxOpen>"
+      - xml: "<BiasMatchSafety type=\"instance\" class=\"VInterlock\">\n            <setTrigger type=\"method\">(/IO/Ch4/Plc/BiasMatchSafetyDI == Abnormal)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,FATAL,Ch4 chamber Bias match is abnormal.</setIntlkAlarm>\n            &SimulatedFlag_Ch4;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </BiasMatchSafety>"
+      - xml: "<EscWaterFlow class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setDurationTrigger type=\"method\">(/IO/Ch4/Plc/HeaterWaterFlowDI == Abnormal),10000</setDurationTrigger>\n            <setIntlkAlarm type=\"method\">Abnormal,ERROR,Ch4 chamber chuck water is abnormal.</setIntlkAlarm>\n            &SimulatedFlag_Ch4;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n            <createActionAlarm type=\"method\">BakeoutOff,NOTICE,Ch4 chamber Bakeout will turn off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/Ch4/Plc/BakeoutOnoffDO,Off,BakeoutOff</addIntDescriptorAction>\n \n            <createActionAlarm type=\"method\">RfOff,NOTICE,Rf is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/BiasRF/OnoffDO,Off,RfOff</addIntDescriptorAction>\n            \n            <!--createActionAlarm type=\"method\">CoilRfOff,NOTICE,CoilRf is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch4/CoilRF/OnoffDO,Off,CoilRfOff</addIntDescriptorAction-->\n\n            <createActionAlarm type=\"method\">SrcDcOff,NOTICE,Source DC is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch4/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>\n \n        </EscWaterFlow>"
+  - name: Control/Interlock_Ch4 新增节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/OpenV2
+    where: { tag-glob: "OpenV2" }
+    add-xml:
+      - xml: "<createCheckerAlarm type=\"method\">BakeoutNotOff,ERROR,Ch4 chamber Bakeout not turn off.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch4/Plc/BakeoutOnoffDO == Off),BakeoutNotOff</addChecker>"
+  - name: Control/Interlock_Ch4 新增节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/SrcDcOn
+    where: { tag-glob: "SrcDcOn" }
+    add-xml:
+      - xml: "<createCheckerAlarm type=\"method\">EscWaterAbnormal,ERROR,Ch4 chamber chuck water is abnormal.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch4/Plc/HeaterWaterFlowDI == Normal),EscWaterAbnormal</addChecker>"
+  - name: Control/Interlock_Ch4 新增节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks/BakeoutOn
+    where: { tag-glob: "BakeoutOn" }
+    add-xml:
+      - xml: "<createCheckerAlarm type=\"method\">V41NotClosed,ERROR,Ch4 chamber fast pump valve 'V41' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch4/Plc/Solenoid/V41DI == Closed),V41NotClosed</addChecker>"
+      - xml: "<createCheckerAlarm type=\"method\">V42NotClosed,ERROR,Ch4 chamber slow pump valve 'V42' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch4/Plc/Solenoid/V42DI == Closed),V42NotClosed</addChecker>"
+      - xml: "<createCheckerAlarm type=\"method\">V2NotClosed,ERROR,Ch4 chamber 'V2' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch4/Plc/Solenoid/V2DI == Closed),V2NotClosed</addChecker>"
+      - xml: "<createCheckerAlarm type=\"method\">V1NotClosed,ERROR,Ch4 chamber 'V1' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch4/Plc/Solenoid/V1DI == Closed),V1NotClosed</addChecker>"
+      - xml: "<createCheckerAlarm type=\"method\">V32NotClosed,ERROR,Ch4 chamber 'V32' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch4/Plc/Solenoid/V31DI == Closed),V32NotClosed</addChecker>"
+  - name: Control/Interlock_Ch4 新增节点
+    file: Control/Interlock_Ch4
+    anchor: Ch4/SInterlocks
+    where: { tag-glob: "SInterlocks" }
+    add-xml:
+      - xml: "<OpenV1 class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch4/Plc/Solenoid/V1DO == Open)</setTrigger>\n\n            <!-- defined in EE-Hard-Interlock -->\n            <createCheckerAlarm type=\"method\">SrcCoverNotClosed,ERROR,Ch4 chamber SourceCover is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/SourceCoverClosedDI == Closed),SrcCoverNotClosed</addChecker>\n            \n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch4 chamber Lid is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SlotVlvNotClosed,ERROR,Ch4 chamber slot valve is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/Ch4/SvClosedDI == Closed),SlotVlvNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberNotVac,ERROR,Ch4 chamber is NOT at vacuum.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/VacIgDI == Vac),ChamberNotVac</addChecker>\n\n            <createCheckerAlarm type=\"method\">V41NotClosed,ERROR,Ch4 chamber fast pump valve 'V41' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/Solenoid/V41DI == Closed),V41NotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">V42NotClosed,ERROR,Ch4 chamber slow pump valve 'V42' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/Solenoid/V42DI == Closed),V42NotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">V51NotClosed,ERROR,Ch4 chamber pump valve 'V51' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/Solenoid/V51DI == Closed),V51NotClosed</addChecker>\n\n\n            <!--createCheckerAlarm type=\"method\">CDATooHigh,ERROR,Ch4 chamber CDA Pressure is Too High.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDAHighDI == Normal),CDATooHigh</addChecker>\n            <createCheckerAlarm type=\"method\">CDATooLow,ERROR,Ch4 chamber CDA Pressure is Too Low.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDALowDI == Normal),CDATooLow</addChecker-->\n\n            <createCheckerAlarm type=\"method\">V1Disabled,ERROR,Ch4 chamber 'V1' is disabled.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/V1EnDI == Enabled),V1Disabled</addChecker>\n\n\n            <createCheckerAlarm type=\"method\">BakeoutNotOff,ERROR,Ch4 chamber Bakeout not turn off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/BakeoutOnoffDO == Off),BakeoutNotOff</addChecker>\n\n        </OpenV1>"
+      - xml: "<OpenV33 class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch4/Plc/Solenoid/V33DO == Open)</setTrigger>\n\n            <!--createCheckerAlarm type=\"method\">CDATooHigh,ERROR,Ch4 chamber CDA Pressure is Too High.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDAHighDI == Normal),CDATooHigh</addChecker>\n            <createCheckerAlarm type=\"method\">CDATooLow,ERROR,Ch4 chamber CDA Pressure is Too Low.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDALowDI == Normal),CDATooLow</addChecker-->\n            \n            <createCheckerAlarm type=\"method\">V33Disabled,ERROR,Ch4 chamber 'V33' is disabled.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/V33EnDI == Enabled),V33Disabled</addChecker>\n        </OpenV33>"
+      - xml: "<OpenV32 class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch4/Plc/Solenoid/V32DO == Open)</setTrigger>\n          \n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch4 chamber Lid is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberNotVac,ERROR,Ch4 chamber is NOT at vacuum.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/VacIgDI == Vac),ChamberNotVac</addChecker>\n            \n            <createCheckerAlarm type=\"method\">V41NotClosed,ERROR,Ch4 chamber fast pump valve 'V41' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/Solenoid/V41DI == Closed),V41NotClosed</addChecker>\n            \n            <createCheckerAlarm type=\"method\">V42NotClosed,ERROR,Ch4 chamber slow pump valve 'V42' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/Solenoid/V42DI == Closed),V42NotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">V51NotClosed,ERROR,Ch4 chamber slow pump valve 'V51' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/Solenoid/V51DI == Closed),V51NotClosed</addChecker>\n\n            <!--createCheckerAlarm type=\"method\">CDATooHigh,ERROR,Ch4 chamber CDA Pressure is Too High.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDAHighDI == Normal),CDATooHigh</addChecker>\n            <createCheckerAlarm type=\"method\">CDATooLow,ERROR,Ch4 chamber CDA Pressure is Too Low.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDALowDI == Normal),CDATooLow</addChecker-->\n            \n            <createCheckerAlarm type=\"method\">V32Disabled,ERROR,Ch4 chamber 'V32' is disabled.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/V32EnDI == Enabled),V32Disabled</addChecker>\n\n        </OpenV32>"
+      - xml: "<OpenV31 class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch4/Plc/Solenoid/V31DO == Open)</setTrigger>\n            \n            <!-- defined in EE-Hard-Interlock -->\n            <createCheckerAlarm type=\"method\">SrcCoverNotClosed,ERROR,Ch4 chamber SourceCover is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/SourceCoverClosedDI == Closed),SrcCoverNotClosed</addChecker>\n            \n\n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch4 chamber Lid is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n            \n            <createCheckerAlarm type=\"method\">SlotVlvNotClosed,ERROR,Ch4 chamber slot valve is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/Ch4/SvClosedDI == Closed),SlotVlvNotClosed</addChecker>\n            \n            <!--createCheckerAlarm type=\"method\">CDATooHigh,ERROR,Ch4 chamber CDA Pressure is Too High.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDAHighDI == Normal),CDATooHigh</addChecker>           \n            <createCheckerAlarm type=\"method\">CDATooLow,ERROR,Ch4 chamber CDA Pressure is Too Low.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDALowDI == Normal),CDATooLow</addChecker-->\n            \n            <createCheckerAlarm type=\"method\">V31Disabled,ERROR,Ch4 chamber 'V31' is disabled.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/V31EnDI == Enabled),V31Disabled</addChecker>\n            <createCheckerAlarm type=\"method\">BakeoutNotOff,ERROR,Ch4 chamber Bakeout not turn off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/BakeoutOnoffDO == Off),BakeoutNotOff</addChecker>\n        </OpenV31>"
+      - xml: "<EMag1DcOn class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/LoadRack/Plc/Ch4/EMag1/PowerOnoffDO == On)</setTrigger>\n\n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch4 chamber lid is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SvNotClosed,ERROR,Ch4 chamber slot valve is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/Ch4/SvClosedDI == Closed),SvNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SrcCoverNotClosed,ERROR,Ch4 chamber Source Cover is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/SourceCoverClosedDI == Closed),SrcCoverNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">EMagBoxNotClosed,ERROR,Ch4 chamber EMag Box is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/EMagCoverClosedDI == Closed),EMagBoxNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">TargetWaterAbnormal,ERROR,Ch4 chamber target water is abnormal.(Hard Interlock)</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/TargetWaterFlowDI == Normal),TargetWaterAbnormal</addChecker>\n\n            <createCheckerAlarm type=\"method\">PedWaterAbnormal,ERROR,Ch4 chamber chuck water is abnormal.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/HeaterWaterFlowDI == Normal),PedWaterAbnormal</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberOver149,ERROR,Ch4 chamber is NOT less than 149 centigrade.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/ChamberOverTempDI == Normal),ChamberOver149</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberNotVac,ERROR,Ch4 chamber is NOT in vacuum.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/VacIgDI == Vac),ChamberNotVac</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberOverPressure,ERROR,Ch4 chamber is over pressure.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/IG/PressureAI &lt; 0.2),ChamberOverPressure</addChecker>\n\n            <createCheckerAlarm type=\"method\">NoWfrOrDisk,ERROR,No wafer or shutter disk on the pedestal in Ch4 chamber.</createCheckerAlarm>\n            <addChecker type=\"method\">((/IO/Ch4Exports/Slot1 == Present) || (/IO/Ch4Exports/Slot1 == Shuttered)),NoWfrOrDisk</addChecker>\n\n        </EMag1DcOn>"
+      - xml: "<EMag2DcOn class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/LoadRack/Plc/Ch4/EMag2/PowerOnoffDO == On)</setTrigger>\n\n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch4 chamber lid is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SvNotClosed,ERROR,Ch4 chamber slot valve is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/Ch4/SvClosedDI == Closed),SvNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SrcCoverNotClosed,ERROR,Ch4 chamber Source Cover is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/SourceCoverClosedDI == Closed),SrcCoverNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">EMagBoxNotClosed,ERROR,Ch4 chamber EMag Box is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/EMagCoverClosedDI == Closed),EMagBoxNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">TargetWaterAbnormal,ERROR,Ch4 chamber target water is abnormal.(Hard Interlock)</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/TargetWaterFlowDI == Normal),TargetWaterAbnormal</addChecker>\n\n            <createCheckerAlarm type=\"method\">PedWaterAbnormal,ERROR,Ch4 chamber chuck water is abnormal.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/HeaterWaterFlowDI == Normal),PedWaterAbnormal</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberOver149,ERROR,Ch4 chamber is NOT less than 149 centigrade.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/ChamberOverTempDI == Normal),ChamberOver149</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberNotVac,ERROR,Ch4 chamber is NOT in vacuum.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/Plc/VacIgDI == Vac),ChamberNotVac</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberOverPressure,ERROR,Ch4 chamber is over pressure.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch4/IG/PressureAI &lt; 0.2),ChamberOverPressure</addChecker>\n\n            <createCheckerAlarm type=\"method\">NoWfrOrDisk,ERROR,No wafer or shutter disk on the pedestal in Ch4 chamber.</createCheckerAlarm>\n            <addChecker type=\"method\">((/IO/Ch4Exports/Slot1 == Present) || (/IO/Ch4Exports/Slot1 == Shuttered)),NoWfrOrDisk</addChecker>\n\n        </EMag2DcOn>"
+      - xml: "<BakeoutPowerOn class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch4/Plc/BakeoutEnDO == Enable)</setTrigger>\n\n            <createCheckerAlarm type=\"method\">SrcDcNotOff,ERROR,Ch4 chamber source DC is not off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/LoadRack/Ch4/SourceDC/OnoffDI == Off),SrcDcNotOff</addChecker>\n\n            <createCheckerAlarm type=\"method\">RfNotOff,ERROR,Ch4 chamber  Rf is not off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/LoadRack/Plc/Ch4/BiasRF/OnoffDI == Off),RfNotOff</addChecker>\n\n            <!--createCheckerAlarm type=\"method\">CoilRfNotOff,ERROR,Ch4 chamber Coil Rf is not off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/LoadRack/Plc/Ch4/CoilRF/OnoffDI == Off),CoilRfNotOff</addChecker-->\n        </BakeoutPowerOn>"
+  - name: Control/Interlock_Ch5 删除已停用节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    remove-node:
+      - {"tag": "PIBBoxOpen", "attr": {"class": "VInterlock", "type": "instance", "alias": ""}}
+      - {"tag": "BiasMatchSafety", "attr": {"class": "VInterlock", "type": "instance", "alias": ""}}
+  - name: Control/Interlock_Ch5 删除已停用节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch5 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch5/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch5 删除已停用节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch5 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch5/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch5 删除已停用节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch5 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch5/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch5 删除已停用节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotValveNotClosed,ERROR,Ch5 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch5/SvClosedDI == Closed),SlotValveNotClosed"}
+  - name: Control/Interlock_Ch5 改写文本
+    file: Control/Interlock_Ch5
+    anchor: Ch5/VInterlocks/SourceCover
+    where: { tag-glob: "SourceCover" }
+    set-text:
+      - {"tag": "setIntlkAlarm", "attr": {"type": "method"}, "old": "Alarm,ERROR,Ch5 chamber Source Cover is not closed.", "value": "Alarm,ERROR,Ch5 chamber SrcCover is NOT closed."}
+  - name: Control/Interlock_Ch5 改写文本
+    file: Control/Interlock_Ch5
+    anchor: Ch5/VInterlocks/EMagBoxNotClosed
+    where: { tag-glob: "EMagBoxNotClosed" }
+    set-text:
+      - {"tag": "setIntlkAlarm", "attr": {"type": "method"}, "old": "EMagBoxNotClosed,NOTICE,Ch5 chamber EMagBox is not closed.", "value": "Alarm,ERROR,Ch5 chamber EMagBox is not closed."}
+  - name: Control/Interlock_Ch5 改写文本
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh5,ERROR,Robot extended to Ch5 chamber.", "value": "ShutterHomeNotReady,ERROR,Robot extended to Ch5 chamber."}
+  - name: Control/Interlock_Ch5 改写文本
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch5/VtrExSensorDI == NotExtended),RobotExToCh5", "value": "((/IO/Platform/Plc/Ch5/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch5/SvClosedDI == Closed)),ShutterHomeNotReady"}
+  - name: Control/Interlock_Ch5 改写文本
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh5,ERROR,Robot extended to Ch5 chamber.", "value": "ShutterMoveNotReady,ERROR,Robot extended to Ch5 chamber."}
+  - name: Control/Interlock_Ch5 改写文本
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch5/VtrExSensorDI == NotExtended),RobotExToCh5", "value": "((/IO/Platform/Plc/Ch5/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch5/SvClosedDI == Closed)),ShutterMoveNotReady"}
+  - name: Control/Interlock_Ch5 改写文本
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh5,ERROR,Robot extended to Ch5 chamber.", "value": "PinHomeNotReady,ERROR,Robot extended to Ch5 chamber."}
+  - name: Control/Interlock_Ch5 改写文本
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch5/VtrExSensorDI == NotExtended),RobotExToCh5", "value": "((/IO/Platform/Plc/Ch5/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch5/SvClosedDI == Closed)),PinHomeNotReady"}
+  - name: Control/Interlock_Ch5 改写文本
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh5,ERROR,Robot extended to Ch5 chamber.", "value": "PedHomeNotReady,ERROR,Robot extended to Ch5 chamber."}
+  - name: Control/Interlock_Ch5 改写文本
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch5/VtrExSensorDI == NotExtended),RobotExToCh5", "value": "((/IO/Platform/Plc/Ch5/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch5/SvClosedDI == Closed)),PedHomeNotReady"}
+  - name: Control/Interlock_Ch5 新增节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/VInterlocks/Chamber
+    where: { tag-glob: "Chamber" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">BiasRfOff,NOTICE,Ch5 chamber bias RF generator is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/BiasRF/OnoffDO,Off,BiasRfOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">SrcDcOff,NOTICE,Ch5 chamber source DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch5/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag1DcOff,NOTICE,EMag1 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag1/PowerOnoffDO,Off,EMag1DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag1/CurrentAO,0.0,EMag1DcOff</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag2DcOff,NOTICE,EMag2 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag2/PowerOnoffDO,Off,EMag2DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag2/CurrentAO,0.0,EMag2DcOff</addDoubleValueAction>"
+  - name: Control/Interlock_Ch5 新增节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/VInterlocks/WaterLeak
+    where: { tag-glob: "WaterLeak" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">BakeoutOff,NOTICE,Ch5 chamber Bakeout will turn off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/Ch5/Plc/BakeoutOnoffDO,Off,BakeoutOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/Ch5/Plc/BakeoutOutputAO,0.0,BakeoutOff</addDoubleValueAction>"
+      - xml: "<addIntDescriptorAction type=\"method\">IO/Ch5/Plc/BakeoutEnDO,Disable,BakeoutOff</addIntDescriptorAction>"
+  - name: Control/Interlock_Ch5 新增节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/VInterlocks/LidOpen
+    where: { tag-glob: "LidOpen" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">BiasRfOff,NOTICE,BiasRf is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/BiasRF/OnoffDO,Off,BiasRfOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">SrcDcOff,NOTICE,Ch5 chamber source DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch5/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag1DcOff,NOTICE,EMag1 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag1/PowerOnoffDO,Off,EMag1DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag1/CurrentAO,0.0,EMag1DcOff</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag2DcOff,NOTICE,EMag2 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag2/PowerOnoffDO,Off,EMag2DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag2/CurrentAO,0.0,EMag2DcOff</addDoubleValueAction>"
+  - name: Control/Interlock_Ch5 新增节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/VInterlocks/SourceCover
+    where: { tag-glob: "SourceCover" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">BiasRfOff,NOTICE,Ch5 chamber bias RF generator is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/BiasRF/OnoffDO,Off,BiasRfOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">SrcDcOff,NOTICE,Ch5 chamber source DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch5/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">BakeoutOff,NOTICE,Ch5 chamber bake out is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/Ch5/Plc/BakeoutOnoffDO,Off,BakeoutOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">BakeoutEnOff,NOTICE,Ch5 chamber Bakeout Enable will turn off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">IO/Ch5/Plc/BakeoutEnDO,Disable,BakeoutEnOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">BakeoutSet,NOTICE,Ch5 chamber Bakeout output will set 0.</createActionAlarm>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/Ch5/Plc/BakeoutOutputAO,0.0,BakeoutSet</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag1DcOff,NOTICE,EMag1 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag1/PowerOnoffDO,Off,EMag1DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag1/CurrentAO,0.0,EMag1DcOff</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag2DcOff,NOTICE,EMag2 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag2/PowerOnoffDO,Off,EMag2DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag2/CurrentAO,0.0,EMag2DcOff</addDoubleValueAction>"
+  - name: Control/Interlock_Ch5 新增节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/VInterlocks/CombinerBoxOpen
+    where: { tag-glob: "CombinerBoxOpen" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">RfOff,NOTICE,Rf is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/BiasRF/OnoffDO,Off,RfOff</addIntDescriptorAction>"
+  - name: Control/Interlock_Ch5 新增节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/VInterlocks/EMagBoxNotClosed
+    where: { tag-glob: "EMagBoxNotClosed" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">EMag1DcOff,NOTICE,EMag1 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag1/PowerOnoffDO,Off,EMag1DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag1/CurrentAO,0.0,EMag1DcOff</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag2DcOff,NOTICE,EMag2 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag2/PowerOnoffDO,Off,EMag2DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch5/EMag2/CurrentAO,0.0,EMag2DcOff</addDoubleValueAction>"
+  - name: Control/Interlock_Ch5 新增节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    add-xml:
+      - xml: "<DevicenetCh5SourceDC class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/LoadRack/DnStatus/Ch5SourceDC != 2)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,LoadRack chamber Ch5SourceDC module devicenet is abnormal.</setIntlkAlarm>\n            &SimulatedFlag_Ch5;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </DevicenetCh5SourceDC>"
+      - xml: "<SourceStatus type=\"data\" dataType=\"I\" accessMode=\"RW\" alias=\"\">\n            <Bd></Bd>\n            <Ch></Ch>\n            <DescriptorList>On:0,OffNormal:1,OffAbnormal:2</DescriptorList>\n            &SimulatedFlag_Ch5;\n        </SourceStatus>"
+      - xml: "<SrcDcPower class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setDurationTrigger type=\"method\">(((/IO/LoadRack/Ch5/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch5/SourceDC/OnoffDO == Off))&amp;&amp;(/Control/Ch5/VInterlocks/SourceStatus == OffAbnormal)),4000</setDurationTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,Ch5 chamber turn off SourceDC failed.</setIntlkAlarm>\n            &SimulatedFlag_Ch5;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </SrcDcPower>"
+      - xml: "<SrcDcStatusOn class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">((/IO/LoadRack/Ch5/SourceDC/PowerAO > 0.0) || (/IO/LoadRack/Ch5/SourceDC/OnoffDO == On))</setTrigger>\n            &SimulatedFlag_Ch5;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch5/VInterlocks/SourceStatus,On</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOn>"
+      - xml: "<SrcDcStatusOffAbnormal class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(((/IO/LoadRack/Ch5/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch5/SourceDC/OnoffDO == Off))&amp;&amp;(/IO/LoadRack/Ch5/SourceDC/PowerAI > 50.0))</setTrigger>\n            &SimulatedFlag_Ch5;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch5/VInterlocks/SourceStatus,OffAbnormal</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOffAbnormal>"
+      - xml: "<SrcDcStatusOffNormal class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(((/IO/LoadRack/Ch5/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch5/SourceDC/OnoffDO == Off))&amp;&amp;(/IO/LoadRack/Ch5/SourceDC/PowerAI &lt; 50.0))</setTrigger>\n            &SimulatedFlag_Ch5;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch5/VInterlocks/SourceStatus,OffNormal</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOffNormal>"
+      - xml: "<PIBBoxOpen type=\"instance\" class=\"VInterlock\">\n            <setTrigger type=\"method\">(/IO/Ch5/Plc/PIBCoverClosedDI == NotClosed)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,Ch5 chamber PIBBox is not closed.</setIntlkAlarm>\n            &SimulatedFlag_Ch5;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n            \n            <createActionAlarm type=\"method\">RfOff,NOTICE,Rf is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/BiasRF/OnoffDO,Off,RfOff</addIntDescriptorAction>\n            \n            <!--createActionAlarm type=\"method\">CoilRfOff,NOTICE,CoilRf is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/CoilRF/OnoffDO,Off,CoilRfOff</addIntDescriptorAction-->\n\n            <createActionAlarm type=\"method\">SrcDcOff,NOTICE,Source DC is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch5/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>\n        </PIBBoxOpen>"
+      - xml: "<BiasMatchSafety type=\"instance\" class=\"VInterlock\">\n            <setTrigger type=\"method\">(/IO/Ch5/Plc/BiasMatchSafetyDI == Abnormal)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,FATAL,Ch5 chamber Bias match is abnormal.</setIntlkAlarm>\n            &SimulatedFlag_Ch5;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </BiasMatchSafety>"
+      - xml: "<EscWaterFlow class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setDurationTrigger type=\"method\">(/IO/Ch5/Plc/HeaterWaterFlowDI == Abnormal),10000</setDurationTrigger>\n            <setIntlkAlarm type=\"method\">Abnormal,ERROR,Ch5 chamber chuck water is abnormal.</setIntlkAlarm>\n            &SimulatedFlag_Ch5;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n            <createActionAlarm type=\"method\">BakeoutOff,NOTICE,Ch5 chamber Bakeout will turn off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/Ch5/Plc/BakeoutOnoffDO,Off,BakeoutOff</addIntDescriptorAction>\n \n            <createActionAlarm type=\"method\">RfOff,NOTICE,Rf is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/BiasRF/OnoffDO,Off,RfOff</addIntDescriptorAction>\n            \n            <!--createActionAlarm type=\"method\">CoilRfOff,NOTICE,CoilRf is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch5/CoilRF/OnoffDO,Off,CoilRfOff</addIntDescriptorAction-->\n\n            <createActionAlarm type=\"method\">SrcDcOff,NOTICE,Source DC is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch5/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>\n \n        </EscWaterFlow>"
+  - name: Control/Interlock_Ch5 新增节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/OpenV2
+    where: { tag-glob: "OpenV2" }
+    add-xml:
+      - xml: "<createCheckerAlarm type=\"method\">BakeoutNotOff,ERROR,Ch5 chamber Bakeout not turn off.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch5/Plc/BakeoutOnoffDO == Off),BakeoutNotOff</addChecker>"
+  - name: Control/Interlock_Ch5 新增节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/SrcDcOn
+    where: { tag-glob: "SrcDcOn" }
+    add-xml:
+      - xml: "<createCheckerAlarm type=\"method\">EscWaterAbnormal,ERROR,Ch5 chamber chuck water is abnormal.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch5/Plc/HeaterWaterFlowDI == Normal),EscWaterAbnormal</addChecker>"
+  - name: Control/Interlock_Ch5 新增节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks/BakeoutOn
+    where: { tag-glob: "BakeoutOn" }
+    add-xml:
+      - xml: "<createCheckerAlarm type=\"method\">V41NotClosed,ERROR,Ch5 chamber fast pump valve 'V41' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch5/Plc/Solenoid/V41DI == Closed),V41NotClosed</addChecker>"
+      - xml: "<createCheckerAlarm type=\"method\">V42NotClosed,ERROR,Ch5 chamber slow pump valve 'V42' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch5/Plc/Solenoid/V42DI == Closed),V42NotClosed</addChecker>"
+      - xml: "<createCheckerAlarm type=\"method\">V2NotClosed,ERROR,Ch5 chamber 'V2' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch5/Plc/Solenoid/V2DI == Closed),V2NotClosed</addChecker>"
+      - xml: "<createCheckerAlarm type=\"method\">V1NotClosed,ERROR,Ch5 chamber 'V1' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch5/Plc/Solenoid/V1DI == Closed),V1NotClosed</addChecker>"
+      - xml: "<createCheckerAlarm type=\"method\">V32NotClosed,ERROR,Ch5 chamber 'V32' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch5/Plc/Solenoid/V31DI == Closed),V32NotClosed</addChecker>"
+  - name: Control/Interlock_Ch5 新增节点
+    file: Control/Interlock_Ch5
+    anchor: Ch5/SInterlocks
+    where: { tag-glob: "SInterlocks" }
+    add-xml:
+      - xml: "<OpenV1 class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch5/Plc/Solenoid/V1DO == Open)</setTrigger>\n\n            <!-- defined in EE-Hard-Interlock -->\n            <createCheckerAlarm type=\"method\">SrcCoverNotClosed,ERROR,Ch5 chamber SourceCover is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/SourceCoverClosedDI == Closed),SrcCoverNotClosed</addChecker>\n            \n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch5 chamber Lid is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SlotVlvNotClosed,ERROR,Ch5 chamber slot valve is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/Ch5/SvClosedDI == Closed),SlotVlvNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberNotVac,ERROR,Ch5 chamber is NOT at vacuum.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/VacIgDI == Vac),ChamberNotVac</addChecker>\n\n            <createCheckerAlarm type=\"method\">V41NotClosed,ERROR,Ch5 chamber fast pump valve 'V41' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/Solenoid/V41DI == Closed),V41NotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">V42NotClosed,ERROR,Ch5 chamber slow pump valve 'V42' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/Solenoid/V42DI == Closed),V42NotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">V51NotClosed,ERROR,Ch5 chamber pump valve 'V51' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/Solenoid/V51DI == Closed),V51NotClosed</addChecker>\n\n\n            <createCheckerAlarm type=\"method\">V1Disabled,ERROR,Ch5 chamber 'V1' is disabled.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/V1EnDI == Enabled),V1Disabled</addChecker>\n\n\n            <createCheckerAlarm type=\"method\">BakeoutNotOff,ERROR,Ch5 chamber Bakeout not turn off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/BakeoutOnoffDO == Off),BakeoutNotOff</addChecker>\n\n        </OpenV1>"
+      - xml: "<OpenV33 class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch5/Plc/Solenoid/V33DO == Open)</setTrigger>\n\n            <!--createCheckerAlarm type=\"method\">CDATooHigh,ERROR,Ch5 chamber CDA Pressure is Too High.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDAHighDI == Normal),CDATooHigh</addChecker>\n            <createCheckerAlarm type=\"method\">CDATooLow,ERROR,Ch5 chamber CDA Pressure is Too Low.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDALowDI == Normal),CDATooLow</addChecker-->\n            \n            <createCheckerAlarm type=\"method\">V33Disabled,ERROR,Ch5 chamber 'V33' is disabled.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/V33EnDI == Enabled),V33Disabled</addChecker>\n        </OpenV33>"
+      - xml: "<OpenV32 class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch5/Plc/Solenoid/V32DO == Open)</setTrigger>\n          \n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch5 chamber Lid is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberNotVac,ERROR,Ch5 chamber is NOT at vacuum.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/VacIgDI == Vac),ChamberNotVac</addChecker>\n            \n            <createCheckerAlarm type=\"method\">V41NotClosed,ERROR,Ch5 chamber fast pump valve 'V41' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/Solenoid/V41DI == Closed),V41NotClosed</addChecker>\n            \n            <createCheckerAlarm type=\"method\">V42NotClosed,ERROR,Ch5 chamber slow pump valve 'V42' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/Solenoid/V42DI == Closed),V42NotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">V51NotClosed,ERROR,Ch5 chamber slow pump valve 'V51' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/Solenoid/V51DI == Closed),V51NotClosed</addChecker>\n\n            <!--createCheckerAlarm type=\"method\">CDATooHigh,ERROR,Ch5 chamber CDA Pressure is Too High.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDAHighDI == Normal),CDATooHigh</addChecker>\n            <createCheckerAlarm type=\"method\">CDATooLow,ERROR,Ch5 chamber CDA Pressure is Too Low.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDALowDI == Normal),CDATooLow</addChecker-->\n            \n            <createCheckerAlarm type=\"method\">V32Disabled,ERROR,Ch5 chamber 'V32' is disabled.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/V32EnDI == Enabled),V32Disabled</addChecker>\n\n        </OpenV32>"
+      - xml: "<OpenV31 class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch5/Plc/Solenoid/V31DO == Open)</setTrigger>\n            \n            <!-- defined in EE-Hard-Interlock -->\n            <createCheckerAlarm type=\"method\">SrcCoverNotClosed,ERROR,Ch5 chamber SourceCover is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/SourceCoverClosedDI == Closed),SrcCoverNotClosed</addChecker>\n            \n\n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch5 chamber Lid is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n            \n            <createCheckerAlarm type=\"method\">SlotVlvNotClosed,ERROR,Ch5 chamber slot valve is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/Ch5/SvClosedDI == Closed),SlotVlvNotClosed</addChecker>\n            \n            <!--createCheckerAlarm type=\"method\">CDATooHigh,ERROR,Ch5 chamber CDA Pressure is Too High.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDAHighDI == Normal),CDATooHigh</addChecker>           \n            <createCheckerAlarm type=\"method\">CDATooLow,ERROR,Ch5 chamber CDA Pressure is Too Low.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDALowDI == Normal),CDATooLow</addChecker-->\n            \n            <createCheckerAlarm type=\"method\">V31Disabled,ERROR,Ch5 chamber 'V31' is disabled.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/V31EnDI == Enabled),V31Disabled</addChecker>\n            <createCheckerAlarm type=\"method\">BakeoutNotOff,ERROR,Ch5 chamber Bakeout not turn off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/BakeoutOnoffDO == Off),BakeoutNotOff</addChecker>\n        </OpenV31>"
+      - xml: "<EMag1DcOn class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/LoadRack/Plc/Ch5/EMag1/PowerOnoffDO == On)</setTrigger>\n\n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch5 chamber lid is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SvNotClosed,ERROR,Ch5 chamber slot valve is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/Ch5/SvClosedDI == Closed),SvNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SrcCoverNotClosed,ERROR,Ch5 chamber Source Cover is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/SourceCoverClosedDI == Closed),SrcCoverNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">EMagBoxNotClosed,ERROR,Ch5 chamber EMag Box is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/EMagCoverClosedDI == Closed),EMagBoxNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">TargetWaterAbnormal,ERROR,Ch5 chamber target water is abnormal.(Hard Interlock)</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/TargetWaterFlowDI == Normal),TargetWaterAbnormal</addChecker>\n\n            <createCheckerAlarm type=\"method\">PedWaterAbnormal,ERROR,Ch5 chamber chuck water is abnormal.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/HeaterWaterFlowDI == Normal),PedWaterAbnormal</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberOver149,ERROR,Ch5 chamber is NOT less than 149 centigrade.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/ChamberOverTempDI == Normal),ChamberOver149</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberNotVac,ERROR,Ch5 chamber is NOT in vacuum.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/VacIgDI == Vac),ChamberNotVac</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberOverPressure,ERROR,Ch5 chamber is over pressure.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/IG/PressureAI &lt; 0.2),ChamberOverPressure</addChecker>\n\n            <createCheckerAlarm type=\"method\">NoWfrOrDisk,ERROR,No wafer or shutter disk on the pedestal in Ch5 chamber.</createCheckerAlarm>\n            <addChecker type=\"method\">((/IO/Ch5Exports/Slot1 == Present) || (/IO/Ch5Exports/Slot1 == Shuttered)),NoWfrOrDisk</addChecker>\n\n        </EMag1DcOn>"
+      - xml: "<EMag2DcOn class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/LoadRack/Plc/Ch5/EMag2/PowerOnoffDO == On)</setTrigger>\n\n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch5 chamber lid is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SvNotClosed,ERROR,Ch5 chamber slot valve is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/Ch5/SvClosedDI == Closed),SvNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SrcCoverNotClosed,ERROR,Ch5 chamber Source Cover is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/SourceCoverClosedDI == Closed),SrcCoverNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">EMagBoxNotClosed,ERROR,Ch5 chamber EMag Box is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/EMagCoverClosedDI == Closed),EMagBoxNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">TargetWaterAbnormal,ERROR,Ch5 chamber target water is abnormal.(Hard Interlock)</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/TargetWaterFlowDI == Normal),TargetWaterAbnormal</addChecker>\n\n            <createCheckerAlarm type=\"method\">PedWaterAbnormal,ERROR,Ch5 chamber chuck water is abnormal.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/HeaterWaterFlowDI == Normal),PedWaterAbnormal</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberOver149,ERROR,Ch5 chamber is NOT less than 149 centigrade.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/ChamberOverTempDI == Normal),ChamberOver149</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberNotVac,ERROR,Ch5 chamber is NOT in vacuum.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/Plc/VacIgDI == Vac),ChamberNotVac</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberOverPressure,ERROR,Ch5 chamber is over pressure.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch5/IG/PressureAI &lt; 0.2),ChamberOverPressure</addChecker>\n\n            <createCheckerAlarm type=\"method\">NoWfrOrDisk,ERROR,No wafer or shutter disk on the pedestal in Ch5 chamber.</createCheckerAlarm>\n            <addChecker type=\"method\">((/IO/Ch5Exports/Slot1 == Present) || (/IO/Ch5Exports/Slot1 == Shuttered)),NoWfrOrDisk</addChecker>\n\n        </EMag2DcOn>"
+      - xml: "<BakeoutPowerOn class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch5/Plc/BakeoutEnDO == Enable)</setTrigger>\n\n            <createCheckerAlarm type=\"method\">SrcDcNotOff,ERROR,Ch5 chamber source DC is not off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/LoadRack/Ch5/SourceDC/OnoffDI == Off),SrcDcNotOff</addChecker>\n\n            <createCheckerAlarm type=\"method\">RfNotOff,ERROR,Ch5 chamber  Rf is not off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/LoadRack/Plc/Ch5/BiasRF/OnoffDI == Off),RfNotOff</addChecker>\n\n            <!--createCheckerAlarm type=\"method\">CoilRfNotOff,ERROR,Ch5 chamber Coil Rf is not off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/LoadRack/Plc/Ch5/CoilRF/OnoffDI == Off),CoilRfNotOff</addChecker-->\n        </BakeoutPowerOn>"
+  - name: Control/Interlock_Ch6 删除已停用节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    remove-node:
+      - {"tag": "PIBBoxOpen", "attr": {"class": "VInterlock", "type": "instance", "alias": ""}}
+      - {"tag": "BiasMatchSafety", "attr": {"class": "VInterlock", "type": "instance", "alias": ""}}
+  - name: Control/Interlock_Ch6 删除已停用节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch6 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch6/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch6 删除已停用节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch6 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch6/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch6 删除已停用节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,Ch6 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch6/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_Ch6 删除已停用节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotValveNotClosed,ERROR,Ch6 chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/Ch6/SvClosedDI == Closed),SlotValveNotClosed"}
+  - name: Control/Interlock_Ch6 改写文本
+    file: Control/Interlock_Ch6
+    anchor: Ch6/VInterlocks/SourceCover
+    where: { tag-glob: "SourceCover" }
+    set-text:
+      - {"tag": "setIntlkAlarm", "attr": {"type": "method"}, "old": "Alarm,ERROR,Ch6 chamber Source Cover is not closed.", "value": "Alarm,ERROR,Ch6 chamber SrcCover is NOT closed."}
+  - name: Control/Interlock_Ch6 改写文本
+    file: Control/Interlock_Ch6
+    anchor: Ch6/VInterlocks/EMagBoxNotClosed
+    where: { tag-glob: "EMagBoxNotClosed" }
+    set-text:
+      - {"tag": "setIntlkAlarm", "attr": {"type": "method"}, "old": "EMagBoxNotClosed,NOTICE,Ch6 chamber EMagBox is not closed.", "value": "Alarm,ERROR,Ch6 chamber EMagBox is not closed."}
+  - name: Control/Interlock_Ch6 改写文本
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh6,ERROR,Robot extended to Ch6 chamber.", "value": "ShutterHomeNotReady,ERROR,Robot extended to Ch6 chamber."}
+  - name: Control/Interlock_Ch6 改写文本
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/ShutterHome
+    where: { tag-glob: "ShutterHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch6/VtrExSensorDI == NotExtended),RobotExToCh6", "value": "((/IO/Platform/Plc/Ch6/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch6/SvClosedDI == Closed)),ShutterHomeNotReady"}
+  - name: Control/Interlock_Ch6 改写文本
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh6,ERROR,Robot extended to Ch6 chamber.", "value": "ShutterMoveNotReady,ERROR,Robot extended to Ch6 chamber."}
+  - name: Control/Interlock_Ch6 改写文本
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/ShutterMove
+    where: { tag-glob: "ShutterMove" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch6/VtrExSensorDI == NotExtended),RobotExToCh6", "value": "((/IO/Platform/Plc/Ch6/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch6/SvClosedDI == Closed)),ShutterMoveNotReady"}
+  - name: Control/Interlock_Ch6 改写文本
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh6,ERROR,Robot extended to Ch6 chamber.", "value": "PinHomeNotReady,ERROR,Robot extended to Ch6 chamber."}
+  - name: Control/Interlock_Ch6 改写文本
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch6/VtrExSensorDI == NotExtended),RobotExToCh6", "value": "((/IO/Platform/Plc/Ch6/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch6/SvClosedDI == Closed)),PinHomeNotReady"}
+  - name: Control/Interlock_Ch6 改写文本
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToCh6,ERROR,Robot extended to Ch6 chamber.", "value": "PedHomeNotReady,ERROR,Robot extended to Ch6 chamber."}
+  - name: Control/Interlock_Ch6 改写文本
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/Ch6/VtrExSensorDI == NotExtended),RobotExToCh6", "value": "((/IO/Platform/Plc/Ch6/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/Ch6/SvClosedDI == Closed)),PedHomeNotReady"}
+  - name: Control/Interlock_Ch6 新增节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/VInterlocks/Chamber
+    where: { tag-glob: "Chamber" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">BiasRfOff,NOTICE,Ch6 chamber bias RF generator is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/BiasRF/OnoffDO,Off,BiasRfOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">SrcDcOff,NOTICE,Ch6 chamber source DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch6/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag1DcOff,NOTICE,EMag1 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag1/PowerOnoffDO,Off,EMag1DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag1/CurrentAO,0.0,EMag1DcOff</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag2DcOff,NOTICE,EMag2 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag2/PowerOnoffDO,Off,EMag2DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag2/CurrentAO,0.0,EMag2DcOff</addDoubleValueAction>"
+  - name: Control/Interlock_Ch6 新增节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/VInterlocks/WaterLeak
+    where: { tag-glob: "WaterLeak" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">BakeoutOff,NOTICE,Ch6 chamber Bakeout will turn off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/Ch6/Plc/BakeoutOnoffDO,Off,BakeoutOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/Ch6/Plc/BakeoutOutputAO,0.0,BakeoutOff</addDoubleValueAction>"
+      - xml: "<addIntDescriptorAction type=\"method\">IO/Ch6/Plc/BakeoutEnDO,Disable,BakeoutOff</addIntDescriptorAction>"
+  - name: Control/Interlock_Ch6 新增节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/VInterlocks/LidOpen
+    where: { tag-glob: "LidOpen" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">BiasRfOff,NOTICE,BiasRf is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/BiasRF/OnoffDO,Off,BiasRfOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">SrcDcOff,NOTICE,Ch6 chamber source DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch6/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag1DcOff,NOTICE,EMag1 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag1/PowerOnoffDO,Off,EMag1DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag1/CurrentAO,0.0,EMag1DcOff</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag2DcOff,NOTICE,EMag2 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag2/PowerOnoffDO,Off,EMag2DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag2/CurrentAO,0.0,EMag2DcOff</addDoubleValueAction>"
+  - name: Control/Interlock_Ch6 新增节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/VInterlocks/SourceCover
+    where: { tag-glob: "SourceCover" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">BiasRfOff,NOTICE,Ch6 chamber bias RF generator is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/BiasRF/OnoffDO,Off,BiasRfOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">SrcDcOff,NOTICE,Ch6 chamber source DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch6/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">BakeoutOff,NOTICE,Ch6 chamber bake out is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/Ch6/Plc/BakeoutOnoffDO,Off,BakeoutOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">BakeoutEnOff,NOTICE,Ch6 chamber Bakeout Enable will turn off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">IO/Ch6/Plc/BakeoutEnDO,Disable,BakeoutEnOff</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">BakeoutSet,NOTICE,Ch6 chamber Bakeout output will set 0.</createActionAlarm>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/Ch6/Plc/BakeoutOutputAO,0.0,BakeoutSet</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag1DcOff,NOTICE,EMag1 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag1/PowerOnoffDO,Off,EMag1DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag1/CurrentAO,0.0,EMag1DcOff</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag2DcOff,NOTICE,EMag2 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag2/PowerOnoffDO,Off,EMag2DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag2/CurrentAO,0.0,EMag2DcOff</addDoubleValueAction>"
+  - name: Control/Interlock_Ch6 新增节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/VInterlocks/CombinerBoxOpen
+    where: { tag-glob: "CombinerBoxOpen" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">RfOff,NOTICE,Rf is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/BiasRF/OnoffDO,Off,RfOff</addIntDescriptorAction>"
+  - name: Control/Interlock_Ch6 新增节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/VInterlocks/EMagBoxNotClosed
+    where: { tag-glob: "EMagBoxNotClosed" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">EMag1DcOff,NOTICE,EMag1 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag1/PowerOnoffDO,Off,EMag1DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag1/CurrentAO,0.0,EMag1DcOff</addDoubleValueAction>"
+      - xml: "<createActionAlarm type=\"method\">EMag2DcOff,NOTICE,EMag2 DC is turned off.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag2/PowerOnoffDO,Off,EMag2DcOff</addIntDescriptorAction>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/LoadRack/Plc/Ch6/EMag2/CurrentAO,0.0,EMag2DcOff</addDoubleValueAction>"
+  - name: Control/Interlock_Ch6 新增节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    add-xml:
+      - xml: "<DevicenetCh6SourceDC class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/LoadRack/DnStatus/Ch6SourceDC != 2)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,LoadRack chamber Ch6SourceDC module devicenet is abnormal.</setIntlkAlarm>\n            &SimulatedFlag_Ch6;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </DevicenetCh6SourceDC>"
+      - xml: "<SourceStatus type=\"data\" dataType=\"I\" accessMode=\"RW\" alias=\"\">\n            <Bd></Bd>\n            <Ch></Ch>\n            <DescriptorList>On:0,OffNormal:1,OffAbnormal:2</DescriptorList>\n            &SimulatedFlag_Ch6;\n        </SourceStatus>"
+      - xml: "<SrcDcPower class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setDurationTrigger type=\"method\">(((/IO/LoadRack/Ch6/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch6/SourceDC/OnoffDO == Off))&amp;&amp;(/Control/Ch6/VInterlocks/SourceStatus == OffAbnormal)),4000</setDurationTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,Ch6 chamber turn off SourceDC failed.</setIntlkAlarm>\n            &SimulatedFlag_Ch6;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </SrcDcPower>"
+      - xml: "<SrcDcStatusOn class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">((/IO/LoadRack/Ch6/SourceDC/PowerAO > 0.0) || (/IO/LoadRack/Ch6/SourceDC/OnoffDO == On))</setTrigger>\n            &SimulatedFlag_Ch6;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch6/VInterlocks/SourceStatus,On</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOn>"
+      - xml: "<SrcDcStatusOffAbnormal class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(((/IO/LoadRack/Ch6/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch6/SourceDC/OnoffDO == Off))&amp;&amp;(/IO/LoadRack/Ch6/SourceDC/PowerAI > 50.0))</setTrigger>\n            &SimulatedFlag_Ch6;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch6/VInterlocks/SourceStatus,OffAbnormal</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOffAbnormal>"
+      - xml: "<SrcDcStatusOffNormal class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(((/IO/LoadRack/Ch6/SourceDC/PowerAO == 0.0)&amp;&amp;(/IO/LoadRack/Ch6/SourceDC/OnoffDO == Off))&amp;&amp;(/IO/LoadRack/Ch6/SourceDC/PowerAI &lt; 50.0))</setTrigger>\n            &SimulatedFlag_Ch6;\n            <addIntDescriptorActionNoAlarm type=\"method\">/Control/Ch6/VInterlocks/SourceStatus,OffNormal</addIntDescriptorActionNoAlarm>\n        </SrcDcStatusOffNormal>"
+      - xml: "<PIBBoxOpen type=\"instance\" class=\"VInterlock\">\n            <setTrigger type=\"method\">(/IO/Ch6/Plc/PIBCoverClosedDI == NotClosed)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,Ch6 chamber PIBBox is not closed.</setIntlkAlarm>\n            &SimulatedFlag_Ch6;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n            \n            <createActionAlarm type=\"method\">RfOff,NOTICE,Rf is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/BiasRF/OnoffDO,Off,RfOff</addIntDescriptorAction>\n            \n            <!--createActionAlarm type=\"method\">CoilRfOff,NOTICE,CoilRf is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/CoilRF/OnoffDO,Off,CoilRfOff</addIntDescriptorAction-->\n\n            <createActionAlarm type=\"method\">SrcDcOff,NOTICE,Source DC is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch6/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>\n        </PIBBoxOpen>"
+      - xml: "<BiasMatchSafety type=\"instance\" class=\"VInterlock\">\n            <setTrigger type=\"method\">(/IO/Ch6/Plc/BiasMatchSafetyDI == Abnormal)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,FATAL,Ch6 chamber Bias match is abnormal.</setIntlkAlarm>\n            &SimulatedFlag_Ch6;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </BiasMatchSafety>"
+      - xml: "<EscWaterFlow class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setDurationTrigger type=\"method\">(/IO/Ch6/Plc/HeaterWaterFlowDI == Abnormal),10000</setDurationTrigger>\n            <setIntlkAlarm type=\"method\">Abnormal,ERROR,Ch6 chamber chuck water is abnormal.</setIntlkAlarm>\n            &SimulatedFlag_Ch6;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n            <createActionAlarm type=\"method\">BakeoutOff,NOTICE,Ch6 chamber Bakeout will turn off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/Ch6/Plc/BakeoutOnoffDO,Off,BakeoutOff</addIntDescriptorAction>\n \n            <createActionAlarm type=\"method\">RfOff,NOTICE,Rf is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/BiasRF/OnoffDO,Off,RfOff</addIntDescriptorAction>\n            \n            <!--createActionAlarm type=\"method\">CoilRfOff,NOTICE,CoilRf is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Plc/Ch6/CoilRF/OnoffDO,Off,CoilRfOff</addIntDescriptorAction-->\n\n            <createActionAlarm type=\"method\">SrcDcOff,NOTICE,Source DC is turned off.</createActionAlarm>\n            <addIntDescriptorAction type=\"method\">/IO/LoadRack/Ch6/SourceDC/OnoffDO,Off,SrcDcOff</addIntDescriptorAction>\n \n        </EscWaterFlow>"
+  - name: Control/Interlock_Ch6 新增节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/OpenV2
+    where: { tag-glob: "OpenV2" }
+    add-xml:
+      - xml: "<createCheckerAlarm type=\"method\">BakeoutNotOff,ERROR,Ch6 chamber Bakeout not turn off.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch6/Plc/BakeoutOnoffDO == Off),BakeoutNotOff</addChecker>"
+  - name: Control/Interlock_Ch6 新增节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/SrcDcOn
+    where: { tag-glob: "SrcDcOn" }
+    add-xml:
+      - xml: "<createCheckerAlarm type=\"method\">EscWaterAbnormal,ERROR,Ch6 chamber chuck water is abnormal.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch6/Plc/HeaterWaterFlowDI == Normal),EscWaterAbnormal</addChecker>"
+  - name: Control/Interlock_Ch6 新增节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks/BakeoutOn
+    where: { tag-glob: "BakeoutOn" }
+    add-xml:
+      - xml: "<createCheckerAlarm type=\"method\">V41NotClosed,ERROR,Ch6 chamber fast pump valve 'V41' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch6/Plc/Solenoid/V41DI == Closed),V41NotClosed</addChecker>"
+      - xml: "<createCheckerAlarm type=\"method\">V42NotClosed,ERROR,Ch6 chamber slow pump valve 'V42' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch6/Plc/Solenoid/V42DI == Closed),V42NotClosed</addChecker>"
+      - xml: "<createCheckerAlarm type=\"method\">V2NotClosed,ERROR,Ch6 chamber 'V2' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch6/Plc/Solenoid/V2DI == Closed),V2NotClosed</addChecker>"
+      - xml: "<createCheckerAlarm type=\"method\">V1NotClosed,ERROR,Ch6 chamber 'V1' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch6/Plc/Solenoid/V1DI == Closed),V1NotClosed</addChecker>"
+      - xml: "<createCheckerAlarm type=\"method\">V32NotClosed,ERROR,Ch6 chamber 'V32' is not closed.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Ch6/Plc/Solenoid/V31DI == Closed),V32NotClosed</addChecker>"
+  - name: Control/Interlock_Ch6 新增节点
+    file: Control/Interlock_Ch6
+    anchor: Ch6/SInterlocks
+    where: { tag-glob: "SInterlocks" }
+    add-xml:
+      - xml: "<OpenV1 class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch6/Plc/Solenoid/V1DO == Open)</setTrigger>\n\n            <!-- defined in EE-Hard-Interlock -->\n            <createCheckerAlarm type=\"method\">SrcCoverNotClosed,ERROR,Ch6 chamber SourceCover is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/SourceCoverClosedDI == Closed),SrcCoverNotClosed</addChecker>\n            \n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch6 chamber Lid is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SlotVlvNotClosed,ERROR,Ch6 chamber slot valve is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/Ch6/SvClosedDI == Closed),SlotVlvNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberNotVac,ERROR,Ch6 chamber is NOT at vacuum.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/VacIgDI == Vac),ChamberNotVac</addChecker>\n\n            <createCheckerAlarm type=\"method\">V41NotClosed,ERROR,Ch6 chamber fast pump valve 'V41' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/Solenoid/V41DI == Closed),V41NotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">V42NotClosed,ERROR,Ch6 chamber slow pump valve 'V42' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/Solenoid/V42DI == Closed),V42NotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">V51NotClosed,ERROR,Ch6 chamber pump valve 'V51' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/Solenoid/V51DI == Closed),V51NotClosed</addChecker>\n\n\n            <!--createCheckerAlarm type=\"method\">CDATooHigh,ERROR,Ch6 chamber CDA Pressure is Too High.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDAHighDI == Normal),CDATooHigh</addChecker>\n            <createCheckerAlarm type=\"method\">CDATooLow,ERROR,Ch6 chamber CDA Pressure is Too Low.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDALowDI == Normal),CDATooLow</addChecker-->\n\n            <createCheckerAlarm type=\"method\">V1Disabled,ERROR,Ch6 chamber 'V1' is disabled.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/V1EnDI == Enabled),V1Disabled</addChecker>\n\n\n            <createCheckerAlarm type=\"method\">BakeoutNotOff,ERROR,Ch6 chamber Bakeout not turn off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/BakeoutOnoffDO == Off),BakeoutNotOff</addChecker>\n\n        </OpenV1>"
+      - xml: "<OpenV33 class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch6/Plc/Solenoid/V33DO == Open)</setTrigger>\n\n            <!--createCheckerAlarm type=\"method\">CDATooHigh,ERROR,Ch6 chamber CDA Pressure is Too High.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDAHighDI == Normal),CDATooHigh</addChecker>\n            <createCheckerAlarm type=\"method\">CDATooLow,ERROR,Ch6 chamber CDA Pressure is Too Low.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDALowDI == Normal),CDATooLow</addChecker-->\n            \n            <createCheckerAlarm type=\"method\">V33Disabled,ERROR,Ch6 chamber 'V33' is disabled.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/V33EnDI == Enabled),V33Disabled</addChecker>\n        </OpenV33>"
+      - xml: "<OpenV32 class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch6/Plc/Solenoid/V32DO == Open)</setTrigger>\n          \n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch6 chamber Lid is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberNotVac,ERROR,Ch6 chamber is NOT at vacuum.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/VacIgDI == Vac),ChamberNotVac</addChecker>\n            \n            <createCheckerAlarm type=\"method\">V41NotClosed,ERROR,Ch6 chamber fast pump valve 'V41' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/Solenoid/V41DI == Closed),V41NotClosed</addChecker>\n            \n            <createCheckerAlarm type=\"method\">V42NotClosed,ERROR,Ch6 chamber slow pump valve 'V42' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/Solenoid/V42DI == Closed),V42NotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">V51NotClosed,ERROR,Ch6 chamber slow pump valve 'V51' is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/Solenoid/V51DI == Closed),V51NotClosed</addChecker>\n\n            <!--createCheckerAlarm type=\"method\">CDATooHigh,ERROR,Ch6 chamber CDA Pressure is Too High.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDAHighDI == Normal),CDATooHigh</addChecker>\n            <createCheckerAlarm type=\"method\">CDATooLow,ERROR,Ch6 chamber CDA Pressure is Too Low.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDALowDI == Normal),CDATooLow</addChecker-->\n            \n            <createCheckerAlarm type=\"method\">V32Disabled,ERROR,Ch6 chamber 'V32' is disabled.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/V32EnDI == Enabled),V32Disabled</addChecker>\n\n        </OpenV32>"
+      - xml: "<OpenV31 class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch6/Plc/Solenoid/V31DO == Open)</setTrigger>\n            \n            <!-- defined in EE-Hard-Interlock -->\n            <createCheckerAlarm type=\"method\">SrcCoverNotClosed,ERROR,Ch6 chamber SourceCover is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/SourceCoverClosedDI == Closed),SrcCoverNotClosed</addChecker>\n            \n\n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch6 chamber Lid is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n            \n            <createCheckerAlarm type=\"method\">SlotVlvNotClosed,ERROR,Ch6 chamber slot valve is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/Ch6/SvClosedDI == Closed),SlotVlvNotClosed</addChecker>\n            \n            <!--createCheckerAlarm type=\"method\">CDATooHigh,ERROR,Ch6 chamber CDA Pressure is Too High.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDAHighDI == Normal),CDATooHigh</addChecker>           \n            <createCheckerAlarm type=\"method\">CDATooLow,ERROR,Ch6 chamber CDA Pressure is Too Low.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/PMCDALowDI == Normal),CDATooLow</addChecker-->\n            \n            <createCheckerAlarm type=\"method\">V31Disabled,ERROR,Ch6 chamber 'V31' is disabled.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/V31EnDI == Enabled),V31Disabled</addChecker>\n\n            <createCheckerAlarm type=\"method\">BakeoutNotOff,ERROR,Ch6 chamber Bakeout not turn off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/BakeoutOnoffDO == Off),BakeoutNotOff</addChecker>\n        </OpenV31>"
+      - xml: "<EMag1DcOn class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/LoadRack/Plc/Ch6/EMag1/PowerOnoffDO == On)</setTrigger>\n\n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch6 chamber lid is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SvNotClosed,ERROR,Ch6 chamber slot valve is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/Ch6/SvClosedDI == Closed),SvNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SrcCoverNotClosed,ERROR,Ch6 chamber Source Cover is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/SourceCoverClosedDI == Closed),SrcCoverNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">EMagBoxNotClosed,ERROR,Ch6 chamber EMag Box is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/EMagCoverClosedDI == Closed),EMagBoxNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">TargetWaterAbnormal,ERROR,Ch6 chamber target water is abnormal.(Hard Interlock)</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/TargetWaterFlowDI == Normal),TargetWaterAbnormal</addChecker>\n\n            <createCheckerAlarm type=\"method\">PedWaterAbnormal,ERROR,Ch6 chamber chuck water is abnormal.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/HeaterWaterFlowDI == Normal),PedWaterAbnormal</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberOver149,ERROR,Ch6 chamber is NOT less than 149 centigrade.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/ChamberOverTempDI == Normal),ChamberOver149</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberNotVac,ERROR,Ch6 chamber is NOT in vacuum.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/VacIgDI == Vac),ChamberNotVac</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberOverPressure,ERROR,Ch6 chamber is over pressure.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/IG/PressureAI &lt; 0.2),ChamberOverPressure</addChecker>\n\n            <createCheckerAlarm type=\"method\">NoWfrOrDisk,ERROR,No wafer or shutter disk on the pedestal in Ch6 chamber.</createCheckerAlarm>\n            <addChecker type=\"method\">((/IO/Ch6Exports/Slot1 == Present) || (/IO/Ch6Exports/Slot1 == Shuttered)),NoWfrOrDisk</addChecker>\n\n        </EMag1DcOn>"
+      - xml: "<EMag2DcOn class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/LoadRack/Plc/Ch6/EMag2/PowerOnoffDO == On)</setTrigger>\n\n            <createCheckerAlarm type=\"method\">LidNotClosed,ERROR,Ch6 chamber lid is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/LidClosedDI == Closed),LidNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SvNotClosed,ERROR,Ch6 chamber slot valve is NOT closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Platform/Plc/Ch6/SvClosedDI == Closed),SvNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">SrcCoverNotClosed,ERROR,Ch6 chamber Source Cover is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/SourceCoverClosedDI == Closed),SrcCoverNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">EMagBoxNotClosed,ERROR,Ch6 chamber EMag Box is not closed.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/EMagCoverClosedDI == Closed),EMagBoxNotClosed</addChecker>\n\n            <createCheckerAlarm type=\"method\">TargetWaterAbnormal,ERROR,Ch6 chamber target water is abnormal.(Hard Interlock)</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/TargetWaterFlowDI == Normal),TargetWaterAbnormal</addChecker>\n\n            <createCheckerAlarm type=\"method\">PedWaterAbnormal,ERROR,Ch6 chamber chuck water is abnormal.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/HeaterWaterFlowDI == Normal),PedWaterAbnormal</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberOver149,ERROR,Ch6 chamber is NOT less than 149 centigrade.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/ChamberOverTempDI == Normal),ChamberOver149</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberNotVac,ERROR,Ch6 chamber is NOT in vacuum.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/Plc/VacIgDI == Vac),ChamberNotVac</addChecker>\n\n            <createCheckerAlarm type=\"method\">ChamberOverPressure,ERROR,Ch6 chamber is over pressure.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/Ch6/IG/PressureAI &lt; 0.2),ChamberOverPressure</addChecker>\n\n            <createCheckerAlarm type=\"method\">NoWfrOrDisk,ERROR,No wafer or shutter disk on the pedestal in Ch6 chamber.</createCheckerAlarm>\n            <addChecker type=\"method\">((/IO/Ch6Exports/Slot1 == Present) || (/IO/Ch6Exports/Slot1 == Shuttered)),NoWfrOrDisk</addChecker>\n\n        </EMag2DcOn>"
+      - xml: "<BakeoutPowerOn class=\"SInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Ch6/Plc/BakeoutEnDO == Enable)</setTrigger>\n\n            <createCheckerAlarm type=\"method\">SrcDcNotOff,ERROR,Ch6 chamber source DC is not off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/LoadRack/Ch6/SourceDC/OnoffDI == Off),SrcDcNotOff</addChecker>\n\n            <createCheckerAlarm type=\"method\">RfNotOff,ERROR,Ch6 chamber  Rf is not off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/LoadRack/Plc/Ch6/BiasRF/OnoffDI == Off),RfNotOff</addChecker>\n\n            <!--createCheckerAlarm type=\"method\">CoilRfNotOff,ERROR,Ch6 chamber Coil Rf is not off.</createCheckerAlarm>\n            <addChecker type=\"method\">(/IO/LoadRack/Plc/Ch6/CoilRF/OnoffDI == Off),CoilRfNotOff</addChecker-->\n        </BakeoutPowerOn>"
+  - name: Control/Interlock_ChC 删除已停用节点
+    file: Control/Interlock_ChC
+    anchor: ChC/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,ChC chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/ChC/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_ChC 改写文本
+    file: Control/Interlock_ChC
+    anchor: ChC/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToChC,ERROR,Robot extended to ChC chamber.", "value": "RobotInterlock,ERROR,Robot extended to ChC chamber."}
+  - name: Control/Interlock_ChC 改写文本
+    file: Control/Interlock_ChC
+    anchor: ChC/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/ChC/VtrExSensorDI == NotExtended),RobotExToChC", "value": "((/IO/Platform/Plc/ChC/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/ChC/SvClosedDI == Closed)) ,RobotInterlock"}
+  - name: Control/Interlock_ChC 新增节点
+    file: Control/Interlock_ChC
+    anchor: ChC/VInterlocks/WaterLeak
+    where: { tag-glob: "WaterLeak" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">MainWaterVlvClosed,NOTICE,ChC chamber main water valve closed.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/Platform/Plc/ChC/MainWaterVlvDO,Close,MainWaterVlvClosed</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">CoverWaterVlvClosed,NOTICE,ChC chamber cover water valve closed.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/Platform/Plc/ChC/CoverWaterVlvDO,Close,CoverWaterVlvClosed</addIntDescriptorAction>"
+  - name: Control/Interlock_ChC 新增节点
+    file: Control/Interlock_ChC
+    anchor: ChC/VInterlocks/CoverOpen
+    where: { tag-glob: "CoverOpen" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">HeaterOff,NOTICE,ChC chamber heater is turned off.</createActionAlarm>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/Platform/Heater_ChC/ClosedLoopAO,0.0,HeaterOff</addDoubleValueAction>"
+  - name: Control/Interlock_ChC 新增节点
+    file: Control/Interlock_ChC
+    anchor: ChC/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    add-xml:
+      - xml: "<IdleWafer class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setDurationTrigger type=\"method\">((/IO/ChCExports/ProcState == Idle)  &amp;&amp;  (/IO/ChCExports/Slot1 == Present)),900000</setDurationTrigger>\n            \n            <setIntlkAlarm type=\"method\">Alarm,NOTICE,Wafer stay in ChC chamber without any action for too long.</setIntlkAlarm>\n            &SimulatedFlag_ChC;\n\n\t        <createActionAlarm type=\"method\">Buzzer,NOTICE,ChC chamber idle wafer buzzer.</createActionAlarm>\n\t        <addIntDescriptorAction type=\"method\">/IO/Platform/TowerLight/Buzzer1RunDO,ON,Buzzer</addIntDescriptorAction>\n\t        <createActionAlarm type=\"method\">RedFlash,NOTICE,ChC chamber idle wafer redflash.</createActionAlarm>\n\t        <addIntDescriptorAction type=\"method\">/IO/Platform/TowerLight/RedFlashDO,ON,RedFlash</addIntDescriptorAction>\n        </IdleWafer>"
+  - name: Control/Interlock_ChC 新增节点
+    file: Control/Interlock_ChC
+    anchor: ChC/SInterlocks/HeaterOn
+    where: { tag-glob: "HeaterOn" }
+    add-xml:
+      - xml: "<createCheckerAlarm type=\"method\">ChamberOverPressure,ERROR,ChC chamber is over pressure.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Platform/CG_ChC/PressureAI &lt; 20.0),ChamberOverPressure</addChecker>"
+  - name: Control/Interlock_ChD 删除已停用节点
+    file: Control/Interlock_ChD
+    anchor: ChD/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotVlvNotClosed,ERROR,ChD chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/ChD/SvClosedDI == Closed),SlotVlvNotClosed"}
+  - name: Control/Interlock_ChD 改写文本
+    file: Control/Interlock_ChD
+    anchor: ChD/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToChD,ERROR,Robot extended to ChD chamber.", "value": "RobotInterlock,ERROR,Robot extended to ChD chamber."}
+  - name: Control/Interlock_ChD 改写文本
+    file: Control/Interlock_ChD
+    anchor: ChD/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/ChD/VtrExSensorDI == NotExtended),RobotExToChD", "value": "((/IO/Platform/Plc/ChD/VtrExSensorDI == NotExtended) || (/IO/Platform/Plc/ChD/SvClosedDI == Closed)) ,RobotInterlock"}
+  - name: Control/Interlock_ChD 新增节点
+    file: Control/Interlock_ChD
+    anchor: ChD/VInterlocks/WaterLeak
+    where: { tag-glob: "WaterLeak" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">MainWaterVlvClosed,NOTICE,ChD chamber main water valve closed.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/Platform/Plc/ChD/MainWaterVlvDO,Close,MainWaterVlvClosed</addIntDescriptorAction>"
+      - xml: "<createActionAlarm type=\"method\">CoverWaterVlvClosed,NOTICE,ChD chamber cover water valve closed.</createActionAlarm>"
+      - xml: "<addIntDescriptorAction type=\"method\">/IO/Platform/Plc/ChD/CoverWaterVlvDO,Close,CoverWaterVlvClosed</addIntDescriptorAction>"
+  - name: Control/Interlock_ChD 新增节点
+    file: Control/Interlock_ChD
+    anchor: ChD/VInterlocks/CoverOpen
+    where: { tag-glob: "CoverOpen" }
+    add-xml:
+      - xml: "<createActionAlarm type=\"method\">HeaterOff,NOTICE,ChD chamber heater is turned off.</createActionAlarm>"
+      - xml: "<addDoubleValueAction type=\"method\">/IO/Platform/Heater_ChD/ClosedLoopAO,0.0,HeaterOff</addDoubleValueAction>"
+  - name: Control/Interlock_ChD 新增节点
+    file: Control/Interlock_ChD
+    anchor: ChD/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    add-xml:
+      - xml: "<IdleWafer class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setDurationTrigger type=\"method\">((/IO/ChDExports/ProcState == Idle)  &amp;&amp;  (/IO/ChDExports/Slot1 == Present)),900000</setDurationTrigger>\n            \n            <setIntlkAlarm type=\"method\">Alarm,NOTICE,Wafer stay in ChD chamber without any action for too long.</setIntlkAlarm>\n            &SimulatedFlag_ChD;\n\n\t        <createActionAlarm type=\"method\">Buzzer,NOTICE,ChD chamber idle wafer buzzer.</createActionAlarm>\n\t        <addIntDescriptorAction type=\"method\">/IO/Platform/TowerLight/Buzzer1RunDO,ON,Buzzer</addIntDescriptorAction>\n\t        <createActionAlarm type=\"method\">RedFlash,NOTICE,ChD chamber idle wafer redflash.</createActionAlarm>\n\t        <addIntDescriptorAction type=\"method\">/IO/Platform/TowerLight/RedFlashDO,ON,RedFlash</addIntDescriptorAction>\n        </IdleWafer>"
+  - name: Control/Interlock_ChD 新增节点
+    file: Control/Interlock_ChD
+    anchor: ChD/SInterlocks/HeaterOn
+    where: { tag-glob: "HeaterOn" }
+    add-xml:
+      - xml: "<createCheckerAlarm type=\"method\">ChamberOverPressure,ERROR,ChD chamber is over pressure.</createCheckerAlarm>"
+      - xml: "<addChecker type=\"method\">(/IO/Platform/CG_ChD/PressureAI &lt; 20.0),ChamberOverPressure</addChecker>"
+  - name: Control/Interlock_ChE 删除已停用节点
+    file: Control/Interlock_ChE
+    anchor: ChE/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotValveNotClosed,ERROR,ChE chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/ChEExports/SvClosedDI == Closed),SlotValveNotClosed"}
+  - name: Control/Interlock_ChE 改写文本
+    file: Control/Interlock_ChE
+    anchor: ChE/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToChE,ERROR,Robot extended to ChE chamber.", "value": "SVOpenOrRobEx,ERROR,ChE chamber slot valve is NOT closed."}
+  - name: Control/Interlock_ChE 改写文本
+    file: Control/Interlock_ChE
+    anchor: ChE/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/ChEExports/Plc_VtrExSensorDI == NotExtended),RobotExToChE", "value": "( (/IO/Platform/Plc/ChE/SvClosedDI == Closed) || (/IO/Platform/Plc/ChE/VtrExSensorDI == NotExtended)),SVOpenOrRobEx"}
+  - name: Control/Interlock_ChE 新增节点
+    file: Control/Interlock_ChE
+    anchor: ChE/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    add-xml:
+      - xml: "<Zone35MonitorAlarm type=\"instance\" class=\"VInterlock\">\n            <!--setDurationTrigger type=\"method\">(/IO/ChE/EzZoneTc/Zone7MonitorAI >= /SETUP/Control/ChE/Zone7TempHigh),3000</setDurationTrigger-->\n            <setTrigger type=\"method\">((/Control/ChE/State == Online) &amp;&amp; ((/IO/ChEExports/EzZoneTC_Zone35MonitorAI >= /SETUP/Control/ChE/Zone35TempHigh) || (/IO/ChEExports/EzZoneTC_Zone35MonitorAI &lt;= /SETUP/Control/ChE/Zone35TempLow)))</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,ChE chamber Zone35 monitor temperature is over or less standard temperature range.</setIntlkAlarm>\n            &SimulatedFlag_ChE;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Setup may be unavailable)</acceptUnknown>\n        </Zone35MonitorAlarm>"
+      - xml: "<Zone35ControlAlarm type=\"instance\" class=\"VInterlock\">\n            <!--setDurationTrigger type=\"method\">(/IO/ChE/EzZoneTc/Zone7MonitorAI >= /SETUP/Control/ChE/Zone7TempHigh),3000</setDurationTrigger-->\n            <setTrigger type=\"method\">((/Control/ChE/State == Online) &amp;&amp; ((/IO/ChEExports/EzZoneTC_Zone35ControlAI >= /SETUP/Control/ChE/Zone35TempHigh) || (/IO/ChEExports/EzZoneTC_Zone35ControlAI &lt;= /SETUP/Control/ChE/Zone35TempLow)))</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,ChE chamber Zone35 Control temperature is over or less standard temperature range.</setIntlkAlarm>\n            &SimulatedFlag_ChE;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Setup may be unavailable)</acceptUnknown>\n        </Zone35ControlAlarm>"
+      - xml: "<Src1CarrierGasCounterWarning class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/SETUP/ChECounter/Src1CarrierGasCounter >= /SETUP/Control/ChE/PMSrcCounterWarning)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,NOTICE,ChE chamber Src1CarrierGasCounter is over warning limit.</setIntlkAlarm>\n            &SimulatedFlag_ChE;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </Src1CarrierGasCounterWarning>"
+      - xml: "<Src1CarrierGasCounterAlarm class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/SETUP/ChECounter/Src1CarrierGasCounter >= /SETUP/Control/ChE/PMSrcCounterAlarm)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,ChE chamber Src1CarrierGasCounter is over error limit.</setIntlkAlarm>\n            &SimulatedFlag_ChE;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </Src1CarrierGasCounterAlarm>"
+  - name: Control/Interlock_ChF 删除已停用节点
+    file: Control/Interlock_ChF
+    anchor: ChF/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SlotValveNotClosed,ERROR,ChF chamber slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/ChFExports/SvClosedDI == Closed),SlotValveNotClosed"}
+  - name: Control/Interlock_ChF 改写文本
+    file: Control/Interlock_ChF
+    anchor: ChF/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "RobotExToChF,ERROR,Robot extended to ChF chamber.", "value": "SVOpenOrRobEx,ERROR,ChF chamber slot valve is NOT closed."}
+  - name: Control/Interlock_ChF 改写文本
+    file: Control/Interlock_ChF
+    anchor: ChF/SInterlocks/PedHome
+    where: { tag-glob: "PedHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/ChFExports/Plc_VtrExSensorDI == NotExtended),RobotExToChF", "value": "( (/IO/Platform/Plc/ChF/SvClosedDI == Closed) || (/IO/Platform/Plc/ChF/VtrExSensorDI == NotExtended)),SVOpenOrRobEx"}
+  - name: Control/Interlock_ChF 新增节点
+    file: Control/Interlock_ChF
+    anchor: ChF/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    add-xml:
+      - xml: "<Zone35MonitorAlarm type=\"instance\" class=\"VInterlock\">\n            <!--setDurationTrigger type=\"method\">(/IO/ChF/EzZoneTc/Zone7MonitorAI >= /SETUP/Control/ChF/Zone7TempHigh),3000</setDurationTrigger-->\n            <setTrigger type=\"method\">((/Control/ChF/State == Online) &amp;&amp; ((/IO/ChFExports/EzZoneTC_Zone35MonitorAI >= /SETUP/Control/ChF/Zone35TempHigh) || (/IO/ChFExports/EzZoneTC_Zone35MonitorAI &lt;= /SETUP/Control/ChF/Zone35TempLow)))</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,ChF chamber Zone35 monitor temperature is over or less standard temperature range.</setIntlkAlarm>\n            &SimulatedFlag_ChF;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Setup may be unavailable)</acceptUnknown>\n        </Zone35MonitorAlarm>"
+      - xml: "<Zone35ControlAlarm type=\"instance\" class=\"VInterlock\">\n            <!--setDurationTrigger type=\"method\">(/IO/ChF/EzZoneTc/Zone7MonitorAI >= /SETUP/Control/ChF/Zone7TempHigh),3000</setDurationTrigger-->\n            <setTrigger type=\"method\">((/Control/ChF/State == Online) &amp;&amp; ((/IO/ChFExports/EzZoneTC_Zone35ControlAI >= /SETUP/Control/ChF/Zone35TempHigh) || (/IO/ChFExports/EzZoneTC_Zone35ControlAI &lt;= /SETUP/Control/ChF/Zone35TempLow)))</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,ChF chamber Zone35 Control temperature is over or less standard temperature range.</setIntlkAlarm>\n            &SimulatedFlag_ChF;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Setup may be unavailable)</acceptUnknown>\n        </Zone35ControlAlarm>"
+      - xml: "<Src1CarrierGasCounterWarning class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/SETUP/ChFCounter/Src1CarrierGasCounter >= /SETUP/Control/ChF/PMSrcCounterWarning)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,NOTICE,ChF chamber Src1CarrierGasCounter is over warning limit.</setIntlkAlarm>\n            &SimulatedFlag_ChF;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </Src1CarrierGasCounterWarning>"
+      - xml: "<Src1CarrierGasCounterAlarm class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/SETUP/ChFCounter/Src1CarrierGasCounter >= /SETUP/Control/ChF/PMSrcCounterAlarm)</setTrigger>\n            <setIntlkAlarm type=\"method\">Alarm,ERROR,ChF chamber Src1CarrierGasCounter is over error limit.</setIntlkAlarm>\n            &SimulatedFlag_ChF;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </Src1CarrierGasCounterAlarm>"
+  - name: Control/Interlock_Platform 新增节点
+    file: Control/Interlock_Platform
+    anchor: Platform/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    add-xml:
+      - xml: "<HeatExchanger class=\"VInterlock\" type=\"instance\" alias=\"\">\n            <setTrigger type=\"method\">(/IO/Platform/HeatExchanger/PcwWtrFlowAI &lt; 50.0)</setTrigger>\n            <setIntlkAlarm type=\"method\">PcwFlowLowAlarm,ERROR,HeatExchanger Pcw flow is lower than 50.0.</setIntlkAlarm>\n            &SimulatedFlag_Platform;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </HeatExchanger>"
+  - name: Control/Interlock_Platform_ChA 删除已停用节点
+    file: Control/Interlock_Platform_ChA
+    anchor: ChA/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SvANotClosed,ERROR,Slot valve A is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/ChA/SvAClosedDI == Closed),SvANotClosed"}
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SvBNotClosed,ERROR,Slot valve B is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/ChA/SvBClosedDI == Closed),SvBNotClosed"}
+  - name: Control/Interlock_Platform_ChA 改写文本
+    file: Control/Interlock_Platform_ChA
+    anchor: ChA/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "Vtr1Extended,ERROR,Vacuum transfer robot1 extended to ChA chamber.", "value": "Move1NotSafe,ERROR,Robot1 extended to ChA chamber and SlotVlvA is Not closed."}
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "Vtr2Extended,ERROR,Vacuum transfer robot2 extended to ChA chamber.", "value": "Move2NotSafe,ERROR,Robot2 extended to ChA chamber and SlotVlvB is Not closed."}
+  - name: Control/Interlock_Platform_ChA 改写文本
+    file: Control/Interlock_Platform_ChA
+    anchor: ChA/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/ChA/VTR1ExSensorDI == NotExtended),Vtr1Extended", "value": "((/IO/Platform/Plc/ChA/VTR1ExSensorDI == NotExtended) || (/IO/Platform/Plc/ChA/SvAClosedDI == Closed)),Move1NotSafe"}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/ChA/VTR2ExSensorDI == NotExtended),Vtr2Extended", "value": "((/IO/Platform/Plc/ChA/VTR2ExSensorDI == NotExtended) || (/IO/Platform/Plc/ChA/SvBClosedDI == Closed)),Move2NotSafe"}
+  - name: Control/Interlock_Platform_ChA 新增节点
+    file: Control/Interlock_Platform_ChA
+    anchor: ChA/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    add-xml:
+      - xml: "<PinOriginPoint type=\"instance\" class=\"VInterlock\">\n            <setDurationTrigger type=\"method\">(/IO/Motor/ChA/Pin/OriginPtDI == NotBuilt),10000</setDurationTrigger>\n            <setIntlkAlarm type=\"method\">NotBuilt,ERROR,ChA chamber Pin motor origin-point is NOT built.</setIntlkAlarm>\n            &SimulatedFlag_Platform;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </PinOriginPoint>"
+  - name: Control/Interlock_Platform_ChB 删除已停用节点
+    file: Control/Interlock_Platform_ChB
+    anchor: ChB/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SvANotClosed,ERROR,Slot valve A is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/ChB/SvAClosedDI == Closed),SvANotClosed"}
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SvBNotClosed,ERROR,Slot valve B is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/ChB/SvBClosedDI == Closed),SvBNotClosed"}
+  - name: Control/Interlock_Platform_ChB 改写文本
+    file: Control/Interlock_Platform_ChB
+    anchor: ChB/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "Vtr1Extended,ERROR,Vacuum transfer robot1 extended to ChB chamber.", "value": "Move1NotSafe,ERROR,Robot1 extended to ChB chamber and SlotVlvA is Not closed."}
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "Vtr2Extended,ERROR,Vacuum transfer robot2 extended to ChB chamber.", "value": "Move2NotSafe,ERROR,Robot2 extended to ChB chamber and SlotVlvB is Not closed."}
+  - name: Control/Interlock_Platform_ChB 改写文本
+    file: Control/Interlock_Platform_ChB
+    anchor: ChB/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/ChB/VTR1ExSensorDI == NotExtended),Vtr1Extended", "value": "((/IO/Platform/Plc/ChB/VTR1ExSensorDI == NotExtended) || (/IO/Platform/Plc/ChB/SvAClosedDI == Closed)),Move1NotSafe"}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/ChB/VTR2ExSensorDI == NotExtended),Vtr2Extended", "value": "((/IO/Platform/Plc/ChB/VTR2ExSensorDI == NotExtended) || (/IO/Platform/Plc/ChB/SvBClosedDI == Closed)),Move2NotSafe"}
+  - name: Control/Interlock_Platform_ChB 新增节点
+    file: Control/Interlock_Platform_ChB
+    anchor: ChB/VInterlocks
+    where: { tag-glob: "VInterlocks" }
+    add-xml:
+      - xml: "<PinOriginPoint type=\"instance\" class=\"VInterlock\">\n            <setDurationTrigger type=\"method\">(/IO/Motor/ChB/Pin/OriginPtDI == NotBuilt),10000</setDurationTrigger>\n            <setIntlkAlarm type=\"method\">NotBuilt,ERROR,ChB chamber Pin motor origin-point is NOT built.</setIntlkAlarm>\n            &SimulatedFlag_Platform;\n            <acceptUnknown type=\"method\">TriggerUnknown,FATAL,Interlock trigger state is unknown. (Hardware IO may be unavailable)</acceptUnknown>\n        </PinOriginPoint>"
+  - name: Control/Interlock_Platform_LA 删除已停用节点
+    file: Control/Interlock_Platform_LA
+    anchor: LA/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "DoorNotClosed,ERROR,Door is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/LA/DoorClosedDI == Closed),DoorNotClosed"}
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SvNotClosed,ERROR,Slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/LA/SvClosedDI == Closed),SvNotClosed"}
+  - name: Control/Interlock_Platform_LA 改写文本
+    file: Control/Interlock_Platform_LA
+    anchor: LA/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "Vtr1Extended,ERROR,Vacuum bufer robot1 extended to LA chamber.", "value": "Move2NotSafe,ERROR,Atm transfer robot extended to LA chamber and door is Not closed."}
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "ATRExtended,ERROR,ATR extended to LA chamber.", "value": "Move1NotSafe,ERROR,Robot extended to LA chamber and slot valve is Not closed."}
+  - name: Control/Interlock_Platform_LA 改写文本
+    file: Control/Interlock_Platform_LA
+    anchor: LA/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/LA/VTR1ExSensorDI == NotExtended),Vtr1Extended", "value": "((/IO/Platform/Plc/LA/ATRExSensorDI == NotExtended) || (/IO/Platform/Plc/LA/DoorClosedDI == Closed)),Move2NotSafe"}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/LA/ATRExSensorDI == NotExtended),ATRExtended", "value": "((/IO/Platform/Plc/LA/VTR1ExSensorDI == NotExtended) || (/IO/Platform/Plc/LA/SvClosedDI == Closed)),Move1NotSafe"}
+  - name: Control/Interlock_Platform_LB 删除已停用节点
+    file: Control/Interlock_Platform_LB
+    anchor: LB/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    remove-node:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "DoorNotClosed,ERROR,Door is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/LB/DoorClosedDI == Closed),DoorNotClosed"}
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "value": "SvNotClosed,ERROR,Slot valve is NOT closed."}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "value": "(/IO/Platform/Plc/LB/SvClosedDI == Closed),SvNotClosed"}
+  - name: Control/Interlock_Platform_LB 改写文本
+    file: Control/Interlock_Platform_LB
+    anchor: LB/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "Vtr1Extended,ERROR,Vacuum bufer robot1 extended to LB chamber.", "value": "Move2NotSafe,ERROR,Atm transfer robot extended to LB chamber and door is Not closed."}
+      - {"tag": "createCheckerAlarm", "attr": {"type": "method"}, "old": "ATRExtended,ERROR,ATR extended to LB chamber.", "value": "Move1NotSafe,ERROR,Robot extended to LB chamber and slot valve is Not closed."}
+  - name: Control/Interlock_Platform_LB 改写文本
+    file: Control/Interlock_Platform_LB
+    anchor: LB/SInterlocks/PinHome
+    where: { tag-glob: "PinHome" }
+    set-text:
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/LB/VTR1ExSensorDI == NotExtended),Vtr1Extended", "value": "((/IO/Platform/Plc/LB/ATRExSensorDI == NotExtended) || (/IO/Platform/Plc/LB/DoorClosedDI == Closed)),Move2NotSafe"}
+      - {"tag": "addChecker", "attr": {"type": "method"}, "old": "(/IO/Platform/Plc/LB/ATRExSensorDI == NotExtended),ATRExtended", "value": "((/IO/Platform/Plc/LB/VTR1ExSensorDI == NotExtended) || (/IO/Platform/Plc/LB/SvClosedDI == Closed)),Move1NotSafe"}
