@@ -122,7 +122,7 @@ func verifySetup(configDir string, fail bool) int {
 		}
 		fmt.Printf("  %s %s\n", mark, is)
 	}
-	fmt.Printf("共 %d 处问题，均必须修复（设备按数组下标读取 Param/Value）。\n", len(issues))
+	fmt.Printf("共 %d 处问题，均必须修复。\n", len(issues))
 	if fail && errors > 0 {
 		return 1
 	}
