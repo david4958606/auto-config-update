@@ -24,7 +24,15 @@ make win64    # windows/amd64 -> auto-config-update.exe
 ./auto-config-update apply --feature features/ig-auto-close.yaml    # 写盘
 ./auto-config-update apply --feature features/... --chamber Ch1 Ch4 # 限定腔室(缺省=全部)
 ./auto-config-update check                                          # 校验 Setup 的 Param/Value 一一对应
+./auto-config-update switch true                                    # 把 config/*Simulated* 的模拟开关切到 true
+./auto-config-update switch false                                   # ... 切到 false
 ```
+
+- `switch <true|false>` 批量改写 `config/*Simulated*` 里
+  `<setSimulated type="method">true|false</setSimulated>` 的取值，替代手工的
+  `sed -i 's/\bfalse\b/true/g' config/*Simulated*`：只动该元素的文本(属性与其余字节逐字保留)、
+  已是目标值的文件**不写盘**(幂等);某文件找不到 `setSimulated` 或文本里没有 `true`/`false`
+  时打印 `!` 告警并以**非零退出码**结束。目标值缺失/非法返回退出码 2。
 
 - `--feature` 可简写 `-f`;`--chamber` 可简写 `-c`,均支持连续多值(`-c Ch1 Ch2 Ch3`)。
 - `plan` / `apply` 打印一致的**语义 diff**,区别只在 `apply` 落盘。
@@ -113,7 +121,7 @@ config/
 
 ## 模块
 
-- `main.go` —— CLI 入口(`plan` / `apply`)
+- `main.go` —— CLI 入口(`plan` / `apply` / `check` / `switch`)
 - `internal/`
   - `xmldoc` —— 按字节偏移解析 XML、实体容忍(声明不展开)、外科回写的编辑记录
   - `config` —— master+实体装配、逻辑 IO/Control 视图、实体真名解析
@@ -121,6 +129,8 @@ config/
   - `ops` —— 幂等原语:`add-node`/`add-method`/`remove-method`/`add-io`/`add-data`/`add-blank`/`add-comment`/`add-entity-ref`/`add-element`/`add-xml`/`set-text`/`set-attr`/`remove-node`/`wrap`/`uncomment`
   - `xmlcmp` —— 语义比对(忽略空白/注释/属性序,比对元素树+实体+停用区),用于升级验收
   - `feature` —— 功能 YAML 加载 + `require`/`bind` 绑定
+  - `setupcheck` —— `Setup/*.xml` 的 Param/Value 按下标一一对应校验
+  - `simswitch` —— 批量切换 `config/*Simulated*` 的 `<setSimulated>` 开关
   - `splice` —— 外科式字节拼接写盘
   - `engine` —— steps 编排:逐腔室、逐步、逐实例执行并落盘
 - `features/*.yaml` —— 功能定义 · `config/` —— 演示夹具 · `Makefile` —— 出包脚本

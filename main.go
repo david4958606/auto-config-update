@@ -5,6 +5,8 @@
 //	cd <含 config/ features/ 的目录>
 //	addex plan  --feature features/ig-auto-close.yaml
 //	addex apply --feature features/ig-auto-close.yaml --chamber Ch1
+//	addex check                          # Setup 的 Param/Value 一致性自检
+//	addex switch <true|false>            # 切换 config/*Simulated* 的 setSimulated 开关
 //
 // 骨架阶段：CLI 入口与参数已定，引擎逐阶段接入(计划 §6)。
 package main
@@ -18,6 +20,7 @@ import (
 	"addex/internal/engine"
 	"addex/internal/feature"
 	"addex/internal/setupcheck"
+	"addex/internal/simswitch"
 )
 
 type chamberList []string
@@ -40,7 +43,8 @@ func run(argv []string) int {
 	fs.Var(&chambers, "c", "限定腔室，可连续指定或重复；缺省=全部（如 -c Ch1 Ch2 Ch3）")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "用法: addex <plan|apply> --feature <path> [--chamber Ch1 Ch2 ...] [--no-verify]")
-		fmt.Fprintln(os.Stderr, "      addex check            # 校验 config/Setup 的 Param/Value 一一对应")
+		fmt.Fprintln(os.Stderr, "      addex check                  # 校验 config/Setup 的 Param/Value 一一对应")
+		fmt.Fprintln(os.Stderr, "      addex switch <true|false>    # 切换 config/*Simulated* 的 setSimulated 开关")
 		fs.PrintDefaults()
 	}
 
@@ -49,8 +53,8 @@ func run(argv []string) int {
 		return 2
 	}
 	mode := argv[0]
-	if mode != "plan" && mode != "apply" && mode != "check" {
-		fmt.Fprintf(os.Stderr, "未知模式 %q（应为 plan / apply / check）\n", mode)
+	if mode != "plan" && mode != "apply" && mode != "check" && mode != "switch" {
+		fmt.Fprintf(os.Stderr, "未知模式 %q（应为 plan / apply / check / switch）\n", mode)
 		fs.Usage()
 		return 2
 	}
@@ -60,6 +64,9 @@ func run(argv []string) int {
 	if mode == "check" {
 		fmt.Print("配置一致性校验 | Setup 的 Param/Value 按下标一一对应\n\n")
 		return verifySetup("config", true)
+	}
+	if mode == "switch" {
+		return runSwitch("config", fs.Args())
 	}
 	if *featurePath == "" {
 		fmt.Fprintln(os.Stderr, "缺少 --feature")
@@ -97,6 +104,58 @@ func run(argv []string) int {
 	}
 	if mode == "plan" {
 		verifySetup("config", false)
+	}
+	return 0
+}
+
+// runSwitch 处理 `switch <true|false>`：把 config/*Simulated* 里 <setSimulated> 的开关
+// 批量切成目标值。语义等价于 `sed -i 's/\bfalse\b/true/g' config/*Simulated*`，但只动
+// 文本、幂等，并对"找不到开关"的文件告警(非零退出码)。
+func runSwitch(configDir string, args []string) int {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "缺少目标值：用法 switch <true|false>")
+		return 2
+	}
+	if len(args) > 1 {
+		fmt.Fprintf(os.Stderr, "switch 只接受一个目标值，收到 %d 个：%s\n", len(args), strings.Join(args, " "))
+		return 2
+	}
+	var target bool
+	switch args[0] {
+	case "true":
+		target = true
+	case "false":
+		target = false
+	default:
+		fmt.Fprintf(os.Stderr, "目标值 %q 无效（应为 true 或 false）\n", args[0])
+		return 2
+	}
+	want := args[0]
+	fmt.Printf("Simulate 开关 | 目标=%s\n\n", want)
+
+	rep, err := simswitch.Switch(configDir, target)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if len(rep.Results) == 0 {
+		fmt.Fprintf(os.Stderr, "! %s/*Simulated* 下没有可切换的文件\n", configDir)
+		return 1
+	}
+	for _, r := range rep.Results {
+		switch {
+		case r.Warn != "":
+			fmt.Printf("! %s %s\n", r.Name, r.Warn)
+		case r.Changed:
+			fmt.Printf("+ %s：%d 处 setSimulated → %s\n", r.Name, r.Edits, want)
+		default:
+			fmt.Printf("- %s 已是 %s\n", r.Name, want)
+		}
+	}
+	fmt.Printf("\n共 %d 个文件：改写 %d，已是目标 %d，告警 %d。\n",
+		len(rep.Results), rep.ChangedFiles(), rep.UnchangedFiles(), rep.WarnedFiles())
+	if rep.WarnedFiles() > 0 {
+		return 1
 	}
 	return 0
 }

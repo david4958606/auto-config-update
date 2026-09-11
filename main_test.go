@@ -1,10 +1,74 @@
 package main
 
 import (
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+// captureStdout 在 f 执行期间把 os.Stdout 重定向到管道，返回其输出。
+func captureStdout(t *testing.T, f func()) string {
+	t.Helper()
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	done := make(chan string, 1)
+	go func() {
+		b, _ := io.ReadAll(r)
+		done <- string(b)
+	}()
+	f()
+	w.Close()
+	os.Stdout = old
+	return <-done
+}
+
+// TestRunSwitchCLI 校验 switch 子命令的接线：目标值校验、切换落盘、幂等。
+func TestRunSwitchCLI(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "config")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(dir, "SimulatedFlag_Ch1")
+	if err := os.WriteFile(p, []byte(`<setSimulated type="method">false</setSimulated>`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// 参数校验：缺值 / 非法值都返回 2，且不碰文件。
+	if code := runSwitch(dir, nil); code != 2 {
+		t.Fatalf("缺值应返回 2，得到 %d", code)
+	}
+	if code := runSwitch(dir, []string{"maybe"}); code != 2 {
+		t.Fatalf("非法值应返回 2，得到 %d", code)
+	}
+
+	out := captureStdout(t, func() {
+		if code := runSwitch(dir, []string{"true"}); code != 0 {
+			t.Errorf("switch true 应返回 0，得到 %d", code)
+		}
+	})
+	if !strings.Contains(out, "改写 1") {
+		t.Errorf("输出应报告改写 1 个文件：\n%s", out)
+	}
+	if b, _ := os.ReadFile(p); string(b) != `<setSimulated type="method">true</setSimulated>` {
+		t.Errorf("文件未切到 true：%q", b)
+	}
+
+	// 幂等：第二次不再写盘。
+	out = captureStdout(t, func() {
+		if code := runSwitch(dir, []string{"true"}); code != 0 {
+			t.Errorf("二次 switch 应返回 0，得到 %d", code)
+		}
+	})
+	if !strings.Contains(out, "改写 0") {
+		t.Errorf("二次运行应为 no-op：\n%s", out)
+	}
+}
 
 // TestVerifySetupGate 校验 CLI 的硬闸门：Setup 里 Param/Value 笔误必须让 verifySetup 返回 1。
 func TestVerifySetupGate(t *testing.T) {
