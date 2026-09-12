@@ -625,6 +625,22 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		}
 		results = append(results, ops.AddRawFragment(m.Node, frag, indentBlock(raw, xmldoc.RealDepth(m.Node)+1), before))
 	}
+	// rename-node：给选中元素改名(开/闭标签同步)并/或增改属性。
+	// 排在 set-text/set-attr/remove-node 之前，便于同一步里"先改名、再按新名字改写"。
+	for i := range step.RenameNode {
+		rn := &step.RenameNode[i]
+		sel := ops.Sel{Tag: feature.Format(rn.Tag, tags), Attrs: formatAttrs(rn.Attr, tags), Has: toSel(rn.Has, tags)}
+		if rn.Value != nil {
+			v := feature.Format(*rn.Value, tags)
+			sel.Value = &v
+		}
+		attrs := make([]xmldoc.Attr, 0, len(rn.Attrs.Content)/2)
+		for _, a := range rn.AttrPairs() {
+			attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
+		}
+		results = append(results, ops.RenameNode(m.Node, sel, feature.Format(rn.Child, tags),
+			feature.Format(rn.To, tags), attrs))
+	}
 	// set-text / set-attr / remove-node：原地改写已存在节点。
 	for i := range step.SetText {
 		st := &step.SetText[i]

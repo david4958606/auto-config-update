@@ -52,6 +52,7 @@ type Step struct {
 	// 原地改写 / 删除 / 注释开关 / 普通元素(见 doc/config-upgrade-design.md §3)。
 	SetText    []SetTextSpec    `yaml:"set-text"`
 	SetAttr    []SetAttrSpec    `yaml:"set-attr"`
+	RenameNode []RenameNodeSpec `yaml:"rename-node"`
 	RemoveNode []RemoveNodeSpec `yaml:"remove-node"`
 	Wrap       []WrapSpec       `yaml:"wrap"`
 	Uncomment  []UncommentSpec  `yaml:"uncomment"`
@@ -94,6 +95,22 @@ type SetAttrSpec struct {
 	Name  string            `yaml:"name"`
 	Value string            `yaml:"value"`
 }
+
+// RenameNodeSpec 描述一个 rename-node 动作：把选中元素的标签改名(`to`)并/或增改属性(`attrs`)。
+// 选择器字段(tag/child/attr/value/has)与 set-text/remove-node 同口径，在 anchor 的子树里选；
+// 全部留空则作用于 **anchor 自身**(用于给 anchor 补 class/type 或直接改名)。
+type RenameNodeSpec struct {
+	Tag   string            `yaml:"tag"`
+	Child string            `yaml:"child"`
+	Attr  map[string]string `yaml:"attr"`
+	Value *string           `yaml:"value"`
+	Has   *SelSpec          `yaml:"has"`
+	To    string            `yaml:"to"`    // 新标签名(开/闭标签同步改)；空=不改标签
+	Attrs yaml.Node         `yaml:"attrs"` // 要增改的属性(保留书写顺序；同名覆盖旧值)
+}
+
+// AttrPairs 按书写顺序返回 rename-node 要设置的属性键值对。
+func (r *RenameNodeSpec) AttrPairs() []xmldoc.Attr { return mapPairs(&r.Attrs) }
 
 // RemoveNodeSpec 描述一个 remove-node 动作：删除 anchor 下匹配的元素(含子树)。
 // Has 是附加条件：该元素须含有匹配此选择器的直接子元素(用于区分同名但内容不同的节点)。

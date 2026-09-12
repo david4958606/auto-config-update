@@ -367,22 +367,9 @@ func SetAttr(anchor *xmldoc.Node, s Sel, child, old string, hasOld bool, name, v
 			continue
 		}
 		changed++
-		if n.Synthetic {
-			setAttrInMemory(n, name, value)
-			continue
+		if e, ok := setAttrEdit(n, name, value); ok {
+			edits = append(edits, e)
 		}
-		if i := attrIndex(n, name); i >= 0 && n.Attrs[i].ValueStart >= 0 {
-			edits = append(edits, xmldoc.Edit{Kind: xmldoc.Replace,
-				Start: n.Attrs[i].ValueStart, End: n.Attrs[i].ValueEnd, Text: xmldoc.EscapeAttr(value)})
-		} else {
-			at := n.OpenEnd - 1 // '>' 之前
-			if n.SelfClose {
-				at = n.OpenEnd - 2 // '/>' 之前
-			}
-			edits = append(edits, xmldoc.Edit{Kind: xmldoc.Replace, Start: at, End: at,
-				Text: fmt.Sprintf(` %s="%s"`, name, xmldoc.EscapeAttr(value))})
-		}
-		setAttrInMemory(n, name, value)
 	}
 	if changed == 0 {
 		if len(hits) == 0 {
@@ -397,6 +384,30 @@ func SetAttr(anchor *xmldoc.Node, s Sel, child, old string, hasOld bool, name, v
 		res.Edits = edits
 	}
 	return res
+}
+
+// setAttrEdit 把节点 n 的属性 name 设为 value，返回字节编辑。
+// 合成节点无字节区间 → 只改内存并返回 ok=false；已有该属性且有值区间 → 原位替换值；
+// 否则在开标签 '>' (自闭合在 '/>' )之前插入 ` name="value"`。两种情形都会同步内存树。
+func setAttrEdit(n *xmldoc.Node, name, value string) (xmldoc.Edit, bool) {
+	if n.Synthetic {
+		setAttrInMemory(n, name, value)
+		return xmldoc.Edit{}, false
+	}
+	if i := attrIndex(n, name); i >= 0 && n.Attrs[i].ValueStart >= 0 {
+		edit := xmldoc.Edit{Kind: xmldoc.Replace,
+			Start: n.Attrs[i].ValueStart, End: n.Attrs[i].ValueEnd, Text: xmldoc.EscapeAttr(value)}
+		setAttrInMemory(n, name, value)
+		return edit, true
+	}
+	at := n.OpenEnd - 1 // '>' 之前
+	if n.SelfClose {
+		at = n.OpenEnd - 2 // '/>' 之前
+	}
+	edit := xmldoc.Edit{Kind: xmldoc.Replace, Start: at, End: at,
+		Text: fmt.Sprintf(` %s="%s"`, name, xmldoc.EscapeAttr(value))}
+	setAttrInMemory(n, name, value)
+	return edit, true
 }
 
 func setAttrInMemory(n *xmldoc.Node, name, value string) {
@@ -417,6 +428,112 @@ func RemoveNode(anchor *xmldoc.Node, s Sel, child string) Result {
 		n.Removed = true
 	}
 	return Result{Changed: true, Message: fmt.Sprintf("删除 <%s>", selDesc(s, child)), Edit: &xmldoc.Edit{Kind: xmldoc.Delete, Targets: hits}}
+}
+
+// RenameNode 把 anchor 下按 s 选中的元素(可选下沉到 child)改名并/或增改属性：
+//   - to 非空 → 同步改写开标签与闭标签里的标签名(自闭合只改开标签)，属性/子节点/文本原样保留；
+//   - attrs  → 逐个在所选元素上设置(已有则原位替换值，没有则在开标签 '>' 前插入)，保留书写顺序。
+//
+// 选择器字段全空(tag/child/attr/value/has 都没给)时，作用对象是 **anchor 自身**；
+// 给了任一选择器则在 anchor 的整棵子树里选(可命中多个，全部处理)。
+// 判重：标签已是 to 且 attrs 都已是目标值 → no-op(幂等)。
+func RenameNode(anchor *xmldoc.Node, s Sel, child, to string, attrs []xmldoc.Attr) Result {
+	desc := selDesc(s, child)
+	targets, self := selectForRename(anchor, s, child)
+	if self {
+		desc = "anchor:" + anchor.Tag
+	}
+	if len(targets) == 0 {
+		return Result{Changed: false, Message: fmt.Sprintf("未找到 <%s>，无需改名", desc), Edit: nil}
+	}
+	var edits []xmldoc.Edit
+	renamed, attrChanged := 0, 0
+	for _, n := range targets {
+		if to != "" && n.Tag != to {
+			renamed++
+			if !n.Synthetic {
+				// 开标签名：'<' 之后 len(旧标签) 个字节。
+				edits = append(edits, xmldoc.Edit{Kind: xmldoc.Replace,
+					Start: n.Start + 1, End: n.Start + 1 + len(n.Tag), Text: to})
+				// 闭标签名：'</' 之后同样长度(自闭合没有闭标签)。
+				if !n.SelfClose && n.CloseStart >= 0 {
+					edits = append(edits, xmldoc.Edit{Kind: xmldoc.Replace,
+						Start: n.CloseStart + 2, End: n.CloseStart + 2 + len(n.Tag), Text: to})
+				}
+			}
+			n.Tag = to
+		}
+		// 属性：已达目标值的跳过，其余一次性合并处理(见 setAttrsOnNode)。
+		var pending []xmldoc.Attr
+		for _, a := range attrs {
+			if n.HasAttr(a.Name) && n.Attr(a.Name) == a.Value {
+				continue
+			}
+			pending = append(pending, a)
+		}
+		if len(pending) > 0 {
+			attrEdits, c := setAttrsOnNode(n, pending)
+			edits = append(edits, attrEdits...)
+			attrChanged += c
+		}
+	}
+	if renamed == 0 && attrChanged == 0 {
+		return Result{Changed: false, Message: fmt.Sprintf("<%s> 标签/属性已是目标值，无需改名", desc), Edit: nil}
+	}
+	var msg string
+	switch {
+	case renamed > 0 && attrChanged > 0:
+		msg = fmt.Sprintf("重命名 <%s> → <%s> 并设置 %d 个属性", desc, to, attrChanged)
+	case renamed > 0:
+		msg = fmt.Sprintf("重命名 <%s> → <%s>", desc, to)
+	default:
+		msg = fmt.Sprintf("设置 <%s> 的 %d 个属性", desc, attrChanged)
+	}
+	res := Result{Changed: true, Message: msg}
+	res.Edits = edits
+	return res
+}
+
+// selectForRename 返回 rename-node 的作用节点与"是否作用在 anchor 自身"。
+// 选择器字段全空 → 作用于 anchor 自身；否则常规子树选择。
+func selectForRename(anchor *xmldoc.Node, s Sel, child string) ([]*xmldoc.Node, bool) {
+	if s.Tag == "" && child == "" && len(s.Attrs) == 0 && s.Value == nil && s.Has == nil {
+		return []*xmldoc.Node{anchor}, true
+	}
+	return SelectNodes(anchor, s, child), false
+}
+
+// setAttrsOnNode 按顺序在节点 n 上设置 attrs，返回字节编辑与改动个数。
+// 已有属性原位替换其值；缺失的属性**合并成一处插入**(按书写顺序)，避免同一偏移的多次
+// 零长插入在 splice 里被倒序。合成节点无字节区间 → 只改内存，返回的编辑为空。
+func setAttrsOnNode(n *xmldoc.Node, attrs []xmldoc.Attr) ([]xmldoc.Edit, int) {
+	var edits []xmldoc.Edit
+	var insert strings.Builder
+	changed := 0
+	for _, a := range attrs {
+		if n.HasAttr(a.Name) && n.Attr(a.Name) == a.Value {
+			continue
+		}
+		changed++
+		if i := attrIndex(n, a.Name); i >= 0 && n.Attrs[i].ValueStart >= 0 {
+			edits = append(edits, xmldoc.Edit{Kind: xmldoc.Replace,
+				Start: n.Attrs[i].ValueStart, End: n.Attrs[i].ValueEnd, Text: xmldoc.EscapeAttr(a.Value)})
+			setAttrInMemory(n, a.Name, a.Value)
+			continue
+		}
+		insert.WriteString(fmt.Sprintf(` %s="%s"`, a.Name, xmldoc.EscapeAttr(a.Value)))
+		setAttrInMemory(n, a.Name, a.Value)
+	}
+	if insert.Len() > 0 && !n.Synthetic {
+		at := n.OpenEnd - 1 // '>' 之前
+		if n.SelfClose {
+			at = n.OpenEnd - 2 // '/>' 之前
+		}
+		// 插入点(start 最大)排最前：splice 按 start 倒序应用，先插属性再原位替换值，
+		// 后者用的仍是原始偏移，互不影响。
+		edits = append([]xmldoc.Edit{{Kind: xmldoc.Replace, Start: at, End: at, Text: insert.String()}}, edits...)
+	}
+	return edits, changed
 }
 
 // WrapRange 用 open/close 把 anchor 下若干选择器命中的节点区间包裹起来(注释掉 / CDATA 化)。

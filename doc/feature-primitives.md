@@ -55,6 +55,7 @@ steps:                     # 有序步骤列表，见下
 | `add-xml` | 动作 | 插入一段**内联 XML 片段**(整棵子树，逐字保留实体书写)。见 §7.9。 |
 | `set-text` | 动作 | 改写已存在元素的文本。见 §7.10。 |
 | `set-attr` | 动作 | 改写/新增已存在元素的属性。见 §7.10。 |
+| `rename-node` | 动作 | 重命名元素的**标签**(开/闭同步)，可同时增改属性。见 §7.17。 |
 | `remove-node` | 动作 | 删除已存在元素(含子树)。见 §7.11。 |
 | `wrap` | 动作 | 用 `open`/`close` 包裹一段节点区间(注释掉 / CDATA 化)。见 §7.12。 |
 | `uncomment` | 动作 | 放开(或删除)包住某段文本的注释块。见 §7.13。 |
@@ -62,8 +63,9 @@ steps:                     # 有序步骤列表，见下
 | `new-file:`(step 级) | 动作 | 文件不存在时按 `content` **逐字新建**；已存在即 no-op；路径含占位符则按腔室展开。见 §7.15。 |
 
 同一 step 内动作的**执行顺序固定**（与 YAML 中书写顺序无关）：
-`add-node` → `add-data` → `add-element` → `add-setup` → `add-xml` → `set-text`/`set-attr`/`remove-node` →
-`wrap` → `uncomment` → `add-blank` → `add-comment` → `add-method` → `remove-method` → `add-io`（见 §8）。
+`add-node` → `add-data` → `add-element` → `add-setup` → `add-xml` → `rename-node` →
+`set-text`/`set-attr`/`remove-node` → `wrap` → `uncomment` → `add-blank` → `add-comment` →
+`add-method` → `remove-method` → `add-io`（见 §8）。
 > 需要把注释/空行放到方法块**之后**时，另起一个**同 anchor 的 step**单独写 `add-comment`（追加落在末尾）。
 
 ---
@@ -635,6 +637,51 @@ Setup 文件的参数分两处写：根元素下的 `<Param .../>` 声明，与 
 > anchor 可省略：`add-setup` 作用在文件根元素上，因此与 `file:` 配合即可；若写了 `anchor`
 > 则相对文件根解析（空 `anchor` = 根元素本身）。
 
+### 7.17 `rename-node` —— 重命名标签 / 增改属性
+
+把一个**已存在**元素的标签改名（开标签与闭标签同步），属性、子节点与文本原样保留：
+
+```xml
+<Edge class="FuncEdge" type="instance">
+    <setValve type="method">111</setValve>
+</Edge>
+```
+```yaml
+- name: setValve 方法改名
+  anchor: Edge
+  rename-node:
+    - { tag: setValve, to: setGasInValve }   # 命中子元素 → 只改标签名
+```
+```xml
+<Edge class="FuncEdge" type="instance">
+    <setGasInValve type="method">111</setGasInValve>
+</Edge>
+```
+
+| 字段 | 说明 |
+|------|------|
+| `tag` / `child` / `attr` / `value` / `has` | 选择器，口径同 §7.10/§7.11（`child` 再下沉一层，`has` 要求含指定直接子元素）。在 anchor 的**整棵子树**里选，可命中多个，全部处理。 |
+| `to` | 新标签名（支持占位符）；开/闭标签同步改，自闭合只改开标签。省略=不改标签。 |
+| `attrs` | 可选：要设置/新增的属性（保留书写顺序，值支持占位符；已有同名属性则原位替换其值）。 |
+
+**选择器全空**（`tag`/`child`/`attr`/`value`/`has` 都没写）时，作用对象是 **anchor 自身**——
+用于直接改 anchor 的标签名，或给它补属性（`set-attr` 只能改子孙，补 anchor 自身属性时用它）：
+
+```yaml
+- name: 给 anchor 自身补 class/type
+  anchor: Edge
+  rename-node:
+    - attrs: { class: FuncEdge, type: instance }   # 不改标签，只加属性
+```
+
+判重（幂等）：标签已是 `to` 且 `attrs` 都已是目标值 → no-op；`to`/`attrs` 都省略 → no-op。
+本原语在 `set-text`/`set-attr`/`remove-node` **之前**执行，所以同一步里可以"先改名、再按新名字
+改写文本/属性"。
+
+> 注意：把 anchor 自身的标签改掉后，下一次运行时该 `anchor` 路径已不再匹配（标签已变），
+> 引擎会打印"anchor 无匹配"跳过——结果仍是幂等的（不再有改动）。需要重复定位时，建议
+> 把 anchor 放在**父节点**上，用 `tag: 旧名` 选择要改名的子元素。
+
 ---
 
 ## 8. 执行顺序与幂等
@@ -645,8 +692,9 @@ Setup 文件的参数分两处写：根元素下的 `<Param .../>` 声明，与 
   腔室步骤之后）；路径为字面量的在全部腔室之后按声明顺序各执行一次。
 - **step 级**：按 `steps` 顺序，后一步可见前一步在内存树上挂的新节点（跨步引用）。
 - **同一 step 内动作顺序**（固定，与书写顺序无关）：
-  `add-node` → `add-data` → `add-element` → `add-setup` → `add-xml` → `set-text`/`set-attr`/`remove-node` →
-  `wrap` → `uncomment` → `add-blank` → `add-comment` → `add-method` → `remove-method` → `add-io`。
+  `add-node` → `add-data` → `add-element` → `add-setup` → `add-xml` → `rename-node` →
+  `set-text`/`set-attr`/`remove-node` → `wrap` → `uncomment` → `add-blank` → `add-comment` →
+  `add-method` → `remove-method` → `add-io`。
 - **幂等**：每个原语先判重，已达目标即 no-op（`-`），不产生字节编辑；重复运行安全。
 
 `plan` 与 `apply` 打印**完全一致**的语义 diff，区别只在 `apply` 会落盘。每行前缀：

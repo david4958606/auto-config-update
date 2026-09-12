@@ -343,3 +343,77 @@ func TestAddSetupPairWithoutOptionWarns(t *testing.T) {
 		t.Fatalf("Param 应仍被追加:\n%s", out)
 	}
 }
+
+// TestRenameNode 覆盖 rename-node：anchor 自身改属性、子元素改标签(开/闭同步)、自闭合、幂等、无命中。
+func TestRenameNode(t *testing.T) {
+	const src = "<Root>\n" +
+		"  <Edge>\n" +
+		"    <setValve type=\"method\">111</setValve>\n" +
+		"  </Edge>\n" +
+		"  <Solo/>\n" +
+		"</Root>\n"
+
+	// 1) 空选择器 = 作用于 anchor 自身：给 <Edge> 补 class/type(按书写顺序追加)。
+	doc, root, _ := parse(t, src)
+	edge := xmldoc.FindChild(root, "Edge")
+	r := RenameNode(edge, Sel{}, "", "", []xmldoc.Attr{
+		{Name: "class", Value: "FuncEdge"},
+		{Name: "type", Value: "instance"},
+	})
+	if !r.Changed {
+		t.Fatalf("期望给 Edge 设置属性: %s", r.Message)
+	}
+	out := applyAll(doc, r)
+	if !strings.Contains(out, `<Edge class="FuncEdge" type="instance">`) {
+		t.Fatalf("属性未按书写顺序插入:\n%s", out)
+	}
+
+	// 2) 子元素改标签：开/闭标签同步改，属性与文本原样保留。
+	doc2, root2, _ := parse(t, out)
+	edge2 := xmldoc.FindChild(root2, "Edge")
+	r2 := RenameNode(edge2, Sel{Tag: "setValve"}, "", "setGasInValve", nil)
+	if !r2.Changed {
+		t.Fatalf("期望改名 setValve: %s", r2.Message)
+	}
+	out2 := applyAll(doc2, r2)
+	if !strings.Contains(out2, `<setGasInValve type="method">111</setGasInValve>`) {
+		t.Fatalf("子元素未改标签或闭标签未同步:\n%s", out2)
+	}
+	// 内存树也已同步新标签名(供同一步后续动作按新名选择)。
+	if got := SelectNodes(edge2, Sel{Tag: "setGasInValve"}, ""); len(got) != 1 {
+		t.Fatalf("内存树未同步新标签名，命中 %d 个", len(got))
+	}
+
+	// 3) 已达目标 → 两侧都幂等。
+	_, root3, _ := parse(t, out2)
+	edge3 := xmldoc.FindChild(root3, "Edge")
+	if again := RenameNode(edge3, Sel{}, "", "", []xmldoc.Attr{
+		{Name: "class", Value: "FuncEdge"}, {Name: "type", Value: "instance"}}); again.Changed {
+		t.Fatalf("属性二次设置不应有改动: %s", again.Message)
+	}
+	if again := RenameNode(edge3, Sel{Tag: "setGasInValve"}, "", "setGasInValve", nil); again.Changed {
+		t.Fatalf("同名改名不应有改动: %s", again.Message)
+	}
+
+	// 4) 自闭合标签改名(同步内存树)。
+	doc4, root4, _ := parse(t, src)
+	solo := xmldoc.FindChild(root4, "Solo")
+	r4 := RenameNode(solo, Sel{}, "", "SoloNew", nil)
+	if !r4.Changed {
+		t.Fatalf("期望自闭合标签改名: %s", r4.Message)
+	}
+	out4 := applyAll(doc4, r4)
+	if !strings.Contains(out4, "<SoloNew/>") || strings.Contains(out4, "<Solo/>") {
+		t.Fatalf("自闭合标签未改名:\n%s", out4)
+	}
+
+	// 5) 选择器无命中 → no-op；空动作(to/attrs 都空)→ no-op。
+	_, root5, _ := parse(t, src)
+	edge5 := xmldoc.FindChild(root5, "Edge")
+	if miss := RenameNode(edge5, Sel{Tag: "NotThere"}, "", "X", nil); miss.Changed {
+		t.Fatalf("无命中不应改动: %s", miss.Message)
+	}
+	if empty := RenameNode(edge5, Sel{Tag: "setValve"}, "", "", nil); empty.Changed {
+		t.Fatalf("空动作不应改动: %s", empty.Message)
+	}
+}

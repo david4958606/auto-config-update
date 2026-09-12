@@ -99,6 +99,7 @@ go test ./internal/engine -run TestUpgradeExampleConfig
 | `add-xml` | 插入一段**内联 XML 片段**（整棵子树），逐字落盘、按父深度重排缩进 | 已有结构完全一致的兄弟 |
 | `set-text` | 改写已存在元素文本（`tag`+可选 `child`/`attr`/`old`） | 文本已是目标值 |
 | `set-attr` | 改写/插入已存在元素的属性 | 属性已是目标值 |
+| `rename-node` | 重命名元素标签（开/闭同步），可同时增改属性 | 标签已是 `to` 且属性已是目标值 |
 | `remove-node` | 删除已存在元素（含子树），`has` 子条件区分同名异内容节点 | 无命中 |
 | `wrap` | 用 `open`/`close` 包裹节点区间（`comment: true` 即注释掉，或 CDATA 化） | 紧邻处已有标记 / 无命中 |
 | `uncomment` | 放开（`drop: false`）或删除（`drop: true`）包住 `find` 的注释块 | 找不到包裹注释 |

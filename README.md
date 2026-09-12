@@ -99,6 +99,7 @@ steps:
 | `add-setup` | 向 Setup **成对追加**一个 `<Param .../>` 声明与对应的 `<Option>/<Value ...>` 取值:都加在各自序列末尾,按 `param` 名判重(幂等)。 |
 | `add-xml` | 插入一段**内联 XML 片段**(整棵新对象子树),逐字保留 `&amp;&amp;` 等实体书写。 |
 | `set-text` / `set-attr` | 改写已存在元素的文本 / 属性(按 `tag`+`attr`+可选 `old` 定位)。 |
+| `rename-node` | 重命名已存在元素的**标签**(开/闭标签同步),可同时增改属性(`to` + `attrs`);选择器全空则作用于 anchor 自身。 |
 | `remove-node` | 删除已存在元素(含子树);`has` 子条件可区分同名不同内容的节点。 |
 | `wrap` / `uncomment` | 用任意 `open`/`close` 包裹一段节点区间(注释掉 / CDATA 化) / 放开(或删除)注释块。 |
 | `file:`(step 级) | 让某个 step 直接作用于 `config/<file>`(Setup、SysLog、master 等非片段文件)。 |
@@ -139,7 +140,7 @@ config/
   - `xmldoc` —— 按字节偏移解析 XML、实体容忍(声明不展开)、外科回写的编辑记录
   - `config` —— master+实体装配、逻辑 IO/Control 视图、实体真名解析
   - `anchor` —— class 路径定位 + 同类多实例 fan-out + `where` 筛选
-  - `ops` —— 幂等原语:`add-node`/`add-method`/`remove-method`/`add-io`/`add-data`/`add-blank`/`add-comment`/`add-entity-ref`/`add-element`/`add-setup`/`add-xml`/`set-text`/`set-attr`/`remove-node`/`wrap`/`uncomment`
+  - `ops` —— 幂等原语:`add-node`/`add-method`/`remove-method`/`add-io`/`add-data`/`add-blank`/`add-comment`/`add-entity-ref`/`add-element`/`add-setup`/`add-xml`/`set-text`/`set-attr`/`rename-node`/`remove-node`/`wrap`/`uncomment`
   - `xmlcmp` —— 语义比对(忽略空白/注释/属性序,比对元素树+实体+停用区),用于升级验收
   - `feature` —— 功能 YAML 加载 + `require`/`bind` 绑定
   - `setupcheck` —— `Setup/*.xml` 的 Param/Value 按下标一一对应校验
