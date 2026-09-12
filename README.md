@@ -104,6 +104,11 @@ steps:
 | `file:`(step 级) | 让某个 step 直接作用于 `config/<file>`(Setup、SysLog、master 等非片段文件)。 |
 | `new-file:`(step 级) | 目标版本多出的**整份新文件**:文件不存在时按 `content` 逐字新建,已存在即 no-op(绝不覆盖)。 |
 
+> `file:` / `new-file:` 的路径含占位符时**按腔室展开**:一份声明逐腔室执行,如
+> `file: Setup/Setup_${Chamber}.xml` 用各腔室绑定替换(`${Chamber}` 或腔室 class 名);
+> 某腔室没有该文件只告警跳过。路径不含 `{` 时仍全局执行一次。详见
+> [doc/feature-primitives.md](doc/feature-primitives.md) §7.14。
+
 **占位符**:两种写法。**anchor 段**里 `{X}`=按 class 匹配并把 `X` 绑定为该实例标签,`${X}`=按"已绑定的标签名"匹配(如腔室 class 绑定 `{ITO}`=Ch1,IOBridge 那层没有 class 只能写 `${ITO}`)。**取值字段**(attr/value/xml/text/old/name/child/where/open/close/find 等)里 `{X}` 与 `${X}` **同解**,都替换为标签/变量值,且**所有原语都支持**。`add-node` 建出的对象登记 `{标签}`→`./标签` 供后续步骤引用;`require`/`bind` 变量同理。另见 [doc/feature-primitives.md](doc/feature-primitives.md) §6。
 
 ## 它如何应对真实配置

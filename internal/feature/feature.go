@@ -412,7 +412,7 @@ func ResolveBindings(step Step, tags map[string]string, idx config.Indexes) (map
 // ${key}(节点名语义)与 {key} 同解为标签名——二者最终都取该实例的标签，
 // 但 ${key} 允许写在 alias/logical 路径里而不残留 '$'(NewReplacer 在 '$' 处优先吃掉 ${key})。
 func Format(tmpl string, tags map[string]string) string {
-	if !strings.ContainsRune(tmpl, '{') {
+	if !strings.ContainsRune(tmpl, '{') || len(tags) == 0 {
 		return tmpl
 	}
 	pairs := make([]string, 0, len(tags)*4)

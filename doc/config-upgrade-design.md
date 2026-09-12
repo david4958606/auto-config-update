@@ -102,7 +102,7 @@ go test ./internal/engine -run TestUpgradeExampleConfig
 | `remove-node` | 删除已存在元素（含子树），`has` 子条件区分同名异内容节点 | 无命中 |
 | `wrap` | 用 `open`/`close` 包裹节点区间（`comment: true` 即注释掉，或 CDATA 化） | 紧邻处已有标记 / 无命中 |
 | `uncomment` | 放开（`drop: false`）或删除（`drop: true`）包住 `find` 的注释块 | 找不到包裹注释 |
-| `file:`（step 级） | 让 step 直接作用于 `config/<file>` | — |
+| `file:`（step 级） | 让 step 直接作用于 `config/<file>`；路径含占位符时按腔室展开 | — |
 
 配套的底层改动：
 

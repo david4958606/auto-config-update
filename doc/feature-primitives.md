@@ -58,8 +58,8 @@ steps:                     # 有序步骤列表，见下
 | `remove-node` | 动作 | 删除已存在元素(含子树)。见 §7.11。 |
 | `wrap` | 动作 | 用 `open`/`close` 包裹一段节点区间(注释掉 / CDATA 化)。见 §7.12。 |
 | `uncomment` | 动作 | 放开(或删除)包住某段文本的注释块。见 §7.13。 |
-| `file:`(step 级) | 定位 | 让某个 step 直接作用于 `config/<file>`(已存在的文件)。见 §7.14。 |
-| `new-file:`(step 级) | 动作 | 文件不存在时按 `content` **逐字新建**；已存在即 no-op。见 §7.15。 |
+| `file:`(step 级) | 定位 | 让某个 step 直接作用于 `config/<file>`(已存在的文件)；路径含占位符则**按腔室展开**。见 §7.14。 |
+| `new-file:`(step 级) | 动作 | 文件不存在时按 `content` **逐字新建**；已存在即 no-op；路径含占位符则按腔室展开。见 §7.15。 |
 
 同一 step 内动作的**执行顺序固定**（与 YAML 中书写顺序无关）：
 `add-node` → `add-data` → `add-element` → `add-setup` → `add-xml` → `set-text`/`set-attr`/`remove-node` →
@@ -172,7 +172,9 @@ bind:
 > `remove-node`(tag/child/attr/value/has)、`wrap`(open/close/select)、`uncomment`(find/open/close)、
 > `add-comment`，以及 step 级 `where`(tag-glob/attr)、`require`/`bind` 路径、`before`/`after` 选择器。
 > 回归覆盖见 `internal/engine/placeholder_test.go`（两种写法混用、断言产物不残留占位符）。
-> 例外：`file:` / `new-file:` / `content` 是文件级、无腔室上下文，按字面处理。
+> `file:` / `new-file:` 的**路径**是唯一"作用域由路径自身决定"的位置：不含 `{` 时全局执行一次
+> （无腔室上下文，按字面处理）；含 `{` 时按腔室展开，可用 `${Chamber}` 与各腔室 class 绑定
+> （见 §7.14）。`content` 始终按字面写入，不做占位符替换。
 
 变量来源：
 
@@ -514,7 +516,38 @@ steps:
       - { tag: FileSize, text: "10", after: { tag: Threshold } }
 ```
 
-声明了 `file:` 的步骤不参与腔室循环，在腔室步骤之后按声明顺序各执行一次，直接读该文件、改完写回。
+**字面量路径**（不含占位符）的步骤不参与腔室循环，在腔室步骤之后按声明顺序各执行一次，
+直接读该文件、改完写回。
+
+**按腔室展开**：路径里含占位符时（如 `${Chamber}` 或某腔室的 class 名），该步骤改为在腔室
+循环内**逐腔室执行一次**——用该腔室的绑定解析路径、`anchor`/`where` 与各动作的取值字段，
+因此一份声明就能覆盖所有腔室：
+
+```yaml
+steps:
+  - name: 每个腔室的 Setup 都加一个参数
+    file: Setup/Setup_${Chamber}.xml     # → Setup/Setup_Ch1.xml、Setup/Setup_Ch2.xml …
+    add-setup:
+      - param: SrcDCMax_${Chamber}       # → SrcDCMax_Ch1 / SrcDCMax_Ch2 …
+        dataObject: /SETUP/${Chamber}/Source/SourceDC/CurrentOutputMaxPercent
+        type: D
+        min: 0
+        max: 100
+        units: "%"
+        accuracy: 0.1
+        default: 70
+        value: 70
+```
+
+按腔室展开的语义细节：
+
+- 腔室清单来自 Control 片段的根标签；`--chamber` 限定同样生效（未选中的腔室不展开）。
+- 路径里可用 `{Chamber}`（**保留绑定**，见 §6）或该腔室根的 class 名；`{}` 与 `${}` 同解。
+- 判定依据是**路径里有没有 `{`**：含 `{` 即按腔室展开，不含则全局执行一次。
+- 某腔室**没有**该文件时只打印 `! 跳过：文件不存在` 并继续（不同腔室未必都有该文件），
+  不会中止其余腔室；字面量路径缺失文件则仍报错。
+- 与腔室步骤一致：同一腔室名若在多个片段里出现（如 `Control_Ch1` 与 `Interlock_Ch1` 的根
+  都是 `<Ch1>`），该步也会随之执行多次；所有原语幂等，重复执行是 no-op。
 
 ### 7.15 `new-file` —— 新建文件
 
@@ -532,7 +565,9 @@ steps:
 - 文件**已存在** → `- 已存在，保持原样(no-op)`，**绝不覆盖**（与外科式补丁一致）；
 - `plan` 模式只打印 `+ 待新建`，不落盘。
 
-`new-file` 步骤同样属于"文件级步骤"：不参与腔室循环，在腔室步骤之后按声明顺序执行。
+`new-file` 同样属"文件级步骤"，且路径规则与 `file:` 相同：不含占位符时全局执行一次；
+含占位符时按腔室展开（如 `new-file: Setup/New_${Chamber}.xml` 为每个腔室新建一份）。
+`content` 始终**按字面写入**，不做占位符替换。
 
 ```yaml
 steps:
@@ -606,6 +641,8 @@ Setup 文件的参数分两处写：根元素下的 `<Param .../>` 声明，与 
 
 - **腔室级**：`--chamber` 缺省=全部腔室；限定时逐腔室执行。某腔室 anchor 无匹配 / `require`
   不满足 → 自动跳过并打印原因。
+- **文件级**：路径含占位符的 `file:`/`new-file:` 步骤在该腔室循环内**逐腔室执行**（顺序为
+  腔室步骤之后）；路径为字面量的在全部腔室之后按声明顺序各执行一次。
 - **step 级**：按 `steps` 顺序，后一步可见前一步在内存树上挂的新节点（跨步引用）。
 - **同一 step 内动作顺序**（固定，与书写顺序无关）：
   `add-node` → `add-data` → `add-element` → `add-setup` → `add-xml` → `set-text`/`set-attr`/`remove-node` →
