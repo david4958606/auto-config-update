@@ -17,16 +17,23 @@ make win64    # windows/amd64 -> auto-config-update.exe
 
 ## 运行
 
-`config/`、`features/` 按**当前工作目录**解析,需在含二者的目录下运行:
+`features/` 按**当前工作目录**解析；`config/` 缺省取**可执行文件同目录**下的 `config`，
+也可用 `--config <dir>` 指定（相对路径同样以可执行文件所在目录为基准，绝对路径原样使用）：
 
 ```bash
 ./auto-config-update plan  --feature features/ig-auto-close.yaml    # dry-run,不写盘
 ./auto-config-update apply --feature features/ig-auto-close.yaml    # 写盘
 ./auto-config-update apply --feature features/... --chamber Ch1 Ch4 # 限定腔室(缺省=全部)
+./auto-config-update apply --feature features/... --config config-14346   # 改用 exe 同目录的 config-14346
 ./auto-config-update check                                          # 校验 Setup 的 Param/Value 一一对应
 ./auto-config-update switch true                                    # 把 config/*Simulated* 的模拟开关切到 true
 ./auto-config-update switch false                                   # ... 切到 false
+./auto-config-update switch true --config config-14346              # flag 写在位置参数前后均可
 ```
+
+- `--config <dir>` 指定 config 文件夹：缺省为**可执行文件同目录**的 `config`；传相对路径时以
+  可执行文件所在目录为基准（`--config config-14346` = 该目录下的 `config-14346/`），传绝对路径则原样使用。
+  该 flag 对 `plan` / `apply` / `check` / `switch` 全部生效。
 
 - `switch <true|false>` 批量改写 `config/*Simulated*` 里
   `<setSimulated type="method">true|false</setSimulated>` 的取值，替代手工的
@@ -89,6 +96,7 @@ steps:
 | `add-io` / `add-data` | 建 IO/数据点位,按 `name` 判重。子元素按序 `Bd`(`auto`=推断板号)/`Ch`/`Min`/`Max`/`Accuracy`/`DescriptorList`/`Unit`;`add-data` 首属性固定 `type="data"`。 |
 | `add-blank` / `add-comment` | 在方法块前插入空行 / 段注释。`add-blank: N` 插 N 行空行;`add-comment` 是注释原文列表(须自带 `<!-- -->`)。二者不进解析树,按 anchor 原始字节区间判重(已存在即 no-op)。 |
 | `add-element` | 建普通元素(如 Setup 的 `<Param>`/`<Value>`、`<FileSize>`、`<spare>`),可 `before`/`after` 定位。 |
+| `add-setup` | 向 Setup **成对追加**一个 `<Param .../>` 声明与对应的 `<Option>/<Value ...>` 取值:都加在各自序列末尾,按 `param` 名判重(幂等)。 |
 | `add-xml` | 插入一段**内联 XML 片段**(整棵新对象子树),逐字保留 `&amp;&amp;` 等实体书写。 |
 | `set-text` / `set-attr` | 改写已存在元素的文本 / 属性(按 `tag`+`attr`+可选 `old` 定位)。 |
 | `remove-node` | 删除已存在元素(含子树);`has` 子条件可区分同名不同内容的节点。 |
@@ -126,7 +134,7 @@ config/
   - `xmldoc` —— 按字节偏移解析 XML、实体容忍(声明不展开)、外科回写的编辑记录
   - `config` —— master+实体装配、逻辑 IO/Control 视图、实体真名解析
   - `anchor` —— class 路径定位 + 同类多实例 fan-out + `where` 筛选
-  - `ops` —— 幂等原语:`add-node`/`add-method`/`remove-method`/`add-io`/`add-data`/`add-blank`/`add-comment`/`add-entity-ref`/`add-element`/`add-xml`/`set-text`/`set-attr`/`remove-node`/`wrap`/`uncomment`
+  - `ops` —— 幂等原语:`add-node`/`add-method`/`remove-method`/`add-io`/`add-data`/`add-blank`/`add-comment`/`add-entity-ref`/`add-element`/`add-setup`/`add-xml`/`set-text`/`set-attr`/`remove-node`/`wrap`/`uncomment`
   - `xmlcmp` —— 语义比对(忽略空白/注释/属性序,比对元素树+实体+停用区),用于升级验收
   - `feature` —— 功能 YAML 加载 + `require`/`bind` 绑定
   - `setupcheck` —— `Setup/*.xml` 的 Param/Value 按下标一一对应校验

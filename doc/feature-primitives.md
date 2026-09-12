@@ -51,6 +51,7 @@ steps:                     # 有序步骤列表，见下
 | `remove-method` | 动作 | 删方法调用。见 §7.4。 |
 | `add-io` | 动作 | 建 IO 点位，可内嵌实体引用。见 §7.5。 |
 | `add-element` | 动作 | 建普通元素(`<Param>`/`<Value>`/`<FileSize>`/`<spare>`)。见 §7.8。 |
+| `add-setup` | 动作 | 向 Setup **成对追加** `<Param>` 与 `<Option>/<Value>`。见 §7.16。 |
 | `add-xml` | 动作 | 插入一段**内联 XML 片段**(整棵子树，逐字保留实体书写)。见 §7.9。 |
 | `set-text` | 动作 | 改写已存在元素的文本。见 §7.10。 |
 | `set-attr` | 动作 | 改写/新增已存在元素的属性。见 §7.10。 |
@@ -61,7 +62,7 @@ steps:                     # 有序步骤列表，见下
 | `new-file:`(step 级) | 动作 | 文件不存在时按 `content` **逐字新建**；已存在即 no-op。见 §7.15。 |
 
 同一 step 内动作的**执行顺序固定**（与 YAML 中书写顺序无关）：
-`add-node` → `add-data` → `add-element` → `add-xml` → `set-text`/`set-attr`/`remove-node` →
+`add-node` → `add-data` → `add-element` → `add-setup` → `add-xml` → `set-text`/`set-attr`/`remove-node` →
 `wrap` → `uncomment` → `add-blank` → `add-comment` → `add-method` → `remove-method` → `add-io`（见 §8）。
 > 需要把注释/空行放到方法块**之后**时，另起一个**同 anchor 的 step**单独写 `add-comment`（追加落在末尾）。
 
@@ -551,6 +552,54 @@ steps:
 > （生成器会把目标文件原文分别内联）。若把 `content` 写成 YAML 的 `|` 块标量，缩进会被
 > 保留，建议用 `|-` 或注意首行缩进。
 
+### 7.16 `add-setup` —— Setup 的 Param/Value 成对追加
+
+Setup 文件的参数分两处写：根元素下的 `<Param .../>` 声明，与 `<Option>` 里对应的
+`<Value paramName="...">取值</Value>`。二者必须**按下标一一同名**（见 `setupcheck`），
+手工分两处 `add-element` 容易漏一侧或错位。`add-setup` 把"一个参数"作为**一次声明**成对追加：
+
+- `<Param name=... attrs.../>` 追加到 `<Param>` 序列**末尾**（即首个 `<Option>` 之前）；
+- `<Value paramName=...>value</Value>` 追加到该 `<Option>` 的**末尾**（即 `</Option>` 之前）。
+
+| 字段 | 说明 |
+|------|------|
+| `param` | 参数名：`<Param name>` 与 `<Value paramName>`（必填）。判重键。 |
+| `dataObject` / `type` / `min` / `max` / `maxLength` / `descriptorList` / `units` / `accuracy` / `default` | `<Param>` 属性的便捷写法。按设备 Setup 的规范顺序渲染（`dataObject → type → min → max → maxLength → descriptorList → units → accuracy → default`），**未配置的项跳过**；写 `null` 或空串则渲染成空值属性。 |
+| `attrs` | 其它属性（保留书写顺序）；与上面的便捷字段**同名时以 `attrs` 为准**，且仍落在规范顺序的位置。 |
+| `value` | `<Value>` 的文本（支持占位符）；缺省/`null` → 渲染成成对空标签 `<Value paramName="X"></Value>`。 |
+
+判重（幂等）：两侧各自按 `name` / `paramName` 判重——已存在的一侧不动，**只补缺失的一侧**；
+两侧都在即 no-op。找不到 `<Option>` 时只追加 `<Param>` 并在日志里以 `!` 告警。
+
+```yaml
+- name: Setup/Setup_Ch1.xml 升级
+  file: Setup/Setup_Ch1.xml
+  add-setup:
+    - param: SourceDCCurrentMax
+      dataObject: /SETUP/Control/Ch1/Source/SourceDC/CurrentOutputMaxPercent
+      type: D
+      min: 0
+      max: 100
+      units: "%"
+      accuracy: 0.1
+      default: 70
+      value: 70
+```
+
+生成（`<Param>` 落在 Param 序列末尾、`<Value>` 落在 Option 末尾）：
+
+```xml
+<Param name="SourceDCCurrentMax" dataObject="/SETUP/Control/Ch1/Source/SourceDC/CurrentOutputMaxPercent" type="D" min="0" max="100" units="%" accuracy="0.1" default="70"/>
+...
+<Option index="1">
+  ...
+  <Value paramName="SourceDCCurrentMax">70</Value>
+</Option>
+```
+
+> anchor 可省略：`add-setup` 作用在文件根元素上，因此与 `file:` 配合即可；若写了 `anchor`
+> 则相对文件根解析（空 `anchor` = 根元素本身）。
+
 ---
 
 ## 8. 执行顺序与幂等
@@ -559,7 +608,7 @@ steps:
   不满足 → 自动跳过并打印原因。
 - **step 级**：按 `steps` 顺序，后一步可见前一步在内存树上挂的新节点（跨步引用）。
 - **同一 step 内动作顺序**（固定，与书写顺序无关）：
-  `add-node` → `add-data` → `add-element` → `add-xml` → `set-text`/`set-attr`/`remove-node` →
+  `add-node` → `add-data` → `add-element` → `add-setup` → `add-xml` → `set-text`/`set-attr`/`remove-node` →
   `wrap` → `uncomment` → `add-blank` → `add-comment` → `add-method` → `remove-method` → `add-io`。
 - **幂等**：每个原语先判重，已达目标即 no-op（`-`），不产生字节编辑；重复运行安全。
 

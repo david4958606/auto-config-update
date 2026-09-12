@@ -56,6 +56,7 @@ type Step struct {
 	Wrap       []WrapSpec       `yaml:"wrap"`
 	Uncomment  []UncommentSpec  `yaml:"uncomment"`
 	AddElement []AddElementSpec `yaml:"add-element"`
+	AddSetup   []AddSetupSpec   `yaml:"add-setup"` // Setup 的 <Param>/<Value> 成对追加
 	AddXML     []AddXMLSpec     `yaml:"add-xml"`
 }
 
@@ -135,6 +136,101 @@ type AddElementSpec struct {
 
 // AttrPairs 按书写顺序返回 add-element 的属性键值对。
 func (a *AddElementSpec) AttrPairs() []xmldoc.Attr { return mapPairs(&a.Attrs) }
+
+// AddSetupSpec 描述一个 add-setup 动作：向 Setup 文件成对追加一个参数声明与取值——
+// anchor(缺省=文件根元素)下追加 <Param name=.../>，其 <Option> 里追加对应的
+// <Value paramName=...>value</Value>。两者都追加到各自序列末尾(Param 落在首个 <Option> 之前，
+// Value 落在 </Option> 之前)，按名判重(幂等)。
+//
+// dataObject/type/min/max/maxLength/descriptorList/units/accuracy/default 是 <Param> 属性的
+// 便捷写法(按设备 Setup 的规范顺序渲染，未配置的项跳过)；少见属性用 attrs 给出。
+type AddSetupSpec struct {
+	Param          string    `yaml:"param"` // <Param name> / <Value paramName>(必填)
+	DataObject     string    `yaml:"dataObject"`
+	Type           string    `yaml:"type"`
+	Min            yaml.Node `yaml:"min"`
+	Max            yaml.Node `yaml:"max"`
+	MaxLength      yaml.Node `yaml:"maxLength"`
+	DescriptorList yaml.Node `yaml:"descriptorList"`
+	Units          yaml.Node `yaml:"units"`
+	Accuracy       yaml.Node `yaml:"accuracy"`
+	Default        yaml.Node `yaml:"default"`
+	Value          yaml.Node `yaml:"value"` // <Value> 文本；缺省/null→渲染成成对空标签
+	Attrs          yaml.Node `yaml:"attrs"` // 其它属性(保留书写顺序)；同名覆盖上面的便捷字段
+}
+
+// setupParamOrder 是 <Param> 属性的规范书写顺序(与设备导出的 Setup 文件一致)：
+// type="I" 的参数写 min/max/descriptorList/units/default，type="D" 的写 min/max/units/accuracy/default，
+// type="S" 的写 maxLength/default。attrs 里配置的同名键同样落在这个位置。
+var setupParamOrder = []string{
+	"dataObject", "type", "min", "max", "maxLength",
+	"descriptorList", "units", "accuracy", "default",
+}
+
+// ParamAttrs 按设备 Setup 的规范顺序返回 <Param> 的属性表：首属性固定 name=<param>，
+// 其后按 setupParamOrder 输出已配置的属性(顶层便捷字段与 attrs 同名以 attrs 为准)，
+// 最后追加 attrs 里规范顺序之外的其它属性(保持书写顺序)。
+func (a *AddSetupSpec) ParamAttrs() []xmldoc.Attr {
+	values := map[string]string{}
+	if a.DataObject != "" {
+		values["dataObject"] = a.DataObject
+	}
+	if a.Type != "" {
+		values["type"] = a.Type
+	}
+	for _, f := range []struct {
+		name string
+		node *yaml.Node
+	}{
+		{"min", &a.Min}, {"max", &a.Max}, {"maxLength", &a.MaxLength},
+		{"descriptorList", &a.DescriptorList}, {"units", &a.Units},
+		{"accuracy", &a.Accuracy}, {"default", &a.Default},
+	} {
+		if v, ok := scalarValue(f.node); ok {
+			values[f.name] = v
+		}
+	}
+	var extra []xmldoc.Attr // 规范顺序之外的属性，保持书写顺序
+	for _, kv := range mapPairs(&a.Attrs) {
+		if isSetupParamField(kv.Name) {
+			values[kv.Name] = kv.Value
+			continue
+		}
+		extra = append(extra, kv)
+	}
+	attrs := []xmldoc.Attr{{Name: "name", Value: a.Param}}
+	for _, k := range setupParamOrder {
+		if v, ok := values[k]; ok {
+			attrs = append(attrs, xmldoc.Attr{Name: k, Value: v})
+		}
+	}
+	return append(attrs, extra...)
+}
+
+// ValueText 返回 <Value> 元素的文本；未配置(value 缺省或 null)→空串(渲染成成对空标签)。
+func (a *AddSetupSpec) ValueText() string { return ScalarText(&a.Value) }
+
+// scalarValue 返回标量节点的文本与"是否已配置"：
+// Kind==0(字段缺省)→ ("", false)；!!null → ("", true)；否则 → (原文本, true)。
+func scalarValue(n *yaml.Node) (string, bool) {
+	if n == nil || n.Kind == 0 {
+		return "", false
+	}
+	if n.Tag == "!!null" {
+		return "", true
+	}
+	return n.Value, true
+}
+
+// isSetupParamField 报告 name 是否是规范顺序里的 <Param> 属性。
+func isSetupParamField(name string) bool {
+	for _, k := range setupParamOrder {
+		if k == name {
+			return true
+		}
+	}
+	return false
+}
 
 // WhereSpec 是 leaf 谓词 + 可选的插入定位。
 //   - tag-glob / attr：筛选命中哪个 leaf 实例。

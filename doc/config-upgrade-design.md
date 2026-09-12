@@ -95,6 +95,7 @@ go test ./internal/engine -run TestUpgradeExampleConfig
 | 原语 | 作用 | 幂等判据 |
 |------|------|----------|
 | `add-element` | 新增普通元素（attrs/text/自闭合），可 `before`/`after` 定位 | 同 tag+attrs+text 已存在 |
+| `add-setup` | Setup 里成对追加 `<Param>` 声明与 `<Option>/<Value>` 取值（各落序列末尾） | 两侧按 `name`/`paramName` 各自判重 |
 | `add-xml` | 插入一段**内联 XML 片段**（整棵子树），逐字落盘、按父深度重排缩进 | 已有结构完全一致的兄弟 |
 | `set-text` | 改写已存在元素文本（`tag`+可选 `child`/`attr`/`old`） | 文本已是目标值 |
 | `set-attr` | 改写/插入已存在元素的属性 | 属性已是目标值 |

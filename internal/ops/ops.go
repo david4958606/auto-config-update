@@ -522,6 +522,95 @@ func AddElement(anchor *xmldoc.Node, tag string, attrs []xmldoc.Attr, text strin
 	return Result{Changed: true, Message: fmt.Sprintf("新增元素 <%s>", tag), Edit: edit}
 }
 
+// AddSetupPair 在 Setup 文档的 anchor(缺省=文件根元素)下成对追加一个参数声明与取值：
+//
+//	<Param name=... attrs.../>                        追加到 <Param> 序列末尾(首个 <Option> 之前)
+//	<Option>…<Value paramName=...>value</Value></Option>  追加到该 <Option> 末尾
+//
+// 两侧各自按 name / paramName 判重：已存在的一侧不动，只补缺失的一侧，故二次执行幂等。
+// 找不到 <Option> 时只追加 <Param>，并在消息里以 ! 告警。
+func AddSetupPair(anchor *xmldoc.Node, name string, paramAttrs []xmldoc.Attr, value string) Result {
+	var edits []xmldoc.Edit
+	var added []string
+
+	if !hasNamedChild(anchor, "Param", "name", name) {
+		el := xmldoc.NewElement("Param")
+		el.Attrs = paramAttrs
+		edit := xmldoc.Edit{Kind: xmldoc.Insert, Parent: anchor, Child: el}
+		if before := setupParamInsertBefore(anchor); before != nil {
+			xmldoc.InsertBefore(anchor, el, before)
+			edit.Before = before
+		} else {
+			xmldoc.AppendChild(anchor, el)
+		}
+		edits = append(edits, edit)
+		added = append(added, "Param")
+	}
+
+	option := xmldoc.FindChild(anchor, "Option")
+	switch {
+	case option == nil:
+		if len(added) == 0 {
+			return Result{Changed: false, Message: fmt.Sprintf("Setup 参数 %s 已存在", name)}
+		}
+		return Result{Changed: true, Edits: edits,
+			Message: fmt.Sprintf("新增 Setup 参数 %s（! 未找到 <Option>，未加取值）", name)}
+	case !hasNamedChild(option, "Value", "paramName", name):
+		el := xmldoc.NewElement("Value")
+		el.Attrs = []xmldoc.Attr{{Name: "paramName", Value: name}}
+		el.Text = value
+		el.PairedEmpty = true // 空取值渲染成 <Value paramName="X"></Value>(与 Setup 既有写法一致)
+		xmldoc.AppendChild(option, el)
+		edits = append(edits, xmldoc.Edit{Kind: xmldoc.Insert, Parent: option, Child: el})
+		added = append(added, "Value")
+	}
+
+	if len(added) == 0 {
+		return Result{Changed: false, Message: fmt.Sprintf("Setup 参数 %s 及其取值已存在", name)}
+	}
+	res := Result{Changed: true, Message: fmt.Sprintf("新增 Setup 参数 %s（%s）", name, strings.Join(added, "+"))}
+	if len(edits) == 1 {
+		res.Edit = &edits[0]
+	} else {
+		res.Edits = edits
+	}
+	return res
+}
+
+// hasNamedChild 报告 parent 下是否存在 <tag key="value"> 的直接子元素(跳过已删除/实体)。
+func hasNamedChild(parent *xmldoc.Node, tag, key, value string) bool {
+	for _, c := range parent.Children {
+		if c.Removed || c.IsEntity || c.Tag != tag {
+			continue
+		}
+		if c.HasAttr(key) && c.Attr(key) == value {
+			return true
+		}
+	}
+	return false
+}
+
+// setupParamInsertBefore 返回"新增 <Param> 应插到其前"的兄弟节点，使新声明落在 <Param>
+// 序列末尾：取最后一个 <Param> 之后的下一个原节点；没有 <Param> 时取首个 <Option>；
+// 都没有则 nil(追加到父末尾)。合成节点无字节区间，不作定位点。
+func setupParamInsertBefore(anchor *xmldoc.Node) *xmldoc.Node {
+	last := -1
+	for i, c := range anchor.Children {
+		if !c.Removed && !c.IsEntity && c.Tag == "Param" {
+			last = i
+		}
+	}
+	if last >= 0 {
+		for j := last + 1; j < len(anchor.Children); j++ {
+			if c := anchor.Children[j]; !c.Removed && !c.Synthetic {
+				return c
+			}
+		}
+		return nil
+	}
+	return xmldoc.FindChild(anchor, "Option")
+}
+
 func attrsEqual(a, b []xmldoc.Attr) bool {
 	if len(a) != len(b) {
 		return false

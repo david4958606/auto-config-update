@@ -1,10 +1,12 @@
 // Command addex —— 配置幂等语义补丁引擎(Go 版)。
 //
-// 用法(沿用 Python 现状；config/ 按当前工作目录解析，见 GO_PORT_PLAN.md §7.3)：
+// 用法(features/ 按当前工作目录解析；config/ 缺省取可执行文件同目录下的 config，
+// 也可用 --config <dir> 指定)：
 //
-//	cd <含 config/ features/ 的目录>
+//	cd <含 features/ 的目录>
 //	addex plan  --feature features/ig-auto-close.yaml
 //	addex apply --feature features/ig-auto-close.yaml --chamber Ch1
+//	addex apply --feature features/ig-auto-close.yaml --config config-14346
 //	addex check                          # Setup 的 Param/Value 一致性自检
 //	addex switch <true|false>            # 切换 config/*Simulated* 的 setSimulated 开关
 //
@@ -15,6 +17,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"addex/internal/engine"
@@ -37,14 +40,15 @@ func run(argv []string) int {
 	featurePath := fs.String("feature", "", "feature YAML 路径(必填)")
 	fs.StringVar(featurePath, "f", "", "feature YAML 路径(必填，--feature 的别名)")
 	noVerify := fs.Bool("no-verify", false, "apply 后跳过 Setup 一致性自检")
+	configPath := fs.String("config", "", "config 文件夹；缺省=<可执行文件同目录>/config，相对路径也以该目录为基准")
 
 	var chambers chamberList
 	fs.Var(&chambers, "chamber", "限定腔室，可连续指定或重复；缺省=全部（如 --chamber Ch1 Ch2 Ch3）")
 	fs.Var(&chambers, "c", "限定腔室，可连续指定或重复；缺省=全部（如 -c Ch1 Ch2 Ch3）")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "用法: addex <plan|apply> --feature <path> [--chamber Ch1 Ch2 ...] [--no-verify]")
-		fmt.Fprintln(os.Stderr, "      addex check                  # 校验 config/Setup 的 Param/Value 一一对应")
-		fmt.Fprintln(os.Stderr, "      addex switch <true|false>    # 切换 config/*Simulated* 的 setSimulated 开关")
+		fmt.Fprintln(os.Stderr, "用法: addex <plan|apply> --feature <path> [--chamber Ch1 Ch2 ...] [--no-verify] [--config <dir>]")
+		fmt.Fprintln(os.Stderr, "      addex check                  # 校验 <config>/Setup 的 Param/Value 一一对应")
+		fmt.Fprintln(os.Stderr, "      addex switch <true|false>    # 切换 <config>/*Simulated* 的 setSimulated 开关")
 		fs.PrintDefaults()
 	}
 
@@ -58,15 +62,19 @@ func run(argv []string) int {
 		fs.Usage()
 		return 2
 	}
-	if err := fs.Parse(expandVariadic(argv[1:], "chamber")); err != nil {
+	// 先展开变参(--chamber A B → --chamber A --chamber B)，再重排为「flag 在前、位置参数在后」，
+	// 这样 switch 的位置参数(true/false)写在 --config 之前也不会被 stdlib flag 提前截断。
+	args := reorderFlags(expandChambers(argv[1:]), takesValue(fs))
+	if err := fs.Parse(args); err != nil {
 		return 2
 	}
+	configDir := resolveConfigDir(*configPath, executableDir())
 	if mode == "check" {
 		fmt.Print("配置一致性校验 | Setup 的 Param/Value 按下标一一对应\n\n")
-		return verifySetup("config", true)
+		return verifySetup(configDir, true)
 	}
 	if mode == "switch" {
-		return runSwitch("config", fs.Args())
+		return runSwitch(configDir, fs.Args())
 	}
 	if *featurePath == "" {
 		fmt.Fprintln(os.Stderr, "缺少 --feature")
@@ -87,7 +95,7 @@ func run(argv []string) int {
 	}
 	fmt.Print(header + "\n\n")
 
-	eng, err := engine.New("config")
+	eng, err := engine.New(configDir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -100,10 +108,10 @@ func run(argv []string) int {
 	// 后置自检：Setup 的 Param/Value 必须一一对应。这类笔误/错位往往只在设备侧才暴露，
 	// 这里提前拦下：apply 默认自检并以非零退出码报错；plan 只提示；--no-verify 可显式跳过。
 	if mode == "apply" && !*noVerify {
-		return verifySetup("config", true)
+		return verifySetup(configDir, true)
 	}
 	if mode == "plan" {
-		verifySetup("config", false)
+		verifySetup(configDir, false)
 	}
 	return 0
 }
@@ -217,6 +225,89 @@ func expandVariadic(argv []string, name string) []string {
 		i += vals
 	}
 	return out
+}
+
+// expandChambers 展开腔室的两种写法(--chamber / -c)的连续多值形式。
+func expandChambers(argv []string) []string {
+	return expandVariadic(expandVariadic(argv, "chamber"), "c")
+}
+
+// executableDir 返回可执行文件所在目录(软链已解析)；取不到时退回当前工作目录。
+func executableDir() string {
+	exe, err := os.Executable()
+	if err == nil {
+		if resolved, rerr := filepath.EvalSymlinks(exe); rerr == nil {
+			exe = resolved
+		}
+		return filepath.Dir(exe)
+	}
+	if wd, werr := os.Getwd(); werr == nil {
+		return wd
+	}
+	return "."
+}
+
+// resolveConfigDir 解析 --config 的目标目录：
+//   - 未指定(空)  → <exeDir>/config
+//   - 绝对路径     → 原样(仅 Clean)
+//   - 相对路径     → <exeDir>/<path>，如 --config config-14346 即 exe 同目录下的 config-14346
+func resolveConfigDir(specified, exeDir string) string {
+	if specified == "" {
+		return filepath.Join(exeDir, "config")
+	}
+	if filepath.IsAbs(specified) {
+		return filepath.Clean(specified)
+	}
+	return filepath.Join(exeDir, specified)
+}
+
+// takesValue 判断某个 flag 是否要取值(布尔 flag 之外都要)，供 reorderFlags 判断是否吞掉下一个 token。
+func takesValue(fs *flag.FlagSet) func(string) bool {
+	return func(name string) bool {
+		f := fs.Lookup(name)
+		if f == nil {
+			return false
+		}
+		if bf, ok := f.Value.(interface{ IsBoolFlag() bool }); ok && bf.IsBoolFlag() {
+			return false
+		}
+		return true
+	}
+}
+
+// reorderFlags 把 flag(连同其取值)前移、位置参数后移，如 `switch true --config X`
+// → `--config X true`。stdlib flag 遇到首个位置参数即停止解析，而 switch 天然带一个位置
+// 参数(目标值)，不重排就会静默忽略写在它后面的 --config 等 flag。
+// `--` 及其后 token 一律按位置参数原样保留。
+func reorderFlags(argv []string, needsValue func(string) bool) []string {
+	flags := make([]string, 0, len(argv))
+	rest := make([]string, 0, len(argv))
+	for i := 0; i < len(argv); i++ {
+		tok := argv[i]
+		if tok == "--" {
+			rest = append(rest, argv[i:]...)
+			break
+		}
+		if len(tok) < 2 || tok[0] != '-' {
+			rest = append(rest, tok)
+			continue
+		}
+		flags = append(flags, tok)
+		if !strings.Contains(tok, "=") && needsValue(flagName(tok)) && i+1 < len(argv) {
+			i++
+			flags = append(flags, argv[i])
+		}
+	}
+	return append(flags, rest...)
+}
+
+// flagName 取 `--name` / `-name` / `--name=v` 里的 name。
+func flagName(tok string) string {
+	name := strings.TrimLeft(tok, "-")
+	if i := strings.IndexByte(name, '='); i >= 0 {
+		name = name[:i]
+	}
+	return name
 }
 
 // pyStrList 复刻 Python str(list) 的写法，如 ['Ch1', 'Ch2']。

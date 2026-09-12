@@ -104,6 +104,143 @@ func TestVerifySetupGate(t *testing.T) {
 	}
 }
 
+// TestResolveConfigDir 校验 --config 的寻址规则：缺省=exe 同目录的 config，
+// 相对路径以 exe 目录为基准，绝对路径原样。
+func TestResolveConfigDir(t *testing.T) {
+	exe := string(filepath.Separator) + filepath.Join("opt", "addex")
+	cases := []struct {
+		name, in, want string
+	}{
+		{"缺省取 exe 同目录 config", "", filepath.Join(exe, "config")},
+		{"相对路径以 exe 目录为基准", "config-14346", filepath.Join(exe, "config-14346")},
+		{"相对路径带 ./ 前缀", "./config-14346", filepath.Join(exe, "config-14346")},
+		{"相对路径带尾斜杠", "config-14346/", filepath.Join(exe, "config-14346")},
+		{"绝对路径原样", filepath.Join(exe, "cfg2"), filepath.Join(exe, "cfg2")},
+		{"绝对路径做 Clean", filepath.Join(exe, "cfg2") + string(filepath.Separator), filepath.Join(exe, "cfg2")},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := resolveConfigDir(c.in, exe); got != c.want {
+				t.Fatalf("resolveConfigDir(%q) = %q，期望 %q", c.in, got, c.want)
+			}
+		})
+	}
+}
+
+// TestReorderFlags 校验「flag 前移、位置参数后移」：switch 的目标值写在 --config 之前时，
+// flag 也不能被 stdlib 的“遇位置参数即停”吞掉。
+func TestReorderFlags(t *testing.T) {
+	needsValue := func(name string) bool { return name == "config" || name == "feature" }
+	cases := []struct {
+		name string
+		in   []string
+		want []string
+	}{
+		{
+			name: "位置参数后的 flag 前移",
+			in:   []string{"true", "--config", "config-14346"},
+			want: []string{"--config", "config-14346", "true"},
+		},
+		{
+			name: "已在前面的 flag 保持相对顺序",
+			in:   []string{"--feature", "f.yaml", "true", "--config", "c1"},
+			want: []string{"--feature", "f.yaml", "--config", "c1", "true"},
+		},
+		{
+			name: "布尔 flag 不吞值",
+			in:   []string{"--no-verify", "true"},
+			want: []string{"--no-verify", "true"},
+		},
+		{
+			name: "= 绑定形式不吞值",
+			in:   []string{"--config=c1", "true"},
+			want: []string{"--config=c1", "true"},
+		},
+		{
+			name: "-- 终止符后原样保留",
+			in:   []string{"true", "--", "--config", "c1"},
+			want: []string{"true", "--", "--config", "c1"},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := reorderFlags(c.in, needsValue)
+			if strings.Join(got, "\x00") != strings.Join(c.want, "\x00") {
+				t.Fatalf("reorderFlags(%v) = %v，期望 %v", c.in, got, c.want)
+			}
+		})
+	}
+}
+
+// TestRunSwitchConfigFlag 端到端校验 --config：绝对路径指向的 config-<id> 被改写，
+// 且 flag 无论写在位置参数前后都生效。
+func TestRunSwitchConfigFlag(t *testing.T) {
+	cases := []struct {
+		name string
+		argv func(dir string) []string
+	}{
+		{"flag 在位置参数前", func(d string) []string { return []string{"switch", "--config", d, "true"} }},
+		{"flag 在位置参数后", func(d string) []string { return []string{"switch", "true", "--config", d} }},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dir := filepath.Join(t.TempDir(), "config-14346")
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			p := filepath.Join(dir, "SimulatedFlag_Ch1")
+			if err := os.WriteFile(p, []byte(`<setSimulated type="method">false</setSimulated>`), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			argv := c.argv(dir)
+			out := captureStdout(t, func() {
+				if code := run(argv); code != 0 {
+					t.Errorf("run(%v) 应返回 0，得到 %d", argv, code)
+				}
+			})
+			if !strings.Contains(out, "改写 1") {
+				t.Errorf("run(%v) 应改写 1 个文件：\n%s", argv, out)
+			}
+			if b, _ := os.ReadFile(p); string(b) != `<setSimulated type="method">true</setSimulated>` {
+				t.Errorf("config-14346 未切到 true：%q", b)
+			}
+		})
+	}
+}
+
+// TestExpandChambers 校验 --chamber 与 -c 两种写法都支持连续多值。
+func TestExpandChambers(t *testing.T) {
+	cases := []struct {
+		name string
+		in   []string
+		want []string
+	}{
+		{
+			name: "长写法连续多值",
+			in:   []string{"--feature", "f.yaml", "--chamber", "Ch1", "Ch2", "--config", "c1"},
+			want: []string{"--feature", "f.yaml", "--chamber", "Ch1", "--chamber", "Ch2", "--config", "c1"},
+		},
+		{
+			name: "短写法 -c 同样连续多值",
+			in:   []string{"-c", "Ch1", "Ch2", "Ch3"},
+			want: []string{"-c", "Ch1", "-c", "Ch2", "-c", "Ch3"},
+		},
+		{
+			name: "两种写法混用",
+			in:   []string{"-c", "Ch1", "--chamber", "Ch2", "Ch3"},
+			want: []string{"-c", "Ch1", "--chamber", "Ch2", "--chamber", "Ch3"},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := expandChambers(c.in)
+			if strings.Join(got, "\x00") != strings.Join(c.want, "\x00") {
+				t.Fatalf("expandChambers(%v) = %v，期望 %v", c.in, got, c.want)
+			}
+		})
+	}
+}
+
 func TestExpandVariadic(t *testing.T) {
 	cases := []struct {
 		name string

@@ -38,7 +38,8 @@ type Engine struct {
 	declared      []string
 }
 
-// New 用 configDir(按当前工作目录解析，见 GO_PORT_PLAN.md §7.3) 构造引擎。
+// New 用 configDir 构造引擎。目录由 CLI 决定：--config 指定，
+// 缺省为可执行文件同目录下的 config(见 main.go 的 resolveConfigDir)。
 func New(configDir string) (*Engine, error) {
 	ioMaster := filepath.Join(configDir, "IO_config.xml")
 	controlMaster := filepath.Join(configDir, "Control", "Control_config.xml")
@@ -235,6 +236,11 @@ func (e *Engine) runFileSteps(steps []feature.Step, write bool, log func(string)
 		where := buildWhere(step.Where, nil)
 		var matches []anchor.Match
 		for _, root := range doc.Roots {
+			if len(segs) == 0 {
+				// 空 anchor = 文件根元素本身(整份文件级操作，如 add-setup 的 Param/Option)。
+				matches = append(matches, anchor.Match{Node: root, Tags: map[string]string{}})
+				continue
+			}
 			matches = append(matches, anchor.Resolve(root, segs, where)...)
 		}
 		if len(matches) == 0 {
@@ -558,6 +564,16 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		}
 		results = append(results, ops.AddElement(m.Node, feature.Format(ae.Tag, tags), attrs,
 			feature.Format(ae.Text, tags), ae.SelfClose, ae.PairedEmpty, before))
+	}
+	// add-setup：Setup 的 <Param>/<Value> 成对追加(都落在各自序列末尾)。
+	for i := range step.AddSetup {
+		sp := &step.AddSetup[i]
+		attrs := make([]xmldoc.Attr, 0, 9)
+		for _, a := range sp.ParamAttrs() {
+			attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
+		}
+		results = append(results, ops.AddSetupPair(m.Node, feature.Format(sp.Param, tags),
+			attrs, feature.Format(sp.ValueText(), tags)))
 	}
 	// add-xml：内联 XML 片段(新对象/新方法块)，按结构判重。
 	for i := range step.AddXML {

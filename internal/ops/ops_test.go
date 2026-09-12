@@ -235,3 +235,111 @@ func TestAddRawFragmentPreservesEntities(t *testing.T) {
 		t.Fatalf("二次 add-xml 不应有改动")
 	}
 }
+
+// setupFixture 是一个最小 Setup 文档：Param 序列 + 一个 <Option> 取值块。
+const setupFixture = `<Ch1Setup comments="c">
+  <Param name="A" dataObject="/A" type="I" min="0" max="1" descriptorList="" units="" default="0"/>
+  <Param name="B" dataObject="/B" type="I" min="0" max="1" descriptorList="" units="" default="0"/>
+  <Option index="1">
+    <Value paramName="A">1</Value>
+    <Value paramName="B">2</Value>
+  </Option>
+</Ch1Setup>
+`
+
+func setupAttrs() []xmldoc.Attr {
+	return []xmldoc.Attr{
+		{Name: "name", Value: "SourceDCCurrentMax"},
+		{Name: "dataObject", Value: "/SETUP/Control/Ch1/Source/SourceDC/CurrentOutputMaxPercent"},
+		{Name: "type", Value: "D"},
+		{Name: "min", Value: "0"},
+		{Name: "max", Value: "100"},
+		{Name: "units", Value: "%"},
+		{Name: "accuracy", Value: "0.1"},
+		{Name: "default", Value: "70"},
+	}
+}
+
+func TestAddSetupPairAppendsToBothSequencesAndIsIdempotent(t *testing.T) {
+	doc, root, _ := parse(t, setupFixture)
+	r := AddSetupPair(root, "SourceDCCurrentMax", setupAttrs(), "70")
+	if !r.Changed {
+		t.Fatalf("期望新增 Param+Value: %s", r.Message)
+	}
+	out := applyAll(doc, r)
+
+	iB := strings.Index(out, `name="B"`)
+	iNew := strings.Index(out, `name="SourceDCCurrentMax"`)
+	iOpt := strings.Index(out, "<Option")
+	if iB < 0 || iNew < iB || iOpt < iNew {
+		t.Fatalf("Param 未追加到 Param 序列末尾(应落在 B 之后、Option 之前):\n%s", out)
+	}
+	iOldVal := strings.Index(out, `<Value paramName="B">2</Value>`)
+	iNewVal := strings.Index(out, `<Value paramName="SourceDCCurrentMax">70</Value>`)
+	iClose := strings.Index(out, "</Option>")
+	if iNewVal < 0 || iNewVal < iOldVal || iNewVal > iClose {
+		t.Fatalf("Value 未追加到 Option 末尾(应落在 B 之后、</Option> 之前):\n%s", out)
+	}
+
+	// 二次执行：两侧都已存在 → no-op。
+	_, root2, _ := parse(t, out)
+	if again := AddSetupPair(root2, "SourceDCCurrentMax", setupAttrs(), "70"); again.Changed {
+		t.Fatalf("二次 add-setup 不应有改动: %s", again.Message)
+	}
+}
+
+func TestAddSetupPairFillsOnlyMissingSide(t *testing.T) {
+	// 只有 Param、没有 Value：应只补 Value。
+	src := `<S>
+  <Param name="X" dataObject="/X" type="I" min="0" max="1" units="" default="0"/>
+  <Option index="1">
+    <Value paramName="A">1</Value>
+  </Option>
+</S>
+`
+	doc, root, _ := parse(t, src)
+	r := AddSetupPair(root, "X", nil, "9")
+	if !r.Changed || !strings.Contains(r.Message, "Value") {
+		t.Fatalf("应只补 Value: changed=%v msg=%s", r.Changed, r.Message)
+	}
+	out := applyAll(doc, r)
+	if strings.Count(out, `name="X"`) != 1 {
+		t.Fatalf("不应重复添加 Param:\n%s", out)
+	}
+	if !strings.Contains(out, `<Value paramName="X">9</Value>`) {
+		t.Fatalf("Value 未补齐:\n%s", out)
+	}
+
+	// 反向：只有 Value、没有 Param：应只补 Param。
+	src2 := `<S>
+  <Option index="1">
+    <Value paramName="Y">1</Value>
+  </Option>
+</S>
+`
+	doc2, root2, _ := parse(t, src2)
+	r2 := AddSetupPair(root2, "Y", []xmldoc.Attr{{Name: "name", Value: "Y"}}, "1")
+	if !r2.Changed || !strings.Contains(r2.Message, "Param") {
+		t.Fatalf("应只补 Param: changed=%v msg=%s", r2.Changed, r2.Message)
+	}
+	out2 := applyAll(doc2, r2)
+	if !strings.Contains(out2, `<Param name="Y"/>`) {
+		t.Fatalf("Param 未补齐:\n%s", out2)
+	}
+	if strings.Count(out2, `paramName="Y"`) != 1 {
+		t.Fatalf("不应重复添加 Value:\n%s", out2)
+	}
+}
+
+func TestAddSetupPairWithoutOptionWarns(t *testing.T) {
+	src := "<S>\n  <Param name=\"A\"/>\n</S>\n"
+	doc, root, _ := parse(t, src)
+	r := AddSetupPair(root, "Z", []xmldoc.Attr{{Name: "name", Value: "Z"}}, "1")
+	if !r.Changed || !strings.Contains(r.Message, "!") {
+		t.Fatalf("无 Option 时应告警: changed=%v msg=%s", r.Changed, r.Message)
+	}
+	out := applyAll(doc, r)
+	if !strings.Contains(out, `<Param name="Z"/>`) {
+		t.Fatalf("Param 应仍被追加:\n%s", out)
+	}
+}
