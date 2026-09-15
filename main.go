@@ -70,7 +70,7 @@ func run(argv []string) int {
 	}
 	configDir := resolveConfigDir(*configPath, executableDir())
 	if mode == "check" {
-		fmt.Print("配置一致性校验\n\n")
+		fmt.Print("Setup 检查\n\n")
 		return verifySetup(configDir, true)
 	}
 	if mode == "switch" {
