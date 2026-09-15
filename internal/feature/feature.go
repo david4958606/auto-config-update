@@ -50,15 +50,16 @@ type Step struct {
 	AddData      []AddDataSpec `yaml:"add-data"`
 
 	// 原地改写 / 删除 / 注释开关 / 普通元素(见 doc/config-upgrade-design.md §3)。
-	SetText    []SetTextSpec    `yaml:"set-text"`
-	SetAttr    []SetAttrSpec    `yaml:"set-attr"`
-	RenameNode []RenameNodeSpec `yaml:"rename-node"`
-	RemoveNode []RemoveNodeSpec `yaml:"remove-node"`
-	Wrap       []WrapSpec       `yaml:"wrap"`
-	Uncomment  []UncommentSpec  `yaml:"uncomment"`
-	AddElement []AddElementSpec `yaml:"add-element"`
-	AddSetup   []AddSetupSpec   `yaml:"add-setup"` // Setup 的 <Param>/<Value> 成对追加
-	AddXML     []AddXMLSpec     `yaml:"add-xml"`
+	SetText     []SetTextSpec     `yaml:"set-text"`
+	SetAttr     []SetAttrSpec     `yaml:"set-attr"`
+	RenameNode  []RenameNodeSpec  `yaml:"rename-node"`
+	RemoveNode  []RemoveNodeSpec  `yaml:"remove-node"`
+	Wrap        []WrapSpec        `yaml:"wrap"`
+	Uncomment   []UncommentSpec   `yaml:"uncomment"`
+	AddElement  []AddElementSpec  `yaml:"add-element"`
+	AddSetup    []AddSetupSpec    `yaml:"add-setup"`    // Setup 的 <Param>/<Value> 成对追加
+	RemoveSetup []RemoveSetupSpec `yaml:"remove-setup"` // Setup 的 <Param>/<Value> 成对删除
+	AddXML      []AddXMLSpec      `yaml:"add-xml"`
 }
 
 // AddXMLSpec 描述一个 add-xml 动作：把一段内联 XML 片段插入 anchor 下(可用占位符)。
@@ -226,6 +227,12 @@ func (a *AddSetupSpec) ParamAttrs() []xmldoc.Attr {
 
 // ValueText 返回 <Value> 元素的文本；未配置(value 缺省或 null)→空串(渲染成成对空标签)。
 func (a *AddSetupSpec) ValueText() string { return ScalarText(&a.Value) }
+
+// RemoveSetupSpec 描述一个 remove-setup 动作：按 param 名删除 Setup 里的参数对——
+// anchor 下的 <Param name=...> 声明与 <Option> 里对应的 <Value paramName=...> 取值。
+type RemoveSetupSpec struct {
+	Param string `yaml:"param"` // <Param name> / <Value paramName>(必填)
+}
 
 // scalarValue 返回标量节点的文本与"是否已配置"：
 // Kind==0(字段缺省)→ ("", false)；!!null → ("", true)；否则 → (原文本, true)。

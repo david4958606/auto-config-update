@@ -102,6 +102,25 @@ func TestVerifySetupGate(t *testing.T) {
 	if code := verifySetup(filepath.Join(work, "config"), true); code != 0 {
 		t.Fatalf("一致配置应返回 0，得到 %d", code)
 	}
+	// 属性名大小写笔误（<Value paramname="A">）同样必须被闸门拦下，且要点名属性名。
+	if err := os.Remove(filepath.Join(dir, "Good.xml")); err != nil {
+		t.Fatal(err)
+	}
+	cased := `<X>
+  <Param name="A" type="S" />
+  <Option index="1"><Value paramname="A">0</Value></Option>
+</X>`
+	if err := os.WriteFile(filepath.Join(dir, "Cased.xml"), []byte(cased), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := captureStdout(t, func() {
+		if code := verifySetup(filepath.Join(work, "config"), true); code != 1 {
+			t.Errorf("属性名大小写笔误应返回非零退出码，得到 %d", code)
+		}
+	})
+	if !strings.Contains(out, "属性名写成 paramname") {
+		t.Errorf("输出应点名属性名笔误：\n%s", out)
+	}
 }
 
 // TestResolveConfigDir 校验 --config 的寻址规则：缺省=exe 同目录的 config，

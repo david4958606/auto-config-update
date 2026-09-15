@@ -52,6 +52,7 @@ steps:                     # 有序步骤列表，见下
 | `add-io` | 动作 | 建 IO 点位，可内嵌实体引用。见 §7.5。 |
 | `add-element` | 动作 | 建普通元素(`<Param>`/`<Value>`/`<FileSize>`/`<spare>`)。见 §7.8。 |
 | `add-setup` | 动作 | 向 Setup **成对追加** `<Param>` 与 `<Option>/<Value>`。见 §7.16。 |
+| `remove-setup` | 动作 | 从 Setup **成对删除**按 `param` 名匹配的 `<Param>` 与 `<Option>/<Value>`。见 §7.18。 |
 | `add-xml` | 动作 | 插入一段**内联 XML 片段**(整棵子树，逐字保留实体书写)。见 §7.9。 |
 | `set-text` | 动作 | 改写已存在元素的文本。见 §7.10。 |
 | `set-attr` | 动作 | 改写/新增已存在元素的属性。见 §7.10。 |
@@ -64,8 +65,8 @@ steps:                     # 有序步骤列表，见下
 
 同一 step 内动作的**执行顺序固定**（与 YAML 中书写顺序无关）：
 `add-node` → `add-data` → `add-element` → `add-setup` → `add-xml` → `rename-node` →
-`set-text`/`set-attr`/`remove-node` → `wrap` → `uncomment` → `add-blank` → `add-comment` →
-`add-method` → `remove-method` → `add-io`（见 §8）。
+`set-text`/`set-attr`/`remove-node` → `remove-setup` → `wrap` → `uncomment` → `add-blank` →
+`add-comment` → `add-method` → `remove-method` → `add-io`（见 §8）。
 > 需要把注释/空行放到方法块**之后**时，另起一个**同 anchor 的 step**单独写 `add-comment`（追加落在末尾）。
 
 ---
@@ -595,6 +596,10 @@ Setup 文件的参数分两处写：根元素下的 `<Param .../>` 声明，与 
 `<Value paramName="...">取值</Value>`。二者必须**按下标一一同名**（见 `setupcheck`），
 手工分两处 `add-element` 容易漏一侧或错位。`add-setup` 把"一个参数"作为**一次声明**成对追加：
 
+> XML 属性名**区分大小写**：`paramName` 写成 `paramname`（或 `name` 写成 `Name`）在设备侧等同于
+> 没有该属性，取值会整个失效。`check` / `apply` 自检会把这类写法单独报成 `attr-name`
+> （属性缺失则报 `attr-missing`），不会只留下"数量不一致"这种间接症状。
+
 - `<Param name=... attrs.../>` 追加到 `<Param>` 序列**末尾**（即首个 `<Option>` 之前）；
 - `<Value paramName=...>value</Value>` 追加到该 `<Option>` 的**末尾**（即 `</Option>` 之前）。
 
@@ -682,6 +687,31 @@ Setup 文件的参数分两处写：根元素下的 `<Param .../>` 声明，与 
 > 引擎会打印"anchor 无匹配"跳过——结果仍是幂等的（不再有改动）。需要重复定位时，建议
 > 把 anchor 放在**父节点**上，用 `tag: 旧名` 选择要改名的子元素。
 
+### 7.18 `remove-setup` —— Setup 的 Param/Value 成对删除
+
+`add-setup` 的反操作：按 `param` 名把 Setup 里的参数**成对**删掉——anchor 下所有
+`<Param name="X" .../>`，以及该 anchor 的 `<Option>` 下所有 `<Value paramName="X">…</Value>`。
+用于"目标版本删掉了某个参数"，与 `file:` 配合：
+
+```yaml
+- name: Setup/Setup_Ch1.xml 删除参数
+  file: Setup/Setup_Ch1.xml
+  remove-setup:
+    - { param: SourceDCCurrentMax }
+```
+
+| 字段 | 说明 |
+|------|------|
+| `param` | 参数名，同时匹配 `<Param name>` 与 `<Value paramName>`（必填，支持占位符）。 |
+
+判重（幂等）：两侧**各自独立**匹配删除（同名重复出现就都删）；两侧都不存在 → no-op。
+删除是"整行删除"（连同缩进与行尾换行），与 `remove-node` 一致；anchor 可省略（= 文件根元素）。
+
+> 与 `add-setup` 一样，路径含占位符的 `file:` 会按腔室展开，所以
+> `file: Setup/Setup_${Chamber}.xml` + `param: P${Chamber}` 能一份声明逐腔室删除。
+> 提醒：YAML **流式写法**里 `${...}` 的 `}` 会被当作映射结束符
+> （`{ param: P${Chamber} }` 解析报错），请用块式或加引号：`{ param: "P${Chamber}" }`。
+
 ---
 
 ## 8. 执行顺序与幂等
@@ -693,8 +723,8 @@ Setup 文件的参数分两处写：根元素下的 `<Param .../>` 声明，与 
 - **step 级**：按 `steps` 顺序，后一步可见前一步在内存树上挂的新节点（跨步引用）。
 - **同一 step 内动作顺序**（固定，与书写顺序无关）：
   `add-node` → `add-data` → `add-element` → `add-setup` → `add-xml` → `rename-node` →
-  `set-text`/`set-attr`/`remove-node` → `wrap` → `uncomment` → `add-blank` → `add-comment` →
-  `add-method` → `remove-method` → `add-io`。
+  `set-text`/`set-attr`/`remove-node` → `remove-setup` → `wrap` → `uncomment` → `add-blank` →
+  `add-comment` → `add-method` → `remove-method` → `add-io`。
 - **幂等**：每个原语先判重，已达目标即 no-op（`-`），不产生字节编辑；重复运行安全。
 
 `plan` 与 `apply` 打印**完全一致**的语义 diff，区别只在 `apply` 会落盘。每行前缀：

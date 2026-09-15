@@ -672,6 +672,11 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		}
 		results = append(results, ops.RemoveNode(m.Node, sel, feature.Format(rn.Child, tags)))
 	}
+	// remove-setup：按 param 名成对删除 Setup 的 <Param> 与 <Option>/<Value>。
+	for i := range step.RemoveSetup {
+		rs := &step.RemoveSetup[i]
+		results = append(results, ops.RemoveSetupPair(m.Node, feature.Format(rs.Param, tags)))
+	}
 	// wrap：注释掉 / CDATA 化一段节点区间。
 	for i := range step.Wrap {
 		wr := &step.Wrap[i]

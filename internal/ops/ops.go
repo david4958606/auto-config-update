@@ -694,6 +694,33 @@ func AddSetupPair(anchor *xmldoc.Node, name string, paramAttrs []xmldoc.Attr, va
 	return res
 }
 
+// RemoveSetupPair 删除 Setup 里的一个参数对(按 param 名匹配)：
+// anchor 下所有 <Param name=X .../> 与该 anchor 的 <Option> 下所有 <Value paramName=X>…</Value>。
+// 两侧各自独立匹配(有几处删几处)；两侧都不存在 → no-op(幂等)。
+func RemoveSetupPair(anchor *xmldoc.Node, name string) Result {
+	var hits []*xmldoc.Node
+	for _, c := range anchor.Children {
+		if !c.Removed && !c.IsEntity && c.Tag == "Param" && c.HasAttr("name") && c.Attr("name") == name {
+			hits = append(hits, c)
+		}
+	}
+	if option := xmldoc.FindChild(anchor, "Option"); option != nil {
+		for _, c := range option.Children {
+			if !c.Removed && !c.IsEntity && c.Tag == "Value" && c.HasAttr("paramName") && c.Attr("paramName") == name {
+				hits = append(hits, c)
+			}
+		}
+	}
+	if len(hits) == 0 {
+		return Result{Changed: false, Message: fmt.Sprintf("Setup 参数 %s 及其取值不存在，无需删除", name)}
+	}
+	for _, n := range hits {
+		n.Removed = true
+	}
+	return Result{Changed: true, Message: fmt.Sprintf("删除 Setup 参数 %s（%d 处）", name, len(hits)),
+		Edit: &xmldoc.Edit{Kind: xmldoc.Delete, Targets: hits}}
+}
+
 // hasNamedChild 报告 parent 下是否存在 <tag key="value"> 的直接子元素(跳过已删除/实体)。
 func hasNamedChild(parent *xmldoc.Node, tag, key, value string) bool {
 	for _, c := range parent.Children {

@@ -344,6 +344,58 @@ func TestAddSetupPairWithoutOptionWarns(t *testing.T) {
 	}
 }
 
+// TestRemoveSetupPair 覆盖 remove-setup：按 param 名成对删除 <Param> 与 <Value>、部分存在、
+// 不存在 no-op、二次执行幂等。
+func TestRemoveSetupPair(t *testing.T) {
+	const src = "<S>\n" +
+		"  <Param name=\"A\" dataObject=\"/A\" type=\"I\" min=\"0\" max=\"1\" units=\"\" default=\"0\"/>\n" +
+		"  <Param name=\"B\" dataObject=\"/B\" type=\"I\" min=\"0\" max=\"1\" units=\"\" default=\"0\"/>\n" +
+		"  <Option index=\"1\">\n" +
+		"    <Value paramName=\"A\">1</Value>\n" +
+		"    <Value paramName=\"B\">2</Value>\n" +
+		"  </Option>\n" +
+		"</S>\n"
+
+	doc, root, _ := parse(t, src)
+	r := RemoveSetupPair(root, "A")
+	if !r.Changed {
+		t.Fatalf("期望删除 A 的两侧: %s", r.Message)
+	}
+	out := applyAll(doc, r)
+	if strings.Contains(out, `<Param name="A"`) || strings.Contains(out, `paramName="A"`) {
+		t.Fatalf("A 的 Param/Value 未删净:\n%s", out)
+	}
+	if !strings.Contains(out, `<Param name="B"`) || !strings.Contains(out, `paramName="B"`) {
+		t.Fatalf("误删了 B:\n%s", out)
+	}
+	// 二次执行：已不存在 → no-op。
+	_, root2, _ := parse(t, out)
+	if again := RemoveSetupPair(root2, "A"); again.Changed {
+		t.Fatalf("二次 remove-setup 不应有改动: %s", again.Message)
+	}
+
+	// 只有一侧存在时，也只删存在的一侧。
+	const half = "<S>\n  <Param name=\"C\" dataObject=\"/C\"/>\n  <Option index=\"1\">\n    <Value paramName=\"D\">1</Value>\n  </Option>\n</S>\n"
+	doc2, root2b, _ := parse(t, half)
+	if rr := RemoveSetupPair(root2b, "C"); !rr.Changed {
+		t.Fatalf("只有 Param 时也应删除: %s", rr.Message)
+	} else if out2 := applyAll(doc2, rr); strings.Contains(out2, `<Param name="C"`) || !strings.Contains(out2, `paramName="D"`) {
+		t.Fatalf("只应删掉 Param C:\n%s", out2)
+	}
+	doc3, root3, _ := parse(t, half)
+	if rr := RemoveSetupPair(root3, "D"); !rr.Changed {
+		t.Fatalf("只有 Value 时也应删除: %s", rr.Message)
+	} else if out3 := applyAll(doc3, rr); strings.Contains(out3, `paramName="D"`) || !strings.Contains(out3, `<Param name="C"`) {
+		t.Fatalf("只应删掉 Value D:\n%s", out3)
+	}
+
+	// 两侧都不存在 → no-op。
+	_, root4, _ := parse(t, src)
+	if miss := RemoveSetupPair(root4, "NotThere"); miss.Changed {
+		t.Fatalf("不存在时不应改动: %s", miss.Message)
+	}
+}
+
 // TestRenameNode 覆盖 rename-node：anchor 自身改属性、子元素改标签(开/闭同步)、自闭合、幂等、无命中。
 func TestRenameNode(t *testing.T) {
 	const src = "<Root>\n" +

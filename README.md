@@ -47,6 +47,8 @@ make win64    # windows/amd64 -> auto-config-update.exe
 - **一致性闸门**:`apply` 结束会对 `config/Setup/*.xml` 做自检——`<Param name>` 与
   `<Option>/<Value paramName>` 必须**按下标一一同名**(设备把两者当并行数组读取,顺序即语义);
   数量不符、笔误、重复、错位/顺序不同都打印 `!!` 并以**非零退出码**报错(`--no-verify` 可跳过)。
+  属性名笔误同样拦下:XML 属性名区分大小写,`<Value paramname="X">`(或 `<Param Name="X">`)会让该
+  取值在设备侧**整个失效**,自检单独报 `attr-name` / `attr-missing` 并指名道姓。
   也可单独跑 `check` 作为上线前的硬闸门。
 - 原语速查见 [doc/feature-primitives.md](doc/feature-primitives.md)。
 
@@ -97,6 +99,7 @@ steps:
 | `add-blank` / `add-comment` | 在方法块前插入空行 / 段注释。`add-blank: N` 插 N 行空行;`add-comment` 是注释原文列表(须自带 `<!-- -->`)。二者不进解析树,按 anchor 原始字节区间判重(已存在即 no-op)。 |
 | `add-element` | 建普通元素(如 Setup 的 `<Param>`/`<Value>`、`<FileSize>`、`<spare>`),可 `before`/`after` 定位。 |
 | `add-setup` | 向 Setup **成对追加**一个 `<Param .../>` 声明与对应的 `<Option>/<Value ...>` 取值:都加在各自序列末尾,按 `param` 名判重(幂等)。 |
+| `remove-setup` | 从 Setup **成对删除**按 `param` 名匹配的 `<Param .../>` 与 `<Option>/<Value ...>`(整行删除,幂等)。 |
 | `add-xml` | 插入一段**内联 XML 片段**(整棵新对象子树),逐字保留 `&amp;&amp;` 等实体书写。 |
 | `set-text` / `set-attr` | 改写已存在元素的文本 / 属性(按 `tag`+`attr`+可选 `old` 定位)。 |
 | `rename-node` | 重命名已存在元素的**标签**(开/闭标签同步),可同时增改属性(`to` + `attrs`);选择器全空则作用于 anchor 自身。 |
@@ -140,7 +143,7 @@ config/
   - `xmldoc` —— 按字节偏移解析 XML、实体容忍(声明不展开)、外科回写的编辑记录
   - `config` —— master+实体装配、逻辑 IO/Control 视图、实体真名解析
   - `anchor` —— class 路径定位 + 同类多实例 fan-out + `where` 筛选
-  - `ops` —— 幂等原语:`add-node`/`add-method`/`remove-method`/`add-io`/`add-data`/`add-blank`/`add-comment`/`add-entity-ref`/`add-element`/`add-setup`/`add-xml`/`set-text`/`set-attr`/`rename-node`/`remove-node`/`wrap`/`uncomment`
+  - `ops` —— 幂等原语:`add-node`/`add-method`/`remove-method`/`add-io`/`add-data`/`add-blank`/`add-comment`/`add-entity-ref`/`add-element`/`add-setup`/`remove-setup`/`add-xml`/`set-text`/`set-attr`/`rename-node`/`remove-node`/`wrap`/`uncomment`
   - `xmlcmp` —— 语义比对(忽略空白/注释/属性序,比对元素树+实体+停用区),用于升级验收
   - `feature` —— 功能 YAML 加载 + `require`/`bind` 绑定
   - `setupcheck` —— `Setup/*.xml` 的 Param/Value 按下标一一对应校验

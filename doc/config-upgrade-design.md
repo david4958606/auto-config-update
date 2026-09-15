@@ -96,6 +96,7 @@ go test ./internal/engine -run TestUpgradeExampleConfig
 |------|------|----------|
 | `add-element` | 新增普通元素（attrs/text/自闭合），可 `before`/`after` 定位 | 同 tag+attrs+text 已存在 |
 | `add-setup` | Setup 里成对追加 `<Param>` 声明与 `<Option>/<Value>` 取值（各落序列末尾） | 两侧按 `name`/`paramName` 各自判重 |
+| `remove-setup` | 按 `param` 名成对删除 Setup 的 `<Param>` 与 `<Option>/<Value>` | 两侧都不存在 |
 | `add-xml` | 插入一段**内联 XML 片段**（整棵子树），逐字落盘、按父深度重排缩进 | 已有结构完全一致的兄弟 |
 | `set-text` | 改写已存在元素文本（`tag`+可选 `child`/`attr`/`old`） | 文本已是目标值 |
 | `set-attr` | 改写/插入已存在元素的属性 | 属性已是目标值 |
@@ -284,6 +285,10 @@ Setup 的 Param/Value 数量一致、逐项同名；二次 apply 逐字节幂等
 - 提取每个 `Setup/*.xml` 的 `<Param name>` 序列与 `<Value paramName>` 序列；
 - **全部按 error 处理**：数量不一致、`orphan-param`（有声明无取值）、`orphan-value`（有取值
   无声明）、`duplicate-param`/`duplicate-value`，以及 `index`（第 i 项不同名）；
+- 属性名层面同样按 error 处理（XML 属性名**区分大小写**）：`attr-name`（`<Value paramname="X">`、
+  `<Param Name="X">` 这类大小写笔误）、`attr-missing`（`<Value>` 没有 `paramName`）。写成
+  `paramname` 的属性在严格匹配下等同于"没有该属性"，会让整个取值在设备侧失效；这类节点仍按
+  书写**意图**计入取值序列，因此不会连带冒出一堆 `count`/`index`/`orphan` 噪声；
 - 关键口径：设备软件把 `Param` 与 `Value` 当**两个并行数组**按下标读取，**顺序即语义**，
   所以"名字集合一致、仅顺序不同"同样是错误（`index`），不能只按集合匹配；
 - `auto-config-update check` 打印问题并**以非零退出码结束**；

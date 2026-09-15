@@ -36,7 +36,7 @@ func main() {
 }
 
 func run(argv []string) int {
-	fs := flag.NewFlagSet("addex", flag.ContinueOnError)
+	fs := flag.NewFlagSet("auto-config-update", flag.ContinueOnError)
 	featurePath := fs.String("feature", "", "feature YAML 路径(必填)")
 	fs.StringVar(featurePath, "f", "", "feature YAML 路径(必填，--feature 的别名)")
 	noVerify := fs.Bool("no-verify", false, "apply 后跳过 Setup 一致性自检")
@@ -46,9 +46,9 @@ func run(argv []string) int {
 	fs.Var(&chambers, "chamber", "限定腔室，可连续指定或重复；缺省=全部（如 --chamber Ch1 Ch2 Ch3）")
 	fs.Var(&chambers, "c", "限定腔室，可连续指定或重复；缺省=全部（如 -c Ch1 Ch2 Ch3）")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "用法: addex <plan|apply> --feature <path> [--chamber Ch1 Ch2 ...] [--no-verify] [--config <dir>]")
-		fmt.Fprintln(os.Stderr, "      addex check                  # 校验 <config>/Setup 的 Param/Value 一一对应")
-		fmt.Fprintln(os.Stderr, "      addex switch <true|false>    # 切换 <config>/*Simulated* 的 setSimulated 开关")
+		fmt.Fprintln(os.Stderr, "用法: auto-config-update <plan|apply> --feature <path> [--chamber Ch1 Ch2 ...] [--no-verify] [--config <dir>]")
+		fmt.Fprintln(os.Stderr, "     auto-config-update check                  # 校验 <config>/Setup 的 Param/Value 一一对应")
+		fmt.Fprintln(os.Stderr, "     auto-config-update switch <true|false>    # 切换 <config>/*Simulated* 的 setSimulated 开关")
 		fs.PrintDefaults()
 	}
 
@@ -70,7 +70,7 @@ func run(argv []string) int {
 	}
 	configDir := resolveConfigDir(*configPath, executableDir())
 	if mode == "check" {
-		fmt.Print("配置一致性校验 | Setup 的 Param/Value 按下标一一对应\n\n")
+		fmt.Print("配置一致性校验\n\n")
 		return verifySetup(configDir, true)
 	}
 	if mode == "switch" {
@@ -189,7 +189,7 @@ func verifySetup(configDir string, fail bool) int {
 		}
 		fmt.Printf("  %s %s\n", mark, is)
 	}
-	fmt.Printf("共 %d 处问题，均必须修复。\n", len(issues))
+	fmt.Printf("共 %d 处问题\n", len(issues))
 	if fail && errors > 0 {
 		return 1
 	}
