@@ -143,13 +143,14 @@ type UncommentSpec struct {
 
 // AddElementSpec 描述一个 add-element 动作：新增一个普通元素(非 method/io/data)。
 type AddElementSpec struct {
-	Tag         string    `yaml:"tag"`
-	Attrs       yaml.Node `yaml:"attrs"`
-	Text        string    `yaml:"text"`
-	SelfClose   bool      `yaml:"self-close"`
-	PairedEmpty bool      `yaml:"paired-empty"`
-	Before      *SelSpec  `yaml:"before"`
-	After       *SelSpec  `yaml:"after"`
+	Tag           string    `yaml:"tag"`
+	Attrs         yaml.Node `yaml:"attrs"`
+	Text          string    `yaml:"text"`
+	SelfClose     bool      `yaml:"self-close"`
+	PairedEmpty   bool      `yaml:"paired-empty"`
+	IncludeEntity string    `yaml:"include-entity"` // 非空=按 glob 从顶层声明解析真名，于元素内部末尾追加 &真名;(同 add-node)
+	Before        *SelSpec  `yaml:"before"`
+	After         *SelSpec  `yaml:"after"`
 }
 
 // AttrPairs 按书写顺序返回 add-element 的属性键值对。

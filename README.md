@@ -97,7 +97,7 @@ steps:
 | `add-method` / `remove-method` | 加/删方法调用;有 `value` 渲染 `<name type="method">值</name>`,无 `value` 自闭合。删按 名+值 匹配。 |
 | `add-io` / `add-data` | 建 IO/数据点位,按 `name` 判重。子元素按序 `Bd`(`auto`=推断板号)/`Ch`/`Min`/`Max`/`Accuracy`/`DescriptorList`/`Unit`;`add-data` 首属性固定 `type="data"`。 |
 | `add-blank` / `add-comment` | 在方法块前插入空行 / 段注释。`add-blank: N` 插 N 行空行;`add-comment` 是注释原文列表(须自带 `<!-- -->`)。二者不进解析树,按 anchor 原始字节区间判重(已存在即 no-op)。 |
-| `add-element` | 建普通元素(如 Setup 的 `<Param>`/`<Value>`、`<FileSize>`、`<spare>`),可 `before`/`after` 定位。 |
+| `add-element` | 建普通元素(如 Setup 的 `<Param>`/`<Value>`、`<FileSize>`、`<spare>`),可 `before`/`after` 定位,可带 `include-entity`(内嵌声明的实体引用)。 |
 | `add-setup` | 向 Setup **成对追加**一个 `<Param .../>` 声明与对应的 `<Option>/<Value ...>` 取值:都加在各自序列末尾,按 `param` 名判重(幂等)。 |
 | `remove-setup` | 从 Setup **成对删除**按 `param` 名匹配的 `<Param .../>` 与 `<Option>/<Value ...>`(整行删除,幂等)。 |
 | `add-xml` | 插入一段**内联 XML 片段**(整棵新对象子树),逐字保留 `&amp;&amp;` 等实体书写。 |
@@ -110,7 +110,8 @@ steps:
 
 > `file:` / `new-file:` 的路径含占位符时**按腔室展开**:一份声明逐腔室执行,如
 > `file: Setup/Setup_${Chamber}.xml` 用各腔室绑定替换(`${Chamber}` 或腔室 class 名);
-> 某腔室没有该文件只告警跳过。路径不含 `{` 时仍全局执行一次。详见
+> 某腔室没有该文件只告警跳过。`file:` 的路径还支持 glob(如 `Setup/*Setup.xml`),匹配到的
+> 每个文件各执行一次(按字典序;无匹配只告警)。路径不含 `{`/glob 元字符时仍全局执行一次。详见
 > [doc/feature-primitives.md](doc/feature-primitives.md) §7.14。
 
 **占位符**:两种写法。**anchor 段**里 `{X}`=按 class 匹配并把 `X` 绑定为该实例标签,`${X}`=按"已绑定的标签名"匹配(如腔室 class 绑定 `{ITO}`=Ch1,IOBridge 那层没有 class 只能写 `${ITO}`)。**取值字段**(attr/value/xml/text/old/name/child/where/open/close/find 等)里 `{X}` 与 `${X}` **同解**,都替换为标签/变量值,且**所有原语都支持**。`add-node` 建出的对象登记 `{标签}`→`./标签` 供后续步骤引用;`require`/`bind` 变量同理。另见 [doc/feature-primitives.md](doc/feature-primitives.md) §6。

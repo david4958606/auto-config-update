@@ -232,6 +232,7 @@ func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool,
 
 // runFileSteps 逐条执行文件级步骤：每个文件只读一次、改完(可选)写回。
 //   - tags 非 nil 时为"按腔室展开"，路径与取值里的占位符用该腔室绑定解析；
+//   - 路径含 glob 元字符(*/?/[)时按 Glob 展开，逐个文件执行(字面路径仍是单个文件)；
 //   - perChamber 为真时，文件不存在只告警跳过(不同腔室未必都有该文件)，不影响其它腔室；
 //   - new-file 步骤不走解析：文件不存在才逐字写 Content(存在即幂等 no-op，绝不覆盖)。
 func (e *Engine) runFileSteps(steps []feature.Step, tags map[string]string, perChamber, write bool, log func(string)) error {
@@ -244,53 +245,102 @@ func (e *Engine) runFileSteps(steps []feature.Step, tags map[string]string, perC
 			continue
 		}
 		rel := feature.Format(step.File, tags)
-		path := filepath.Join(e.configDir, filepath.FromSlash(rel))
-		src, err := os.ReadFile(path)
+		paths, err := e.expandFilePath(rel)
 		if err != nil {
-			if perChamber && os.IsNotExist(err) {
-				log(fmt.Sprintf("[文件 %s] ! 跳过：文件不存在", rel))
+			return err
+		}
+		if len(paths) == 0 {
+			if isGlobPattern(rel) {
+				log(fmt.Sprintf("[文件 %s] ! 跳过：无匹配文件", rel))
 				continue
 			}
-			return fmt.Errorf("读取 %s: %w", rel, err)
+			paths = []string{rel} // 字面路径：走下面统一的读取逻辑(缺失时报错或按腔室跳过)
 		}
-		doc, err := xmldoc.Parse(src)
-		if err != nil {
-			return fmt.Errorf("解析 %s: %w", rel, err)
-		}
-		if len(doc.Roots) == 0 {
-			log(fmt.Sprintf("[文件 %s] 跳过：无顶层元素", rel))
-			continue
-		}
-		log(fmt.Sprintf("[文件 %s]", rel))
-		tg := &target{doc: doc, path: path, roots: doc.Roots}
-		segs := parseAnchorPlain(feature.Format(step.Anchor, tags))
-		where := buildWhere(step.Where, tags)
-		var matches []anchor.Match
-		for _, root := range doc.Roots {
-			if len(segs) == 0 {
-				// 空 anchor = 文件根元素本身(整份文件级操作，如 add-setup 的 Param/Option)。
-				matches = append(matches, anchor.Match{Node: root, Tags: map[string]string{}})
-				continue
-			}
-			matches = append(matches, anchor.Resolve(root, segs, where)...)
-		}
-		if len(matches) == 0 {
-			log(fmt.Sprintf("  步[%s] 跳过：anchor %s 无匹配", step.Name, step.Anchor))
-			continue
-		}
-		croot := doc.Roots[0]
-		for _, m := range matches {
-			e.applyActions(step, tg, m, tags, "", croot, log)
-		}
-		if write && len(tg.edits) > 0 {
-			outBytes := splice.Apply(tg.doc.Src, tg.edits)
-			if err := os.WriteFile(tg.path, outBytes, 0o644); err != nil {
+		for _, one := range paths {
+			if err := e.runOneFileStep(step, one, tags, perChamber, write, log); err != nil {
 				return err
 			}
-			log(fmt.Sprintf("[文件 %s] + 已写回 %s（%d 处编辑，其余字节不动）", rel, rel, len(tg.edits)))
 		}
 	}
 	return nil
+}
+
+// runOneFileStep 对单个文件执行一条文件级步骤。
+func (e *Engine) runOneFileStep(step *feature.Step, rel string, tags map[string]string, perChamber, write bool, log func(string)) error {
+	path := filepath.Join(e.configDir, filepath.FromSlash(rel))
+	src, err := os.ReadFile(path)
+	if err != nil {
+		if perChamber && os.IsNotExist(err) {
+			log(fmt.Sprintf("[文件 %s] ! 跳过：文件不存在", rel))
+			return nil
+		}
+		return fmt.Errorf("读取 %s: %w", rel, err)
+	}
+	doc, err := xmldoc.Parse(src)
+	if err != nil {
+		return fmt.Errorf("解析 %s: %w", rel, err)
+	}
+	if len(doc.Roots) == 0 {
+		log(fmt.Sprintf("[文件 %s] 跳过：无顶层元素", rel))
+		return nil
+	}
+	log(fmt.Sprintf("[文件 %s]", rel))
+	tg := &target{doc: doc, path: path, roots: doc.Roots}
+	segs := parseAnchorPlain(feature.Format(step.Anchor, tags))
+	where := buildWhere(step.Where, tags)
+	var matches []anchor.Match
+	for _, root := range doc.Roots {
+		if len(segs) == 0 {
+			// 空 anchor = 文件根元素本身(整份文件级操作，如 add-setup 的 Param/Option)。
+			matches = append(matches, anchor.Match{Node: root, Tags: map[string]string{}})
+			continue
+		}
+		matches = append(matches, anchor.Resolve(root, segs, where)...)
+	}
+	if len(matches) == 0 {
+		log(fmt.Sprintf("  步[%s] 跳过：anchor %s 无匹配", step.Name, step.Anchor))
+		return nil
+	}
+	croot := doc.Roots[0]
+	for _, m := range matches {
+		e.applyActions(step, tg, m, tags, "", croot, log)
+	}
+	if write && len(tg.edits) > 0 {
+		outBytes := splice.Apply(tg.doc.Src, tg.edits)
+		if err := os.WriteFile(tg.path, outBytes, 0o644); err != nil {
+			return err
+		}
+		log(fmt.Sprintf("[文件 %s] + 已写回 %s（%d 处编辑，其余字节不动）", rel, rel, len(tg.edits)))
+	}
+	return nil
+}
+
+// isGlobPattern 报告路径是否含 glob 元字符(与 filepath.Glob 支持的一致：* ? [)。
+func isGlobPattern(p string) bool { return strings.ContainsAny(p, "*?[") }
+
+// expandFilePath 把文件级路径解析成"相对 config/ 的实际文件清单"：
+// 含 glob 元字符时用 filepath.Glob 展开(结果按字典序，只保留普通文件)；否则原样返回单元素。
+func (e *Engine) expandFilePath(rel string) ([]string, error) {
+	if !isGlobPattern(rel) {
+		return []string{rel}, nil
+	}
+	matches, err := filepath.Glob(filepath.Join(e.configDir, filepath.FromSlash(rel)))
+	if err != nil {
+		return nil, fmt.Errorf("glob %s: %w", rel, err)
+	}
+	out := make([]string, 0, len(matches))
+	for _, m := range matches {
+		st, serr := os.Stat(m)
+		if serr != nil || st.IsDir() {
+			continue
+		}
+		if r, rerr := filepath.Rel(e.configDir, m); rerr == nil {
+			out = append(out, filepath.ToSlash(r))
+			continue
+		}
+		out = append(out, m)
+	}
+	return out, nil
 }
 
 // createFile 执行 new-file 步骤：config/<new-file> 不存在时按 Content 逐字新建。
@@ -591,12 +641,26 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		for _, a := range ae.AttrPairs() {
 			attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
 		}
+		tag := feature.Format(ae.Tag, tags)
+		text := feature.Format(ae.Text, tags)
 		before := resolveBefore(m.Node, ae.Before, false, tags)
 		if before == nil && ae.After != nil {
 			before = resolveBefore(m.Node, ae.After, true, tags)
 		}
-		results = append(results, ops.AddElement(m.Node, feature.Format(ae.Tag, tags), attrs,
-			feature.Format(ae.Text, tags), ae.SelfClose, ae.PairedEmpty, before))
+		results = append(results, ops.AddElement(m.Node, tag, attrs, text, ae.SelfClose, ae.PairedEmpty, before))
+
+		if ae.IncludeEntity != "" {
+			entName := resolveEntity(ae.IncludeEntity)
+			// 按 tag+attrs+text 精确定位(同 tag 可并存多个不同元素)，再于其内部末尾追加实体引用。
+			target := ops.FindElement(m.Node, tag, attrs, text)
+			if entName != "" && target != nil {
+				if text != "" {
+					log(fmt.Sprintf("  步[%s] %s: ! add-element <%s> 同时配置了 text 与 include-entity，元素按容器渲染，新建时 text 会被忽略",
+						step.Name, inst, tag))
+				}
+				results = append(results, ops.AddEntityRef(target, entName))
+			}
+		}
 	}
 	// add-setup：Setup 的 <Param>/<Value> 成对追加(都落在各自序列末尾)。
 	for i := range step.AddSetup {

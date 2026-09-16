@@ -50,7 +50,7 @@ steps:                     # 有序步骤列表，见下
 | `add-method` | 动作 | 加方法调用。见 §7.3。 |
 | `remove-method` | 动作 | 删方法调用。见 §7.4。 |
 | `add-io` | 动作 | 建 IO 点位，可内嵌实体引用。见 §7.5。 |
-| `add-element` | 动作 | 建普通元素(`<Param>`/`<Value>`/`<FileSize>`/`<spare>`)。见 §7.8。 |
+| `add-element` | 动作 | 建普通元素(`<Param>`/`<Value>`/`<FileSize>`/`<spare>`)，可内嵌实体引用。见 §7.8。 |
 | `add-setup` | 动作 | 向 Setup **成对追加** `<Param>` 与 `<Option>/<Value>`。见 §7.16。 |
 | `remove-setup` | 动作 | 从 Setup **成对删除**按 `param` 名匹配的 `<Param>` 与 `<Option>/<Value>`。见 §7.18。 |
 | `add-xml` | 动作 | 插入一段**内联 XML 片段**(整棵子树，逐字保留实体书写)。见 §7.9。 |
@@ -60,7 +60,7 @@ steps:                     # 有序步骤列表，见下
 | `remove-node` | 动作 | 删除已存在元素(含子树)。见 §7.11。 |
 | `wrap` | 动作 | 用 `open`/`close` 包裹一段节点区间(注释掉 / CDATA 化)。见 §7.12。 |
 | `uncomment` | 动作 | 放开(或删除)包住某段文本的注释块。见 §7.13。 |
-| `file:`(step 级) | 定位 | 让某个 step 直接作用于 `config/<file>`(已存在的文件)；路径含占位符则**按腔室展开**。见 §7.14。 |
+| `file:`(step 级) | 定位 | 让某个 step 直接作用于 `config/<file>`(已存在的文件)；路径含占位符则**按腔室展开**，含 glob 元字符则**按模式展开**。见 §7.14。 |
 | `new-file:`(step 级) | 动作 | 文件不存在时按 `content` **逐字新建**；已存在即 no-op；路径含占位符则按腔室展开。见 §7.15。 |
 
 同一 step 内动作的**执行顺序固定**（与 YAML 中书写顺序无关）：
@@ -170,14 +170,15 @@ bind:
 
 > 取值字段的替换覆盖**全部原语**：`add-node`(tag/class/attrs/include-entity)、
 > `add-data`/`add-io`(name/attrs/Bd/Ch/Min/Max/Accuracy/DescriptorList/Unit)、
-> `add-element`(tag/attrs/text)、`add-xml`(xml)、`add-method`/`remove-method`(name/value/attrs)、
+> `add-element`(tag/attrs/text/include-entity)、`add-xml`(xml)、`add-method`/`remove-method`(name/value/attrs)、
 > `set-text`(tag/child/old/value)、`set-attr`(tag/child/attr/old/name/value)、
 > `remove-node`(tag/child/attr/value/has)、`wrap`(open/close/select)、`uncomment`(find/open/close)、
 > `add-comment`，以及 step 级 `where`(tag-glob/attr)、`require`/`bind` 路径、`before`/`after` 选择器。
 > 回归覆盖见 `internal/engine/placeholder_test.go`（两种写法混用、断言产物不残留占位符）。
 > `file:` / `new-file:` 的**路径**是唯一"作用域由路径自身决定"的位置：不含 `{` 时全局执行一次
 > （无腔室上下文，按字面处理）；含 `{` 时按腔室展开，可用 `${Chamber}` 与各腔室 class 绑定
-> （见 §7.14）。`content` 始终按字面写入，不做占位符替换。
+> （见 §7.14）。`file:` 的路径还支持 glob（`Setup/*Setup.xml`），先替换占位符再展开。
+> `content` 始终按字面写入，不做占位符替换。
 
 变量来源：
 
@@ -408,9 +409,15 @@ SysLog 的 `<FileSize>`、IO 的 `<spare>`。
 | `text` | 文本(空串=无文本)。 |
 | `self-close` | true → 渲染成 `<tag .../>`。 |
 | `paired-empty` | 文本为空且非自闭合时渲染成 `<tag></tag>`。 |
+| `include-entity` | 可选。glob（先占位符替换）匹配顶层声明的实体真名，命中则把 `&实体名;` 内嵌为元素**最后一个子节点**（同 `add-node`）；未匹配到则打印告警 `!`。 |
 | `before` / `after` | 可选选择器 `{tag, attr, value}`：插到该兄弟之前/之后；缺省追加末尾。 |
 
-判重：已存在"同 tag + 同 attrs + 同 text"的子元素即 no-op。
+判重：已存在"同 tag + 同 attrs + 同 text"的子元素即 no-op；`include-entity` 解析出的实体引用单独按
+"父内是否已有同名实体"判重，故二次执行幂等。同一 anchor 下可并存多个同 `tag` 不同 `attrs`/`text` 的元素，
+实体引用只会落在 `tag`+`attrs`+`text` 精确匹配的那一个上。
+
+> 注意：`include-entity` 命中后该元素成为**容器**(子节点优先渲染)，故不要与 `text` 同时配置——
+> 同时配置时新建的元素会忽略 `text` 并打印告警 `!`。
 
 ```yaml
 add-element:
@@ -419,6 +426,9 @@ add-element:
     text: "10"
     after: { tag: Value, attr: { paramName: HeaterWaterVlvOpenTemp } }
   - { tag: Param, attrs: { name: X, dataObject: /SETUP/.../X, type: D, min: 0, max: 300, units: K, accuracy: 0.0000001, default: 0 }, self-close: true, after: { tag: Param, attr: { name: HeaterWaterVlvOpenTemp } } }
+  - tag: Spare
+    attrs: { type: instance, alias: "/IO/${Degas}/Spare" }
+    include-entity: "Simulated*{Degas}"     # → 元素内末尾内嵌 &Simulated_ChC;
 ```
 
 ### 7.9 `add-xml` —— 插入内联 XML 片段
@@ -551,6 +561,32 @@ steps:
   不会中止其余腔室；字面量路径缺失文件则仍报错。
 - 与腔室步骤一致：同一腔室名若在多个片段里出现（如 `Control_Ch1` 与 `Interlock_Ch1` 的根
   都是 `<Ch1>`），该步也会随之执行多次；所有原语幂等，重复执行是 no-op。
+
+**glob 展开**：路径含 glob 元字符（`*`、`?`、`[`）时按 `filepath.Glob` 展开，对**每个匹配到的
+文件**各执行一次（结果按字典序，只取普通文件）：
+
+```yaml
+steps:
+  - name: 所有 *Setup.xml 都加同一个参数
+    file: Setup/*Setup.xml       # → Setup/Ch1Setup.xml、Setup/Ch2Setup.xml …
+    add-setup:
+      - param: NewKv
+        dataObject: /SETUP/NewKv
+        type: D
+        min: 0
+        max: 10
+        units: "%"
+        accuracy: 0.1
+        default: 1
+        value: 1
+```
+
+- 展开顺序：**先做占位符替换，再做 glob**，所以 `file: Setup/Setup_${Chamber}*.xml`
+  可以同时用两种能力（按腔室 → 该腔室下所有匹配文件）。
+- glob **无匹配**时打印 `! 跳过：无匹配文件` 并继续（字面量路径缺失则是报错）。
+- glob 只作用于 `file:`；`new-file:` 的路径始终按字面量处理（新建文件不展开模式）。
+- `[` 是 glob 元字符：文件名里真的含方括号时无法用 `file:` 直接写，请改用具体路径的
+  `add-element`/`set-text` 等；普通文件名不含 `[`，不受影响。
 
 ### 7.15 `new-file` —— 新建文件
 

@@ -617,13 +617,8 @@ func Uncomment(src []byte, find, open, close string, drop bool) Result {
 // tag + attrs + text 判重(幂等)。selfClose=true 渲染为 <tag .../>；否则 text 非空渲染成对标签，
 // 空文本按 pairedEmpty 决定 <tag></tag> 还是 <tag/>。before 非 nil 时插到该既有兄弟之前。
 func AddElement(anchor *xmldoc.Node, tag string, attrs []xmldoc.Attr, text string, selfClose, pairedEmpty bool, before *xmldoc.Node) Result {
-	for _, el := range anchor.Children {
-		if el.Removed || el.IsEntity || el.Tag != tag || el.Text != text {
-			continue
-		}
-		if attrsEqual(el.Attrs, attrs) {
-			return Result{Changed: false, Message: fmt.Sprintf("元素 <%s> 已存在", tag), Edit: nil}
-		}
+	if FindElement(anchor, tag, attrs, text) != nil {
+		return Result{Changed: false, Message: fmt.Sprintf("元素 <%s> 已存在", tag), Edit: nil}
 	}
 	el := xmldoc.NewElement(tag)
 	el.Attrs = attrs
@@ -637,6 +632,21 @@ func AddElement(anchor *xmldoc.Node, tag string, attrs []xmldoc.Attr, text strin
 		xmldoc.AppendChild(anchor, el)
 	}
 	return Result{Changed: true, Message: fmt.Sprintf("新增元素 <%s>", tag), Edit: edit}
+}
+
+// FindElement 返回 anchor 下首个 tag + attrs + text 全部匹配的直接子元素(判重口径与 AddElement 一致)；
+// 无匹配则 nil。供上层在 add-element 之后定位到刚建出/既有的那个元素(如追加 include-entity 实体引用)——
+// 一个 anchor 下可以并存多个同 tag 不同 attrs/text 的元素，不能用 FindChild 按 tag 取首个。
+func FindElement(anchor *xmldoc.Node, tag string, attrs []xmldoc.Attr, text string) *xmldoc.Node {
+	for _, el := range anchor.Children {
+		if el.Removed || el.IsEntity || el.Tag != tag || el.Text != text {
+			continue
+		}
+		if attrsEqual(el.Attrs, attrs) {
+			return el
+		}
+	}
+	return nil
 }
 
 // AddSetupPair 在 Setup 文档的 anchor(缺省=文件根元素)下成对追加一个参数声明与取值：
