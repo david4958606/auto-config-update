@@ -1,4 +1,4 @@
-# Makefile —— 出包脚本(计划 §0)。产出 CentOS6/内核2.6.32 可跑的【单个静态二进制】。
+# Makefile —— 出包脚本(部署约束见 CLAUDE.md)。产出 CentOS6/内核2.6.32 可跑的【单个静态二进制】。
 #
 #   make            交叉编译 + 本机构建全部目标 (等价旧 build.sh all)
 #   make native     本机二进制(自测用)

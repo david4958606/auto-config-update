@@ -101,25 +101,25 @@ steps:
 
 **核心字段**
 
-| 字段 | 含义 |
-|------|------|
-| `anchor` | **class 路径**,逐层 descendant 定位(靠 class,不靠实例名)。首段可选域前缀 `Control`/`IO`/`IOBridge`(缺省 `Control`);段写法 `{X}`/裸名=按 class、`${X}`=按标签名。裸名段 class 无果时回退按 tag 名,且**只认自身(仅首段)或直接子元素**——同名深层节点须把路径写全。 |
-| `where` | leaf 多实例时筛子集 + 插入定位:`tag-glob`/`attr` 筛选;`before-method: {name}` 把本步方法插到该既有方法之前。 |
-| `require` / `bind` | `require.exist: {var: 路径}` 守卫+绑定,路径解析不到则跳过;`bind` 纯绑定不校验。 |
-| `add-node` | 建对象节点;可带 `attrs`、`include-entity`(内嵌声明的实体引用)。 |
-| `add-method` / `remove-method` | 加/删方法调用;有 `value` 渲染 `<name type="method">值</name>`,无 `value` 自闭合。删按 名+值 匹配。 |
-| `add-io` / `add-data` | 建 IO/数据点位,按 `name` 判重。子元素按序 `Bd`(`auto`=推断板号)/`Ch`/`Min`/`Max`/`Accuracy`/`DescriptorList`/`Unit`;`add-data` 首属性固定 `type="data"`。 |
-| `add-blank` / `add-comment` | 在方法块前插入空行 / 段注释。`add-blank: N` 插 N 行空行;`add-comment` 是注释原文列表(须自带 `<!-- -->`)。二者不进解析树,按 anchor 原始字节区间判重(已存在即 no-op)。 |
-| `add-element` | 建普通元素(如 Setup 的 `<Param>`/`<Value>`、`<FileSize>`、`<spare>`),可 `before`/`after` 定位,可带 `include-entity`(内嵌声明的实体引用)。 |
-| `add-setup` | 向 Setup **成对追加**一个 `<Param .../>` 声明与对应的 `<Option>/<Value ...>` 取值:默认都加在各自序列末尾,可用 `before`/`after` 按既有参数名把两侧同步插到指定参数之前/之后,按 `param` 名判重(幂等)。 |
-| `remove-setup` | 从 Setup **成对删除**按 `param` 名匹配的 `<Param .../>` 与 `<Option>/<Value ...>`(整行删除,幂等)。 |
-| `add-xml` | 插入一段**内联 XML 片段**(整棵新对象子树),逐字保留 `&amp;&amp;` 等实体书写。 |
-| `set-text` / `set-attr` | 改写已存在元素的文本 / 属性(按 `tag`+`attr`+可选 `old` 定位)。 |
-| `rename-node` | 重命名已存在元素的**标签**(开/闭标签同步),可同时增改属性(`to` + `attrs`);选择器全空则作用于 anchor 自身。 |
-| `remove-node` | 删除已存在元素(含子树);`has` 子条件可区分同名不同内容的节点。 |
-| `wrap` / `uncomment` | 用任意 `open`/`close` 包裹一段节点区间(注释掉 / CDATA 化) / 放开(或删除)注释块。 |
-| `file:`(step 级) | 让某个 step 直接作用于 `config/<file>`(Setup、SysLog、master 等非片段文件)。 |
-| `new-file:`(step 级) | 目标版本多出的**整份新文件**:文件不存在时按 `content` 逐字新建,已存在即 no-op(绝不覆盖)。 |
+| 字段                           | 含义                                                                                                                                                                                                                                                            |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `anchor`                       | **class 路径**,逐层 descendant 定位(靠 class,不靠实例名)。首段可选域前缀 `Control`/`IO`/`IOBridge`(缺省 `Control`);段写法 `{X}`/裸名=按 class、`${X}`=按标签名。裸名段 class 无果时回退按 tag 名,且**只认自身(仅首段)或直接子元素**——同名深层节点须把路径写全。 |
+| `where`                        | leaf 多实例时筛子集 + 插入定位:`tag-glob`/`attr` 筛选;`before-method: {name}` 把本步方法插到该既有方法之前。                                                                                                                                                    |
+| `require` / `bind`             | `require.exist: {var: 路径}` 守卫+绑定,路径解析不到则跳过;`bind` 纯绑定不校验。                                                                                                                                                                                 |
+| `add-node`                     | 建对象节点;可带 `attrs`、`include-entity`(内嵌声明的实体引用)。                                                                                                                                                                                                 |
+| `add-method` / `remove-method` | 加/删方法调用;有 `value` 渲染 `<name type="method">值</name>`,无 `value` 自闭合。删按 名+值 匹配。                                                                                                                                                              |
+| `add-io` / `add-data`          | 建 IO/数据点位,按 `name` 判重。子元素按序 `Bd`(`auto`=推断板号)/`Ch`/`Min`/`Max`/`Accuracy`/`DescriptorList`/`Unit`;`add-data` 首属性固定 `type="data"`。                                                                                                       |
+| `add-blank` / `add-comment`    | 在方法块前插入空行 / 段注释。`add-blank: N` 插 N 行空行;`add-comment` 是注释原文列表(须自带 `<!-- -->`)。二者不进解析树,按 anchor 原始字节区间判重(已存在即 no-op)。                                                                                            |
+| `add-element`                  | 建普通元素(如 Setup 的 `<Param>`/`<Value>`、`<FileSize>`、`<spare>`),可 `before`/`after` 定位,可带 `include-entity`(内嵌声明的实体引用)。                                                                                                                       |
+| `add-setup`                    | 向 Setup **成对追加**一个 `<Param .../>` 声明与对应的 `<Option>/<Value ...>` 取值:默认都加在各自序列末尾,可用 `before`/`after` 按既有参数名把两侧同步插到指定参数之前/之后,按 `param` 名判重(幂等)。                                                            |
+| `remove-setup`                 | 从 Setup **成对删除**按 `param` 名匹配的 `<Param .../>` 与 `<Option>/<Value ...>`(整行删除,幂等)。                                                                                                                                                              |
+| `add-xml`                      | 插入一段**内联 XML 片段**(整棵新对象子树),逐字保留 `&amp;&amp;` 等实体书写。                                                                                                                                                                                    |
+| `set-text` / `set-attr`        | 改写已存在元素的文本 / 属性(按 `tag`+`attr`+可选 `old` 定位)。                                                                                                                                                                                                  |
+| `rename-node`                  | 重命名已存在元素的**标签**(开/闭标签同步),可同时增改属性(`to` + `attrs`);选择器全空则作用于 anchor 自身。                                                                                                                                                       |
+| `remove-node`                  | 删除已存在元素(含子树);`has` 子条件可区分同名不同内容的节点。                                                                                                                                                                                                   |
+| `wrap` / `uncomment`           | 用任意 `open`/`close` 包裹一段节点区间(注释掉 / CDATA 化) / 放开(或删除)注释块。                                                                                                                                                                                |
+| `file:`(step 级)               | 让某个 step 直接作用于 `config/<file>`(Setup、SysLog、master 等非片段文件)。                                                                                                                                                                                    |
+| `new-file:`(step 级)           | 目标版本多出的**整份新文件**:文件不存在时按 `content` 逐字新建,已存在即 no-op(绝不覆盖)。                                                                                                                                                                       |
 
 > `file:` / `new-file:` 的路径含占位符时**按腔室展开**:一份声明逐腔室执行,如
 > `file: Setup/Setup_${Chamber}.xml` 用各腔室绑定替换(`${Chamber}` 或腔室 class 名);
@@ -165,37 +165,3 @@ config/
   - `splice` —— 外科式字节拼接写盘
   - `engine` —— steps 编排:逐腔室、逐步、逐实例执行并落盘
 - `features/*.yaml` —— 功能定义 · `config/` —— 演示夹具 · `Makefile` —— 出包脚本
-- `legacy/` —— Python 原版,保留作参考
-
-> 移植计划见 [GO_PORT_PLAN.md](GO_PORT_PLAN.md)。回归测试见 `internal/engine/engine_test.go` 与 `testdata/golden/`(golden 由 Go 引擎输出生成,`go test ./internal/engine -update-golden` 可重生成)。
-
-## 升级 feature 清单(`features/upgrade-*.yaml`)
-
-`features/` 下有一批**静态**升级 feature,用来把某台设备的旧版配置升到新版。它们由新旧两份真实配置的
-差异生成,**运行时只依赖原语、不读取目标 `config/`**;生成用的夹具与一次性脚本已从仓库移除。
-
-| feature | 覆盖 | 来源 |
-|---------|------|------|
-| `features/upgrade-files.yaml` | `Setup/*.xml`、`SysLog_config.xml`、`Control/Control_config.xml` | 依结构差异生成 |
-| `features/upgrade-io.yaml` | IO 片段量程/板号、`IO_Platform` 段停用、`IO_Facility` 新点位、`Driver_Facility` 通道模式 | 手写 |
-| `features/upgrade-control.yaml` | 加热器温差、EzZone 校准、互锁/报警、机器人安全互锁 | 依结构差异生成 |
-| `features/upgrade-16196-{setup,io,control}.yaml` | 另一台设备:`Setup/*.xml`(含新建文件)、`IOBridge/*`、`Control/*`(补偿器、PMacro、稳定时间、互锁) | 依结构差异生成 |
-
-`upgrade-16196-*.yaml` 覆盖了 step 级原语 `new-file`(见
-[doc/feature-primitives.md](doc/feature-primitives.md) §7.15),并演示"一份声明、逐腔室替换腔室名"的写法
-(同 `features/add-pedcurpos-dataex.yaml`):同 class 的腔室用 `anchor: <Class>/…` + `${<Class>}`,
-根没有 class 的片段(Interlock)用保留占位符 `${Chamber}`。
-
-验收口径:在 `config/` 为旧配置副本的工作目录下按序 apply,产物与目标配置须**语义同等**——不要求逐字节
-相同(忽略缩进/空行/属性书写顺序/`<x/>` 与 `<x></x>` 之别),但元素层级、属性、叶子文本、实体引用,
-以及"哪些块被停用"必须一致;比对口径见 `internal/xmlcmp`。Setup 另有一项专项约束:`<Param name>` 与
-`<Option>/<Value paramName>` 两条序列必须**数量相同、逐项同名同序**(设备按下标并行读取),由
-`internal/setupcheck` 校验。
-
-> 说明:该迁移把目标里"注释掉 / CDATA 包住"的块实现为**删除**——注释内容不参与解析,两者语义等价。
-> 需要保留原文时可改用 `wrap`(对 `IO_Platform` 的 V6DO、CDATA 段就是这么做的)。
-
-> 这批 feature 里 `Setup/GasFlowCompens_Ch*.xml` 的 `<Param>`/`<Value>` 带一处供应商笔误(名字单侧多一个
-> `N`)。工具**按目标保真**复现该笔误,同时由一致性校验**检出并报错**:`auto-config-update check` 会打印
-> `!! Setup/GasFlowCompens_ChN.xml: 第 1 项 Param=AlONGasFlowPieceCompens 与 Value=AlOGasFlowPieceCompens 不同名`
-> (以及对应的 orphan-param / orphan-value),并以**非零退出码**结束;`apply` 默认也会在结束时跑同样的自检。
