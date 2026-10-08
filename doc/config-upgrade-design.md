@@ -1,22 +1,17 @@
-# config_old → config 升级方案（原语扩展 + feature 设计）
+# 升级方案（原语扩展 + feature 设计）
 
-本文记录把 `example-config/config_old` 升级到 `example-config/config` 所需的**程序改动、
-新原语**与 **feature 文件**。验收标准：在 `config/` 为 `config_old` 副本的工作目录下按序
-运行 `features/upgrade-*.yaml`，产出的配置与用户提供的 `config/` **语义同等**——不要求逐字节
-相同（忽略缩进/空行/属性书写顺序/`<x/>` 与 `<x></x>` 之别），但元素层级与标签、属性集合与取值、
-叶子文本、实体引用（`&SimulatedFlag_Ch1;`）、以及"哪些块被停用"必须一致。
+本文记录 `features/upgrade-*.yaml` 这批配置升级 feature 的**程序改动、新原语**与 **feature 设计**。
+它们由两份真实设备配置（`config_old` → `config`）的差异生成；生成用的夹具与一次性脚本已从仓库移除，
+仓库只保留**静态 feature**——运行时只依赖原语，不读取目标 `config/`。
 
-验收由 `internal/engine/upgrade_test.go::TestUpgradeExampleConfig` 自动完成（语义比对 + 幂等），
-一键复现：
-
-```bash
-hack/run-upgrade.sh /tmp/up apply
-go test ./internal/engine -run TestUpgradeExampleConfig
-```
+验收口径：在 `config/` 为旧配置副本的工作目录下按序 apply，产物与目标配置须**语义同等**——不要求
+逐字节相同（忽略缩进/空行/属性书写顺序/`<x/>` 与 `<x></x>` 之别），但元素层级与标签、属性集合与取值、
+叶子文本、实体引用（`&SimulatedFlag_Ch1;`）、以及"哪些块被停用"必须一致。比对口径见
+`internal/xmlcmp`；Setup 的 `<Param>`/`<Value>` 另有按下标一一对应的专项校验，见 §6.5。
 
 ---
 
-## 1. 变更目录（config_old → config）
+## 1. 变更目录（旧 → 新）
 
 按"改什么"归类。`N` 表示同一模式套用到多个腔室。
 
@@ -31,7 +26,7 @@ go test ./internal/engine -run TestUpgradeExampleConfig
 | `Setup/CleanRuleRtInfo.xml` | `Value@paramName=CleanRuleDelayTimeInfo` 文本 | 改为新腔室串 |
 | `IOBridge/Driver_Facility` | `addCmdAI` 的 `comment` 属性 | `Spare`→`PcwWtrFlowAI`、`PcwFlowAI`→`ReturnFlow9AI` |
 | `Control/Interlock_Platform` | `HeatExchanger/setIntlkAlarm` 文本 | `20.0` → `50.0` |
-| `Control/Interlock_*` | 若干 `setIntlkAlarm` / `setTrigger` / `addChecker` 文本 | 见 §5 生成结果 |
+| `Control/Interlock_*` | 若干 `setIntlkAlarm` / `setTrigger` / `addChecker` 文本 | 见 `features/upgrade-control.yaml` |
 
 ### 1.2 已存在块的"停用 / 启用"
 
@@ -115,7 +110,7 @@ go test ./internal/engine -run TestUpgradeExampleConfig
 | `internal/ops` | 上表 7 个原语；`SelectNodes` 改为子树搜索（`set-text`/`remove-node`/`wrap` 用），另留 `selectChildren` 专供 `before`/`after` 定位 |
 | `internal/feature` | 新原语 YAML 结构体 + `SelSpec` 选择器 + 各动作的 `before`/`after` |
 | `internal/engine` | 新原语派发、`file:` 文件级步骤、`add-xml` 缩进处理 |
-| `internal/xmlcmp` | **新增**：语义比对（忽略空白/注释/属性序，严格比对元素树+实体+停用区），验收用 |
+| `internal/xmlcmp` | 语义比对（忽略空白/注释/属性序，严格比对元素树+实体+停用区），用于新旧配置产物的比对 |
 
 关于"停用"的取舍：目标配置把人写的停用写成 `<!-- ... -->` / `<![CDATA[ ... ]]>`。注释与 CDATA
 内容**不参与解析**，所以"删掉"与"注释掉"语义相同。本方案对绝大多数停用直接 `remove-node`
@@ -130,63 +125,41 @@ go test ./internal/engine -run TestUpgradeExampleConfig
 |------|------|----------|
 | `features/upgrade-files.yaml` | Setup/*.xml、SysLog_config.xml、Control_config.xml | `hack/gen_upgrade_files.py`（Param/Value 同一份列表生成，保证一一对应） |
 | `features/upgrade-io.yaml` | IO_Ch1/2/4/5/6 量程板号、IO_Platform、IO_Facility、Driver_Facility | 手写 |
-| `features/upgrade-control.yaml` | Control_Ch1/2/C/D/E/F 与全部 Interlock_* | `hack/gen_upgrade_control.py` 由结构差异生成 |
+| `features/upgrade-control.yaml` | Control_Ch1/2/C/D/E/F 与全部 Interlock_* | 依新旧结构差异生成 |
 
 三个 feature **按上述顺序**施加（后者依赖前者已落盘）。全部使用 `file:` 文件级步骤：
 Control/IO 片段虽可走腔室路由，但同一 tag 可能同时出现在多个片段（如 `Platform` 既是
 `Control_Platform` 又是 `Interlock_Platform`、`IO_Platform` 又是 `IO_Facility` 的根），
 文件级定位更精确、也不需要 `--chamber` 过滤。
 
-`hack/gen_upgrade_control.py` 不依赖 lxml（lxml 会丢掉 `&amp;&amp;`），自带与 `internal/xmldoc`
-同构的带偏移分词器：注释/CDATA 整段跳过、实体作为不透明子节点、节点原文即源字节切片。
-自顶向下对齐新旧树后产出静态 YAML：
-
-- 只在新侧出现 → `add-xml`（取新文件原文，实体书写逐字保留）；
-- 只在旧侧出现 → `remove-node`；
-- 同 tag/属性的叶子文本不同 → `set-text`；属性不同 → `set-attr`；
-- 每个 anchor 额外带 `where.tag-glob`：anchor 段按 class 匹配，同 class 多实例（如
-  `PhyHeater`/`PhyHeater2`/`PhyHeater3`）会 fan-out，必须用 tag-glob 钉死。
-
-生成物是**静态 feature**，运行时完全不依赖目标 `config/`。
+`features/upgrade-16196-*.yaml` 是另一台设备的一套，同样按 setup → io → control 顺序施加。
+两套 feature 都是**静态声明**：由一次性生成器产出后即固化进仓库，生成器与夹具不再保留，
+运行时完全不依赖目标 `config/`。
 
 ---
 
-## 5. 验证
+## 5. 验证（现存自动化覆盖）
 
-1. `internal/ops/ops_test.go`：7 个新原语各自的正向/幂等/边界（`old` 不匹配、`has` 条件、
+1. `internal/ops/ops_test.go`：各原语的正向/幂等/边界（`old` 不匹配、`has` 条件、
    `attr` 空值 vs 缺失、`drop` 删除注释、实体逐字保留）。
-2. `internal/engine/upgrade_test.go::TestUpgradeExampleConfig`：
-   - 拷贝 `example-config/config_old` → 临时 `config/`；
-   - 依次 apply 三个 feature；
-   - 用 `internal/xmlcmp` 与 `example-config/config` 逐文件语义比对（非 XML 文件按字节）；
-   - **Setup 结构约束**：逐文件提取 `<Param name>` 与 `<Option>/<Value paramName>` 两条序列，
-     断言**数量相同、逐项同名同序**，且与目标配置的两条序列一致；
-   - 再 apply 一遍，断言产物**逐字节不变**（幂等）。
-3. `hack/run-upgrade.sh` 供人工复现。
-
-当前结果：**语义差异 0 处，二次 apply 逐字节幂等**。
-
-比对器另报 20 处 `order`（同级子节点集合相同、仅顺序不同），全部属于"新增节点追加在父节点末尾
-vs 目标插在中间"这一类：
-
-- `Control_Ch1/Ch2`、`Control_ChC/ChD`：加热器的新方法/data 追加在末尾；
-- `Interlock_Ch1/2/4/5/6`、`Interlock_Platform`：`VInterlocks`/`SInterlocks` 下的新互锁对象追加在末尾；
-- `IO_Facility/HeatExchanger`、`Driver_Facility/HeatExchanger`：新 IO 点位 / `addCmdAI` 追加在末尾。
-
-`Setup/*.xml` 不在其中——Param 与 Value 两条序列已与目标**逐项同序**（见上文的专项校验）。
-
-这些容器都是"按名/按标签查找"的集合（对象注册表、命名参数、通道映射、互锁列表），顺序不影响
-运行语义；本方案从生成器里统一采用"追加到末尾"，不再逐个构造 `before`/`after` 定位。
+2. `internal/engine/`：`engine_test.go` 的 golden 对拍（`testdata/golden/`，逐字节比对 plan/apply
+   输出与写盘产物，含二次 apply 幂等）；`filechamber_test.go`/`fileglob_test.go` 覆盖 `file:` 步骤、
+   glob 与按腔室展开；`newfile_test.go` 覆盖 `new-file`；`placeholder_test.go`/`rename_test.go`/
+   `setup_test.go`/`adddata_unit_test.go`/`addelement_unit_test.go` 覆盖新原语与占位符作用域；
+   `fileanchor_test.go` 钉住 anchor 的命中口径。
+3. `internal/setupcheck/setupcheck_test.go` 与 `main_test.go::TestVerifySetupGate`：`check` 的检出
+   逻辑与退出码。
+4. `internal/xmlcmp`：语义比对器（忽略空白/注释/属性序，严格比对元素树+实体+停用区）。它服务于
+   "新旧配置整树比对"这一验收方式；仓库不再附带这类夹具，故当前只作为口径实现保留。
 
 ---
 
-## 6. 复验：example-16196（新增 `new-file` 原语）
+## 6. 后续补充的能力
 
-`example-16196/` 是另一台设备的新旧两版配置，用来复验原语覆盖面。与 `example-config` 相比，
-差异类型相同（`add-xml` / `set-text` / `set-attr` / `remove-node` / `add-element` 都够用），
-但多出一个**新能力缺口**：目标版本新增了 10 个**完整的新文件**
-（`Setup/GasFlowCompens_Ch{1,2,5,6}.xml`、`Setup/ProcessDataStableTime_Ch{1,2,5,6,C,D}.xml`），
-而 `file:` 步骤要求文件已存在（`os.ReadFile` 会失败）。
+第二台设备的配置差异与上一台类型相同（`add-xml` / `set-text` / `set-attr` / `remove-node` /
+`add-element` 都够用），但暴露了一个**新能力缺口**：新版多出若干**完整的新文件**，而 `file:` 步骤
+要求文件已存在（`os.ReadFile` 会失败）。由此补充了 `new-file` 原语，并顺带做了逐腔室参数化、
+保留绑定 `{Chamber}`、解析性能与写盘修复、以及一致性校验 `check`。
 
 ### 6.1 新原语 `new-file`
 
@@ -196,61 +169,47 @@ step 级字段 `new-file: <相对 config/ 的路径>` + `content: <原文>`：
 - 文件已存在 → no-op，**绝不覆盖**（幂等判据=存在性）；
 - `plan` 只打印"待新建"，不落盘。
 
-10 个新文件因此与目标**逐字节一致**。
+新建出的文件因此与目标**逐字节一致**。
 
-### 6.2 生成器 `hack/gen_upgrade_16196.py`
-
-沿用 `gen_upgrade_control.py` 的带偏移分词器（不用 lxml，保住 `&amp;&amp;`），差异对齐升级为
-**带评分的单调对齐**（精确匹配优先），并补一轮"跨位置配对"：位置被挪动、但两侧都还在的节点
-**就地 `set-text`/`set-attr`**，既不删也不加。这样处理有两个好处：
-
-1. 避免"`remove-node` + `add-xml` 同一节点"在二次 apply 时把刚补上的同名节点又删掉；
-2. `Setup/*.xml` 的 `<Param>` 与 `<Value>` 序列**同步挪动**，始终一一对应
-   （若只按各自的对齐结果删/加，两条序列会错位）。
-
-匹配规则上有一点关键约束：`name` / `paramName` / `index` / `id` 是**身份属性**，取值不同即视为
-"旧删+新加"，绝不改名——否则会把某个 `Param` 改名成另一个新增 `Param` 的名字，产生重复节点。
-
-#### 6.2.1 逐腔室参数化（拒绝"按腔室复制粘贴"）
+### 6.2 逐腔室参数化（拒绝"按腔室复制粘贴"）
 
 朴素的"按文件生成步骤"会把同一改动写成 `Ch1`/`Ch2`/… 一长串复制品，既不美观也不可复用。
-生成器因此多做一次**归并**，让 feature 与 `features/add-pedcurpos-dataex.yaml` 同构：**一份声明、
-逐腔室自动替换腔室名**（引擎的腔室循环 + 占位符）。
+这批 feature 因此采用与 `features/add-pedcurpos-dataex.yaml` 同构的写法：**一份声明、逐腔室自动
+替换腔室名**（引擎的腔室循环 + 占位符）。
 
 - **类归并**：同一 root class 的各腔室（`PVD`=Ch1/2/5/6、`LoadLock`=ChA/ChB/LA/LB、
   `Degas`=ChC/ChD、`TransferChamber`=Buffer/Transfer）改动同构时，合并成一个
   `anchor: <Class>/…` 的腔室级步骤，模板里用 `${<Class>}`。仅当该 class 的**每个**腔室都改了
   且逐项一致时才合并（否则会误伤未改动的腔室）。
 - **腔室归并**：根没有 class（如 `Interlock_*`）时用保留占位符 `${Chamber}`（引擎绑定=当前腔室
-  标签，见 6.2.2）。仅当该 anchor 路径在**其它腔室**里解析不到时才合并——非成员腔室会因
+  标签，见 §6.3）。仅当该 anchor 路径在**其它腔室**里解析不到时才合并——非成员腔室会因
   anchor 不匹配自动跳过，避免把 `add-xml` 漏进不该改的腔室。
 - 多根片段只要各根**标签一致**（如 `Driver_Ch1` 同时含容器 `<Ch1>` 与驱动 `<Ch1>`）也参与
   归并（`IOBridge/${Chamber}/SourceDC`）；标签不一致（`Control_EFEM`）或多根且路径不唯一时，
   仍退回文件级步骤。
 
-效果：`upgrade-16196-control.yaml` 从 670 行降到 244 行、io 从 271 行降到 221 行，且
-`Ch1/ProcessLogger`、`Ch2/ProcessLogger` 这类重复消失，代之以
+效果：`Ch1/ProcessLogger`、`Ch2/ProcessLogger` 这类重复消失，代之以
 `anchor: PVD/ProcessLogger` + `${PVD}`。剩余少量按文件的步骤是**必要**的：`Interlock_*` 的
 `PinOriginPoint` 在全部腔室都存在（跨腔室 add 会漏改），`IO_Facility`/`IO_LoadRack` 是
 单文件内多节点改写（不属于腔室 fan-out）。
 
-#### 6.2.2 引擎新增：保留绑定 `{Chamber}`
+### 6.3 引擎保留绑定 `{Chamber}`
 
 `ApplyFeature` 现在为每个腔室恒定绑定 `chamberBinds["Chamber"] = <腔室标签>`（原实现只绑定
 root 的 class）。这样根没有 class 的片段也能参数化——`anchor: ${Chamber}/VInterlocks/ChamberAtTemp`
 按标签命中腔室根，取值里 `${Chamber}` 逐腔室替换。既有 feature/golden 不含 `{Chamber}` 文本，
 不受影响。
 
-### 6.3 性能与写盘修复（顺带）
+### 6.4 性能与写盘修复（顺带）
 
 **解析 O(n²)**：`internal/xmldoc` 的 `parser.has` / `skipUntil` / `readEntity` / `readEndTag`
 原先写的是 `string(p.src[p.pos:])`，每遇到一个 `<`/`&` 就把**剩余全文**拷成字符串，整体退化成
-O(n²)：`IO_Facility`（约 400 KB）单次解析要数秒。改为 `bytes.HasPrefix` / `bytes.Index` 后：
+O(n²)：单个约 400 KB 的片段（如 `IO_Facility`）单次解析要数秒。改为 `bytes.HasPrefix` /
+`bytes.Index` 后：
 
 | | 修改前 | 修改后 |
 |---|---|---|
 | `engine.New`(加载全部片段) | ~18 s | ~0.02 s |
-| `TestUpgradeExampleConfig` | ~95 s | ~1.2 s |
 
 解析结果（字节偏移/树结构）不变，golden 逐字节对拍保持不变。
 
@@ -260,19 +219,9 @@ O(n²)：`IO_Facility`（约 400 KB）单次解析要数秒。改为 `bytes.HasP
 （`croHeater type="method">…`）。改为 `sort.SliceStable` 且**同起点先删后插**，并补回归测试
 `internal/splice/splice_test.go`。
 
-### 6.4 验收
+### 6.5 一致性校验 `check`（笔误必须报错）
 
-`internal/engine/upgrade16196_test.go::TestUpgradeExample16196`：拷贝 `config_old` → 依次
-apply 三个 feature → `xmlcmp` 与目标逐文件语义比对 → Setup 的 Param/Value 按下标一一对应校验 →
-二次 apply 逐字节幂等。
-
-结果：**语义差异 0 处**；仅余 `Setup/Setup_Ch{1,2,5,6}.xml` 根与 `Option` 的 `order`——被挪位的
-既有 `Param`/`Value` 就地保留（这是保住一一对应与幂等的前提）。Control/IO 侧已无 order 差异。
-Setup 的 Param/Value 数量一致、逐项同名；二次 apply 逐字节幂等；10 个新文件逐字节一致。
-
-### 6.4.1 一致性校验 `check`（笔误必须报错）
-
-目标 `Setup/GasFlowCompens_Ch*.xml` 自身带一处供应商笔误：
+真实配置里出现过这类供应商笔误：`<Param>` 声明与对应的 `<Value>` 取值**名字差一个字符**。
 
 ```xml
 <Param name="AlONGasFlowPieceCompens" .../>          <!-- 声明 -->
@@ -304,11 +253,10 @@ Setup 的 Param/Value 数量一致、逐项同名；二次 apply 逐字节幂等
 共 12 处问题，均必须修复（设备按数组下标读取 Param/Value）。
 ```
 
-产物按目标**保真复现**该笔误，同时**必定被检出**——两者不矛盾：
-`internal/engine/upgrade16196_test.go::checkSetup16196Issues` 断言产物与目标触发**完全相同**的
-问题集合；`internal/setupcheck` 与 `main_test.go::TestVerifySetupGate` 各自覆盖检出逻辑与退出码。
+升级 feature 对这类笔误**按目标保真复现**，同时**必定被检出**——两者不矛盾：检出逻辑由
+`internal/setupcheck/setupcheck_test.go` 与 `main_test.go::TestVerifySetupGate` 覆盖。
 
-### 6.5 仍未覆盖：精确重排
+### 6.6 仍未覆盖：精确重排
 
 若要求"挪位节点也落在目标位置"（逐项同序），现有原语做不到：`remove-node` + `add-xml` 对
 **同名同内容**的节点在二次 apply 时会互相抵消（新补的节点被删）。这需要新增 `move-node`
@@ -317,4 +265,3 @@ Setup 的 Param/Value 数量一致、逐项同名；二次 apply 逐字节幂等
 另外，`check` 只校验"声明数组与取值数组按下标同名"这一条硬约束；它保证**两条序列彼此对齐**，
 但不保证顺序与供应商目标一致。若目标顺序本身有语义（如数组还决定了 UI/执行顺序），
 仍需 `move-node` 之类的重排能力。
-

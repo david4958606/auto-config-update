@@ -38,7 +38,7 @@ func TestCheckDocGood(t *testing.T) {
 	}
 }
 
-// TestCheckDocTypo 复现 example-16196 里 GasFlowCompens 的笔误：
+// TestCheckDocTypo 覆盖 Param/Value 名单侧笔误：
 // <Param name="AlONGasFlowPieceCompens"> vs <Value paramName="AlOGasFlowPieceCompens">。
 func TestCheckDocTypo(t *testing.T) {
 	xml := `<X>

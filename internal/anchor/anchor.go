@@ -4,6 +4,15 @@
 //   - leaf 命中同一 class 的多个实例则【全部返回】，由上层各执行一次。
 //   - 每个匹配带一份 tags：{class名: 该实例的标签名}，供 {占位符} 逐实例替换。
 //   - where(可选)：leaf 命中多个时按标签精确筛(glob)。
+//
+// 匹配口径分两种，别混：
+//   - **class 段**({X} 或裸名段的首选)：class 是逻辑类别，同一层可散落在不同深度的
+//     包装节点里，故在子树里 descendant 匹配。
+//   - **tag 回退段**(裸名段 class 无果时按标签名兜底)：把它当成结构路径的一层，
+//     只认【自身(仅首层)或直接子元素】，不深入子孙。否则同名节点(如
+//     <LoadRack><Plc> 与 <LoadRack><Dnstatus><Plc>)会被一并命中，动作被误加到
+//     不该改的分支上。需要命中更深的同名节点时，把路径逐层写全。
+//   - **`${X}` 名称段**：调用方已把标签名解析确定，语义同原 class 段(descendant)。
 package anchor
 
 import (
@@ -53,14 +62,34 @@ func findBy(node *xmldoc.Node, includeSelf bool, pred func(*xmldoc.Node) bool) [
 	return out
 }
 
+// findShallow 只检查 node 自身(includeSelf 时)与它的【直接子元素】，不递归子孙。
+// 用于 tag 回退：把段当作结构路径的一层，避免同名深层节点被误命中。
+func findShallow(node *xmldoc.Node, includeSelf bool, pred func(*xmldoc.Node) bool) []*xmldoc.Node {
+	var out []*xmldoc.Node
+	if includeSelf && !node.Removed && !node.IsEntity && pred(node) {
+		out = append(out, node)
+	}
+	for _, c := range node.Children {
+		if c.Removed || c.IsEntity {
+			continue
+		}
+		if pred(c) {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 func matchSeg(node *xmldoc.Node, s Seg, includeSelf bool) []*xmldoc.Node {
 	if s.ByName {
 		return findBy(node, includeSelf, func(n *xmldoc.Node) bool { return n.Tag == s.Match })
 	}
-	// 裸名段默认按 class 匹配；某些层(如 IO 的 <IG>)无 class，class 无果时回退按 tag 名匹配。
+	// 裸名段默认按 class 匹配；某些层(如 IO 的 <IG>、IOBridge 的 <Plc>)无 class，
+	// class 无果时回退按 tag 名匹配——但只在【自身(首层)或直接子元素】里找：
+	// 路径段是结构层，不是"整棵子树里任意同名节点"。
 	hits := findBy(node, includeSelf, func(n *xmldoc.Node) bool { return n.Class() == s.Match })
 	if len(hits) == 0 {
-		hits = findBy(node, includeSelf, func(n *xmldoc.Node) bool { return n.Tag == s.Match })
+		hits = findShallow(node, includeSelf, func(n *xmldoc.Node) bool { return n.Tag == s.Match })
 	}
 	return hits
 }
@@ -75,7 +104,7 @@ func Resolve(root *xmldoc.Node, segs []Seg, where *Where) []Match {
 	for _, n := range matchSeg(root, segs[0], true) {
 		frontier = append(frontier, Match{Node: n, Tags: map[string]string{segs[0].Bind: n.Tag}})
 	}
-	// 其余层：在上一层节点的子孙里继续匹配(逐层可各自 fan-out)。
+	// 其余层：在上一层节点的子孙(class/名称段)或直接子元素(tag 回退段)里继续匹配(逐层可各自 fan-out)。
 	for _, s := range segs[1:] {
 		var next []Match
 		for _, m := range frontier {

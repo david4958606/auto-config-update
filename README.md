@@ -90,7 +90,7 @@ steps:
 
 | 字段 | 含义 |
 |------|------|
-| `anchor` | **class 路径**,逐层 descendant 定位(靠 class,不靠实例名)。首段可选域前缀 `Control`/`IO`/`IOBridge`(缺省 `Control`);段写法 `{X}`/裸名=按 class、`${X}`=按标签名。 |
+| `anchor` | **class 路径**,逐层 descendant 定位(靠 class,不靠实例名)。首段可选域前缀 `Control`/`IO`/`IOBridge`(缺省 `Control`);段写法 `{X}`/裸名=按 class、`${X}`=按标签名。裸名段 class 无果时回退按 tag 名,且**只认自身(仅首段)或直接子元素**——同名深层节点须把路径写全。 |
 | `where` | leaf 多实例时筛子集 + 插入定位:`tag-glob`/`attr` 筛选;`before-method: {name}` 把本步方法插到该既有方法之前。 |
 | `require` / `bind` | `require.exist: {var: 路径}` 守卫+绑定,路径解析不到则跳过;`bind` 纯绑定不校验。 |
 | `add-node` | 建对象节点;可带 `attrs`、`include-entity`(内嵌声明的实体引用)。 |
@@ -156,69 +156,36 @@ config/
 
 > 移植计划见 [GO_PORT_PLAN.md](GO_PORT_PLAN.md)。回归测试见 `internal/engine/engine_test.go` 与 `testdata/golden/`(golden 由 Go 引擎输出生成,`go test ./internal/engine -update-golden` 可重生成)。
 
-## 用真实配置验证:config_old → config 升级
+## 升级 feature 清单(`features/upgrade-*.yaml`)
 
-`example-config/` 下是一份**真实配置**的新旧两版(`config_old` = 升级前,`config` = 人工改好的升级后)。
-仓库里的 `features/upgrade-*.yaml` 就是这次升级的完整声明:
+`features/` 下有一批**静态**升级 feature,用来把某台设备的旧版配置升到新版。它们由新旧两份真实配置的
+差异生成,**运行时只依赖原语、不读取目标 `config/`**;生成用的夹具与一次性脚本已从仓库移除。
 
-| feature | 覆盖 |
-|---------|------|
-| `features/upgrade-files.yaml` | `Setup/*.xml`、`SysLog_config.xml`、`Control/Control_config.xml`(由 `hack/gen_upgrade_files.py` 生成) |
-| `features/upgrade-io.yaml` | IO 片段量程/板号、`IO_Platform` 段停用、`IO_Facility` 新点位、`Driver_Facility` 通道模式 |
-| `features/upgrade-control.yaml` | 加热器温差、EzZone 校准、互锁/报警、机器人安全互锁(由 `hack/gen_upgrade_control.py` 依结构差异生成) |
+| feature | 覆盖 | 来源 |
+|---------|------|------|
+| `features/upgrade-files.yaml` | `Setup/*.xml`、`SysLog_config.xml`、`Control/Control_config.xml` | `hack/gen_upgrade_files.py` |
+| `features/upgrade-io.yaml` | IO 片段量程/板号、`IO_Platform` 段停用、`IO_Facility` 新点位、`Driver_Facility` 通道模式 | 手写 |
+| `features/upgrade-control.yaml` | 加热器温差、EzZone 校准、互锁/报警、机器人安全互锁 | 依结构差异生成 |
+| `features/upgrade-16196-{setup,io,control}.yaml` | 另一台设备:`Setup/*.xml`(含新建文件)、`IOBridge/*`、`Control/*`(补偿器、PMacro、稳定时间、互锁) | 依结构差异生成 |
 
-```bash
-hack/run-upgrade.sh /tmp/up apply          # 拷 config_old → /tmp/up/config 并按序升级
-go test ./internal/engine -run TestUpgradeExampleConfig   # 语义比对 + 幂等校验
-```
+`hack/gen_upgrade_files.py` 用同一份 zone/param 列表同时生成 `<Param>` 与 `<Value>` 两组步骤,从构造上
+保证两侧数量与顺序一致。`upgrade-16196-*.yaml` 覆盖了 step 级原语 `new-file`(见
+[doc/feature-primitives.md](doc/feature-primitives.md) §7.15),并演示"一份声明、逐腔室替换腔室名"的写法
+(同 `features/add-pedcurpos-dataex.yaml`):同 class 的腔室用 `anchor: <Class>/…` + `${<Class>}`,
+根没有 class 的片段(Interlock)用保留占位符 `${Chamber}`。
 
-`TestUpgradeExampleConfig` 会把 `config_old` 当输入、依次 apply 三个 feature,再用 `internal/xmlcmp`
-与 `config` 做**语义比对**:忽略缩进/空行/属性书写顺序/`<x/>` 与 `<x></x>` 之别,但严格比对元素层级、
-属性、叶子文本、实体引用,以及"哪些块被注释掉 / CDATA 化"。Setup 另有一项专项校验:`<Param name>`
-与 `<Option>/<Value paramName>` 两条序列必须**数量相同、逐项同名同序**,并与目标一致。随后再 apply
-一遍验证**幂等**。
-设计与原语取舍见 [doc/config-upgrade-design.md](doc/config-upgrade-design.md)。
+验收口径:在 `config/` 为旧配置副本的工作目录下按序 apply,产物与目标配置须**语义同等**——不要求逐字节
+相同(忽略缩进/空行/属性书写顺序/`<x/>` 与 `<x></x>` 之别),但元素层级、属性、叶子文本、实体引用,
+以及"哪些块被停用"必须一致;比对口径见 `internal/xmlcmp`。Setup 另有一项专项约束:`<Param name>` 与
+`<Option>/<Value paramName>` 两条序列必须**数量相同、逐项同名同序**(设备按下标并行读取),由
+`internal/setupcheck` 校验。
 
-> 说明:该迁移把目标里"注释掉/ CDATA 包住"的块实现为**删除**——注释内容不参与解析,两者语义等价。
-> 需要保留原文时可改用 `wrap`(本仓库对 `IO_Platform` 的 V6DO、CDATA 段就是这么做的)。
+> 说明:该迁移把目标里"注释掉 / CDATA 包住"的块实现为**删除**——注释内容不参与解析,两者语义等价。
+> 需要保留原文时可改用 `wrap`(对 `IO_Platform` 的 V6DO、CDATA 段就是这么做的)。
 
-## 用第二份真实配置验证:example-16196(config_old → config)
-
-`example-16196/` 下是另一台设备的新旧两版配置,用来复验原语覆盖面。与上一份不同,这次目标版本
-**多出 10 个全新的 `Setup/*.xml`**(`GasFlowCompens_Ch*`、`ProcessDataStableTime_*`),需要
-**新建文件**能力——由此新增了 step 级原语 `new-file`(见
-[doc/feature-primitives.md](doc/feature-primitives.md) §7.15)。
-
-| feature | 覆盖 | 生成方式 |
-|---------|------|----------|
-| `features/upgrade-16196-setup.yaml` | `Setup/*.xml`(含 10 个新文件)、`SysLog_config.xml` | `hack/gen_upgrade_16196.py` |
-| `features/upgrade-16196-io.yaml` | `IOBridge/*`(量程/别名/描述子、停用节点) | 同上 |
-| `features/upgrade-16196-control.yaml` | `Control/*`(补偿器、PMacro、稳定时间、互锁) | 同上 |
-
-```bash
-hack/run-upgrade-16196.sh /tmp/up16196 apply          # 拷 config_old → /tmp/up16196/config 并按序升级
-go test ./internal/engine -run TestUpgradeExample16196 # 语义比对 + Setup 对应 + 幂等
-```
-
-`hack/gen_upgrade_16196.py` 用与 `gen_upgrade_control.py` 同构的带偏移分词器(不用 lxml,避免
-丢掉 `&amp;&amp;`),把新旧树做**单调对齐**后生成静态 feature:`set-text`/`set-attr`/`remove-node`
-落到具体节点,新增节点用 `add-xml` 按 `before`/`after` 定位,整体缺失的文件用 `new-file` 新建。
-`Recipe/` 下新增 recipe 与对应 recipe 文件按需求不处理。
-
-生成器还会把**逐腔室重复**的改动归并成"一份声明、逐腔室替换腔室名"的腔室级步骤(写法同
-`features/add-pedcurpos-dataex.yaml`):同 class 的腔室用 `anchor: <Class>/…` + `${<Class>}`
-(如 `PVD/ProcessLogger` 覆盖 Ch1/Ch2/Ch5/Ch6);根没有 class 的片段(Interlock)用保留占位符
-`${Chamber}`。因此不再出现 `anchor: Ch1/…` / `anchor: Ch2/…` 的复制粘贴。
-
-验收结果:三份 feature 依次 apply 后,与目标 `config/` 的语义差异为 **0 处**(只剩若干
-"同级子节点顺序不同"的 `order`,按既有口径视为语义无关);`Setup/*.xml` 的
-`<Param name>` 与 `<Value paramName>` **按下标**一一同名;二次 apply **逐字节幂等**;
-10 个新文件与目标**逐字节一致**。
-
-> 目标 `Setup/GasFlowCompens_Ch*.xml` 自身有一处笔误:`<Param name="AlONGasFlowPieceCompens">`
-> 与 `<Value paramName="AlOGasFlowPieceCompens">` 不同名。工具**按目标保真**复现该笔误,
-> 同时由一致性校验**检出并报错**:`auto-config-update check` 会打印
+> 这批 feature 里 `Setup/GasFlowCompens_Ch*.xml` 的 `<Param>`/`<Value>` 带一处供应商笔误(名字单侧多一个
+> `N`)。工具**按目标保真**复现该笔误,同时由一致性校验**检出并报错**:`auto-config-update check` 会打印
 > `!! Setup/GasFlowCompens_ChN.xml: 第 1 项 Param=AlONGasFlowPieceCompens 与 Value=AlOGasFlowPieceCompens 不同名`
-> (以及对应的 orphan-param / orphan-value),并以**非零退出码**结束;`apply` 默认也会在结束时
-> 跑同样的自检。设备把 `<Param>`/`<Value>` 当**并行数组按下标读取**,所以顺序不同同样是 error。
-> 测试 `checkSetup16196Issues` 断言产物与目标触发**完全相同**的问题集合。
+> (以及对应的 orphan-param / orphan-value),并以**非零退出码**结束;`apply` 默认也会在结束时跑同样的自检。
+
+设计与原语取舍见 [doc/config-upgrade-design.md](doc/config-upgrade-design.md)。
