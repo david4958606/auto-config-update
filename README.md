@@ -1,4 +1,4 @@
-# auto-update-tool (demo)
+# Auto Config Update
 
 对设备配置做**幂等语义补丁**的离线升级工具:把 XML 解析成树,按 `feature.yaml` 做**声明式补丁**,再**外科式回写**——只动插入/删除点,其余字节逐字保留。设计背景见 [PLAN.md](PLAN.md)。
 
