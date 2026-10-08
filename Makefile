@@ -1,8 +1,8 @@
 # Makefile —— 出包脚本(部署约束见 CLAUDE.md)。产出 CentOS6/内核2.6.32 可跑的【单个静态二进制】。
 #
 #   make            交叉编译 + 本机构建全部目标 (等价旧 build.sh all)
-#   make native     本机二进制(自测用)
-#   make cross      交叉编译 linux/386 静态
+#   make amd64      amd64 二进制(自测用)
+#   make i386       交叉编译 linux/386 静态
 #   make win64      交叉编译 windows/amd64 exe
 #   make tar        打包 tar.gz
 #   make clean      清理构建产物
@@ -25,9 +25,9 @@ GO_BUILD  := go build -trimpath -ldflags="$(LDFLAGS)"
 
 DATE := $(shell date +%Y%m%d-%H%M%S)
 
-.PHONY: all native cross win64 tar clean check-go
+.PHONY: all amd64 i386 win64 tar clean check-go
 
-all: native cross win64
+all: amd64 i386 win64
 
 # 校验工具链主版本为 1.23.x。
 check-go:
@@ -37,13 +37,13 @@ check-go:
 	  *) echo "警告: 当前工具链 $$ver 非 go1.23.x —— 目标机 CentOS6/内核2.6.32 要求 go1.23.x" >&2 ;; \
 	esac
 
-native: check-go
-	@echo "本机构建 -> $(OUT)"
-	$(BUILD_ENV) $(GO_BUILD) -o "$(OUT)" .
+amd64: check-go
+	@echo "构建 amd64 -> $(OUT)"
+	$(BUILD_ENV) GOOS=linux GOARCH=amd64 $(GO_BUILD) -o "$(OUT)" .
 	@echo "----"
 	@file "$(OUT)" || true
 
-cross: check-go
+i386: check-go
 	@echo "交叉编译 linux/386 静态 -> $(OUT32)"
 	$(BUILD_ENV) GOOS=linux GOARCH=386 $(GO_BUILD) -o "$(OUT32)" .
 	@echo "----"
