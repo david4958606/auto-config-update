@@ -664,9 +664,13 @@ Setup 文件的参数分两处写：根元素下的 `<Param .../>` 声明，与 
 | `dataObject` / `type` / `min` / `max` / `maxLength` / `descriptorList` / `units` / `accuracy` / `default` | `<Param>` 属性的便捷写法。按设备 Setup 的规范顺序渲染（`dataObject → type → min → max → maxLength → descriptorList → units → accuracy → default`），**未配置的项跳过**；写 `null` 或空串则渲染成空值属性。 |
 | `attrs` | 其它属性（保留书写顺序）；与上面的便捷字段**同名时以 `attrs` 为准**，且仍落在规范顺序的位置。 |
 | `value` | `<Value>` 的文本（支持占位符）；缺省/`null` → 渲染成成对空标签 `<Value paramName="X"></Value>`。 |
+| `before` / `after` | 可选定位基准：取某个**已存在**参数名，使新增的 `<Param>` 与 `<Value>` 分别插到该参数**之前 / 之后**（两侧同步定位——`<Param name>` 与 `<Value paramName>` 都按这个名字定位）。两者互斥，同时配置时 `before` 优先。省略则各自追加到序列末尾（默认行为）。 |
 
 判重（幂等）：两侧各自按 `name` / `paramName` 判重——已存在的一侧不动，**只补缺失的一侧**；
 两侧都在即 no-op。找不到 `<Option>` 时只追加 `<Param>` 并在日志里以 `!` 告警。
+
+> `before` / `after` 的值是**参数名**（不是元素选择器），同时用于定位 `<Param name=...>` 与
+> `<Value paramName=...>`。若指定的基准参数不存在，则退化为追加到序列末尾，并在日志里以 `!` 告警。
 
 ```yaml
 - name: Setup/Setup_Ch1.xml 升级
@@ -692,6 +696,19 @@ Setup 文件的参数分两处写：根元素下的 `<Param .../>` 声明，与 
   ...
   <Value paramName="SourceDCCurrentMax">70</Value>
 </Option>
+```
+
+需要把新参数插到某个既有参数**之前**（而不是序列末尾）时，用 `before` / `after` 指定基准参数名：
+
+```yaml
+- name: 在 MagnetRotateSpeed 之前插入新参数
+  file: Setup/Setup_Ch1.xml
+  add-setup:
+    - param: SourceDCCurrentMax
+      type: D
+      value: 70
+      before: MagnetRotateSpeed   # <Param> 插到 name="MagnetRotateSpeed" 之前，
+                                   # <Value> 插到 paramName="MagnetRotateSpeed" 之前
 ```
 
 > anchor 可省略：`add-setup` 作用在文件根元素上，因此与 `file:` 配合即可；若写了 `anchor`

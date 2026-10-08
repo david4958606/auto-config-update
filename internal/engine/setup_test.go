@@ -168,6 +168,102 @@ steps:
 	}
 }
 
+// TestAddSetupBeforeAfter 端到端覆盖 add-setup 的 before/after 定位：新参数按基准名插到指定
+// 参数之前/之后(Param 与 Value 同步定位)、plan 不落盘、二次 apply 幂等、通过 Setup 一致性校验。
+func TestAddSetupBeforeAfter(t *testing.T) {
+	const doc = `<Ch1Setup>
+  <Param name="First" dataObject="/First" type="I" min="0" max="1" units="" default="0"/>
+  <Param name="Last" dataObject="/Last" type="I" min="0" max="1" units="" default="0"/>
+  <Option index="1">
+    <Value paramName="First">0</Value>
+    <Value paramName="Last">0</Value>
+  </Option>
+</Ch1Setup>
+`
+	work := t.TempDir()
+	writeFile(t, filepath.Join(work, "config", "Control", "Control_config.xml"), "<Control></Control>")
+	writeFile(t, filepath.Join(work, "config", "IO_config.xml"), "<IO></IO>")
+	setupPath := filepath.Join(work, "config", "Setup", "Setup_Ch1.xml")
+	writeFile(t, setupPath, doc)
+
+	featPath := filepath.Join(work, "up.yaml")
+	writeFile(t, featPath, `id: setup-pos
+version: 1
+steps:
+  - name: Setup/Setup_Ch1.xml 定位追加
+    file: Setup/Setup_Ch1.xml
+    add-setup:
+      - param: Mid
+        dataObject: /Mid
+        type: I
+        min: 0
+        max: 1
+        units: ""
+        default: 0
+        value: 0
+        before: Last
+`)
+	feat, err := feature.Load(featPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// plan：不落盘。
+	eng, err := New(filepath.Join(work, "config"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := eng.ApplyFeature(feat, nil, false, func(string) {}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(setupPath); string(got) != doc {
+		t.Fatalf("plan 模式不应写盘:\n%s", got)
+	}
+
+	// apply：Mid 应落在 First 与 Last 之间(Param 与 Value 都如此)。
+	eng, err = New(filepath.Join(work, "config"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := eng.ApplyFeature(feat, nil, true, func(string) {}); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := os.ReadFile(setupPath)
+	out := string(raw)
+	iFirst, iMid, iLast := strings.Index(out, `name="First"`), strings.Index(out, `name="Mid"`), strings.Index(out, `name="Last"`)
+	if !(0 <= iFirst && iFirst < iMid && iMid < iLast) {
+		t.Fatalf("Param Mid 应落在 First 与 Last 之间:\n%s", out)
+	}
+	vFirst := strings.Index(out, `<Value paramName="First">`)
+	vMid := strings.Index(out, `<Value paramName="Mid">`)
+	vLast := strings.Index(out, `<Value paramName="Last">`)
+	if !(0 <= vFirst && vFirst < vMid && vMid < vLast) {
+		t.Fatalf("Value Mid 应落在 First 与 Last 之间:\n%s", out)
+	}
+
+	// 一致性闸门：Param/Value 按下标一一同名。
+	issues, err := setupcheck.CheckFile(setupPath, "Setup/Setup_Ch1.xml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(issues) != 0 {
+		t.Fatalf("Setup 一致性校验不应有问题: %+v", issues)
+	}
+
+	// 二次 apply：逐字节幂等。
+	before := out
+	eng, err = New(filepath.Join(work, "config"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := eng.ApplyFeature(feat, nil, true, func(string) {}); err != nil {
+		t.Fatal(err)
+	}
+	if after, _ := os.ReadFile(setupPath); string(after) != before {
+		t.Fatalf("二次 apply 不幂等:\n%s", after)
+	}
+}
+
 // removeSetupDoc 是一个含两对 Param/Value 的 Setup 文件(用于校验只删目标、不动其它)。
 const removeSetupDoc = `<Ch1Setup>
   <Param name="Keep" dataObject="/Keep" type="I" min="0" max="1" units="" default="0"/>

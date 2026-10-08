@@ -98,7 +98,7 @@ steps:
 | `add-io` / `add-data` | 建 IO/数据点位,按 `name` 判重。子元素按序 `Bd`(`auto`=推断板号)/`Ch`/`Min`/`Max`/`Accuracy`/`DescriptorList`/`Unit`;`add-data` 首属性固定 `type="data"`。 |
 | `add-blank` / `add-comment` | 在方法块前插入空行 / 段注释。`add-blank: N` 插 N 行空行;`add-comment` 是注释原文列表(须自带 `<!-- -->`)。二者不进解析树,按 anchor 原始字节区间判重(已存在即 no-op)。 |
 | `add-element` | 建普通元素(如 Setup 的 `<Param>`/`<Value>`、`<FileSize>`、`<spare>`),可 `before`/`after` 定位,可带 `include-entity`(内嵌声明的实体引用)。 |
-| `add-setup` | 向 Setup **成对追加**一个 `<Param .../>` 声明与对应的 `<Option>/<Value ...>` 取值:都加在各自序列末尾,按 `param` 名判重(幂等)。 |
+| `add-setup` | 向 Setup **成对追加**一个 `<Param .../>` 声明与对应的 `<Option>/<Value ...>` 取值:默认都加在各自序列末尾,可用 `before`/`after` 按既有参数名把两侧同步插到指定参数之前/之后,按 `param` 名判重(幂等)。 |
 | `remove-setup` | 从 Setup **成对删除**按 `param` 名匹配的 `<Param .../>` 与 `<Option>/<Value ...>`(整行删除,幂等)。 |
 | `add-xml` | 插入一段**内联 XML 片段**(整棵新对象子树),逐字保留 `&amp;&amp;` 等实体书写。 |
 | `set-text` / `set-attr` | 改写已存在元素的文本 / 属性(按 `tag`+`attr`+可选 `old` 定位)。 |

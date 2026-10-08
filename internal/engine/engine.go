@@ -670,7 +670,8 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 			attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
 		}
 		results = append(results, ops.AddSetupPair(m.Node, feature.Format(sp.Param, tags),
-			attrs, feature.Format(sp.ValueText(), tags)))
+			attrs, feature.Format(sp.ValueText(), tags),
+			feature.Format(sp.Before, tags), feature.Format(sp.After, tags)))
 	}
 	// add-xml：内联 XML 片段(新对象/新方法块)，按结构判重。
 	for i := range step.AddXML {

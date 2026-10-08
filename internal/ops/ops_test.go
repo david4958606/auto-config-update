@@ -262,7 +262,7 @@ func setupAttrs() []xmldoc.Attr {
 
 func TestAddSetupPairAppendsToBothSequencesAndIsIdempotent(t *testing.T) {
 	doc, root, _ := parse(t, setupFixture)
-	r := AddSetupPair(root, "SourceDCCurrentMax", setupAttrs(), "70")
+	r := AddSetupPair(root, "SourceDCCurrentMax", setupAttrs(), "70", "", "")
 	if !r.Changed {
 		t.Fatalf("期望新增 Param+Value: %s", r.Message)
 	}
@@ -283,7 +283,7 @@ func TestAddSetupPairAppendsToBothSequencesAndIsIdempotent(t *testing.T) {
 
 	// 二次执行：两侧都已存在 → no-op。
 	_, root2, _ := parse(t, out)
-	if again := AddSetupPair(root2, "SourceDCCurrentMax", setupAttrs(), "70"); again.Changed {
+	if again := AddSetupPair(root2, "SourceDCCurrentMax", setupAttrs(), "70", "", ""); again.Changed {
 		t.Fatalf("二次 add-setup 不应有改动: %s", again.Message)
 	}
 }
@@ -298,7 +298,7 @@ func TestAddSetupPairFillsOnlyMissingSide(t *testing.T) {
 </S>
 `
 	doc, root, _ := parse(t, src)
-	r := AddSetupPair(root, "X", nil, "9")
+	r := AddSetupPair(root, "X", nil, "9", "", "")
 	if !r.Changed || !strings.Contains(r.Message, "Value") {
 		t.Fatalf("应只补 Value: changed=%v msg=%s", r.Changed, r.Message)
 	}
@@ -318,7 +318,7 @@ func TestAddSetupPairFillsOnlyMissingSide(t *testing.T) {
 </S>
 `
 	doc2, root2, _ := parse(t, src2)
-	r2 := AddSetupPair(root2, "Y", []xmldoc.Attr{{Name: "name", Value: "Y"}}, "1")
+	r2 := AddSetupPair(root2, "Y", []xmldoc.Attr{{Name: "name", Value: "Y"}}, "1", "", "")
 	if !r2.Changed || !strings.Contains(r2.Message, "Param") {
 		t.Fatalf("应只补 Param: changed=%v msg=%s", r2.Changed, r2.Message)
 	}
@@ -331,10 +331,66 @@ func TestAddSetupPairFillsOnlyMissingSide(t *testing.T) {
 	}
 }
 
+// TestAddSetupPairBeforeAfter 覆盖 before/after 定位：新 Param/Value 按基准参数名插到其前/后，
+// 基准不存在时退化到末尾并在消息里以 ! 告警。基准为 setupFixture 里的 A/B。
+func TestAddSetupPairBeforeAfter(t *testing.T) {
+	nAttrs := []xmldoc.Attr{{Name: "name", Value: "N"}, {Name: "type", Value: "I"}}
+	// before: B —— Param 落在 B 之前、Value 落在 paramName="B" 之前。
+	doc, root, _ := parse(t, setupFixture)
+	r := AddSetupPair(root, "N", nAttrs, "9", "B", "")
+	if !r.Changed {
+		t.Fatalf("期望新增: %s", r.Message)
+	}
+	out := applyAll(doc, r)
+	iA, iNew, iB := strings.Index(out, `name="A"`), strings.Index(out, `name="N"`), strings.Index(out, `name="B"`)
+	if !(0 <= iA && iA < iNew && iNew < iB) {
+		t.Fatalf("Param 应插在 A 之后、B 之前:\n%s", out)
+	}
+	vA := strings.Index(out, `<Value paramName="A">`)
+	vNew := strings.Index(out, `<Value paramName="N">`)
+	vB := strings.Index(out, `<Value paramName="B">`)
+	if !(0 <= vA && vA < vNew && vNew < vB) {
+		t.Fatalf("Value 应插在 A 之后、B 之前:\n%s", out)
+	}
+
+	// after: A —— Param 落在 A 之后(= B 之前)、Value 落在 paramName="A" 之后。
+	doc2, root2, _ := parse(t, setupFixture)
+	r2 := AddSetupPair(root2, "N", nAttrs, "9", "", "A")
+	out2 := applyAll(doc2, r2)
+	iA2, iNew2, iB2 := strings.Index(out2, `name="A"`), strings.Index(out2, `name="N"`), strings.Index(out2, `name="B"`)
+	if !(0 <= iA2 && iA2 < iNew2 && iNew2 < iB2) {
+		t.Fatalf("after A 的 Param 应落在 A 与 B 之间:\n%s", out2)
+	}
+	vA2 := strings.Index(out2, `<Value paramName="A">`)
+	vNew2 := strings.Index(out2, `<Value paramName="N">`)
+	vB2 := strings.Index(out2, `<Value paramName="B">`)
+	if !(0 <= vA2 && vA2 < vNew2 && vNew2 < vB2) {
+		t.Fatalf("after A 的 Value 应落在 A 与 B 之间:\n%s", out2)
+	}
+
+	// before 优先于 after：同时给出 before:A/after:B 时按 before 定位(N 落在首个 Param A 之前)。
+	doc3, root3, _ := parse(t, setupFixture)
+	out3 := applyAll(doc3, AddSetupPair(root3, "N", nAttrs, "9", "A", "B"))
+	if !(strings.Index(out3, `name="N"`) < strings.Index(out3, `name="A"`)) {
+		t.Fatalf("before 应优先于 after(N 落在 A 之前):\n%s", out3)
+	}
+
+	// 基准不存在：退化到末尾并告警。
+	doc4, root4, _ := parse(t, setupFixture)
+	r4 := AddSetupPair(root4, "N", nAttrs, "9", "NoSuch", "")
+	if !strings.Contains(r4.Message, "!") || !strings.Contains(r4.Message, "NoSuch") {
+		t.Fatalf("基准缺失应告警: %s", r4.Message)
+	}
+	out4 := applyAll(doc4, r4)
+	if iB := strings.Index(out4, `name="B"`); !(0 <= iB && iB < strings.Index(out4, `name="N"`)) {
+		t.Fatalf("退化后 Param 应落在序列末尾(B 之后):\n%s", out4)
+	}
+}
+
 func TestAddSetupPairWithoutOptionWarns(t *testing.T) {
 	src := "<S>\n  <Param name=\"A\"/>\n</S>\n"
 	doc, root, _ := parse(t, src)
-	r := AddSetupPair(root, "Z", []xmldoc.Attr{{Name: "name", Value: "Z"}}, "1")
+	r := AddSetupPair(root, "Z", []xmldoc.Attr{{Name: "name", Value: "Z"}}, "1", "", "")
 	if !r.Changed || !strings.Contains(r.Message, "!") {
 		t.Fatalf("无 Option 时应告警: changed=%v msg=%s", r.Changed, r.Message)
 	}

@@ -656,15 +656,28 @@ func FindElement(anchor *xmldoc.Node, tag string, attrs []xmldoc.Attr, text stri
 //
 // 两侧各自按 name / paramName 判重：已存在的一侧不动，只补缺失的一侧，故二次执行幂等。
 // 找不到 <Option> 时只追加 <Param>，并在消息里以 ! 告警。
-func AddSetupPair(anchor *xmldoc.Node, name string, paramAttrs []xmldoc.Attr, value string) Result {
+//
+// beforeName / afterName 为可选定位基准(取某个已存在参数名)：非空时新 Param 插到 anchor 下
+// <Param name=基准> 之前/之后、新 Value 插到 <Value paramName=基准> 之前/之后(before 优先)；
+// 都为空=各自追加序列末尾。配置了基准但在对应序列里找不到→退化为末尾并以 ! 告警。
+func AddSetupPair(anchor *xmldoc.Node, name string, paramAttrs []xmldoc.Attr, value, beforeName, afterName string) Result {
 	var edits []xmldoc.Edit
 	var added []string
+	wantRel := beforeName != "" || afterName != ""
+	missLoc := false // 配置了 before/after 却在某一侧找不到基准(已退化到末尾)
 
 	if !hasNamedChild(anchor, "Param", "name", name) {
 		el := xmldoc.NewElement("Param")
 		el.Attrs = paramAttrs
 		edit := xmldoc.Edit{Kind: xmldoc.Insert, Parent: anchor, Child: el}
-		if before := setupParamInsertBefore(anchor); before != nil {
+		before, located := setupRelInsert(anchor, "Param", "name", beforeName, afterName)
+		if !located {
+			if wantRel {
+				missLoc = true
+			}
+			before = setupParamInsertBefore(anchor) // 退化：落在 Param 序列末尾
+		}
+		if before != nil {
 			xmldoc.InsertBefore(anchor, el, before)
 			edit.Before = before
 		} else {
@@ -687,15 +700,33 @@ func AddSetupPair(anchor *xmldoc.Node, name string, paramAttrs []xmldoc.Attr, va
 		el.Attrs = []xmldoc.Attr{{Name: "paramName", Value: name}}
 		el.Text = value
 		el.PairedEmpty = true // 空取值渲染成 <Value paramName="X"></Value>(与 Setup 既有写法一致)
-		xmldoc.AppendChild(option, el)
-		edits = append(edits, xmldoc.Edit{Kind: xmldoc.Insert, Parent: option, Child: el})
+		edit := xmldoc.Edit{Kind: xmldoc.Insert, Parent: option, Child: el}
+		before, located := setupRelInsert(option, "Value", "paramName", beforeName, afterName)
+		if !located && wantRel {
+			missLoc = true
+		}
+		if located && before != nil {
+			xmldoc.InsertBefore(option, el, before)
+			edit.Before = before
+		} else {
+			xmldoc.AppendChild(option, el) // 退化：落在 Option 末尾
+		}
+		edits = append(edits, edit)
 		added = append(added, "Value")
 	}
 
 	if len(added) == 0 {
 		return Result{Changed: false, Message: fmt.Sprintf("Setup 参数 %s 及其取值已存在", name)}
 	}
-	res := Result{Changed: true, Message: fmt.Sprintf("新增 Setup 参数 %s（%s）", name, strings.Join(added, "+"))}
+	msg := fmt.Sprintf("新增 Setup 参数 %s（%s）", name, strings.Join(added, "+"))
+	if missLoc {
+		loc := beforeName
+		if loc == "" {
+			loc = afterName
+		}
+		msg += fmt.Sprintf("（! 未找到定位参数 %s，已追加到末尾）", loc)
+	}
+	res := Result{Changed: true, Message: msg}
 	if len(edits) == 1 {
 		res.Edit = &edits[0]
 	} else {
@@ -747,6 +778,44 @@ func hasNamedChild(parent *xmldoc.Node, tag, key, value string) bool {
 // setupParamInsertBefore 返回"新增 <Param> 应插到其前"的兄弟节点，使新声明落在 <Param>
 // 序列末尾：取最后一个 <Param> 之后的下一个原节点；没有 <Param> 时取首个 <Option>；
 // 都没有则 nil(追加到父末尾)。合成节点无字节区间，不作定位点。
+// setupRelInsert 为相对定位的 add-setup 计算 Param/Value 的插入点(用作 Insert.Before)：
+// 在 parent 下按 key 属性找到基准参数(beforeName 优先，否则 afterName)所指的 <tag> 节点——
+// before → 插到基准之前(返回基准本身)；after → 插到基准之后(返回基准后首个原节点，无后继则 nil，
+// 由调用方 AppendChild 落到父末尾)。返回 located=false 的两种情形：未配置 before/after、
+// 或配置了但在本 parent 下找不到基准；两者都应退化到默认追加位置(后者再由调用方告警)。
+// 合成节点无字节区间，不作定位点。
+func setupRelInsert(parent *xmldoc.Node, tag, key, beforeName, afterName string) (before *xmldoc.Node, located bool) {
+	name, after := beforeName, false
+	if name == "" {
+		name, after = afterName, true
+	}
+	if name == "" {
+		return nil, false
+	}
+	idx := -1
+	for i, c := range parent.Children {
+		if c.Removed || c.IsEntity || c.Tag != tag {
+			continue
+		}
+		if c.HasAttr(key) && c.Attr(key) == name {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		return nil, false
+	}
+	if !after {
+		return parent.Children[idx], true
+	}
+	for j := idx + 1; j < len(parent.Children); j++ {
+		if c := parent.Children[j]; !c.Removed && !c.Synthetic {
+			return c, true
+		}
+	}
+	return nil, true
+}
+
 func setupParamInsertBefore(anchor *xmldoc.Node) *xmldoc.Node {
 	last := -1
 	for i, c := range anchor.Children {

@@ -176,6 +176,11 @@ type AddSetupSpec struct {
 	Default        yaml.Node `yaml:"default"`
 	Value          yaml.Node `yaml:"value"` // <Value> 文本；缺省/null→渲染成成对空标签
 	Attrs          yaml.Node `yaml:"attrs"` // 其它属性(保留书写顺序)；同名覆盖上面的便捷字段
+	// Before/After 为可选定位基准:取某个**已存在**参数名(同时匹配 <Param name> 与
+	// <Value paramName>),使新增的 Param/Value 分别插到该参数之前/之后;缺省则各自追加到序列末尾。
+	// 两者互斥,同时配置时 before 优先;配置了但找不到基准参数→退化为末尾并在日志里以 ! 告警。
+	Before string `yaml:"before"`
+	After  string `yaml:"after"`
 }
 
 // setupParamOrder 是 <Param> 属性的规范书写顺序(与设备导出的 Setup 文件一致)：
