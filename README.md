@@ -52,6 +52,19 @@ make win64    # windows/amd64 -> auto-config-update.exe
   也可单独跑 `check` 作为上线前的硬闸门。
 - 原语速查见 [doc/feature-primitives.md](doc/feature-primitives.md)。
 
+### 现场交互选择功能
+
+交付时把 `run-features.sh`、`auto-config-update-32` 和整个 `features/`（保留子目录结构）放在同一目录，并在该目录放置待升级的 `config/`（也可通过 `--config` 指定）。执行：
+
+```bash
+bash run-features.sh
+bash run-features.sh --config config-14346
+```
+
+入口递归列出 `.yaml` / `.yml`，显示 YAML 顶层单行 `id`、`description`；列表前缀取自 **features 下的相对目录**，不取 YAML 的 `version`。输入功能编号勾选后立即进入腔室选择页，输入腔室编号切换，回车保存返回一级菜单。二级页面不勾选任何腔室时表示**全部腔室**；取消勾选功能会清除对应的腔室选择。输入 `r` 查看执行摘要，再输入 `yes` 确认实际修改；`q` 退出。依列表顺序逐个调用 `auto-config-update-32 apply`，若某项失败则停止，不执行后续功能。声明了 `file:` 的文件级步骤由程序处理，不受腔室选项限制。
+
+脚本仅依赖 Bash、`find`、`sort`、`awk`，不要求 `dialog`、Python 或联网；终端中按数字勾选。交互终端中切换页面或勾选后会刷新屏幕；非交互输入或重定向输出时不清屏，以便保留日志。运行前建议备份配置；多份功能之间如有依赖，请注意列表按文件路径排序。
+
 ## Feature 怎么写
 
 一个功能 = 一份 `features/<id>.yaml`,核心是 `steps`:按顺序执行,后一步可用前一步的产物。
