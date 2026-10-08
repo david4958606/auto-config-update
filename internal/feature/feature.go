@@ -49,7 +49,7 @@ type Step struct {
 	AddIO        []AddIOSpec   `yaml:"add-io"`
 	AddData      []AddDataSpec `yaml:"add-data"`
 
-	// 原地改写 / 删除 / 注释开关 / 普通元素(见 doc/config-upgrade-design.md §3)。
+	// 原地改写 / 删除 / 注释开关 / 普通元素(见 doc/feature-primitives.md §7)。
 	SetText     []SetTextSpec     `yaml:"set-text"`
 	SetAttr     []SetAttrSpec     `yaml:"set-attr"`
 	RenameNode  []RenameNodeSpec  `yaml:"rename-node"`

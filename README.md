@@ -176,13 +176,12 @@ config/
 
 | feature | 覆盖 | 来源 |
 |---------|------|------|
-| `features/upgrade-files.yaml` | `Setup/*.xml`、`SysLog_config.xml`、`Control/Control_config.xml` | `hack/gen_upgrade_files.py` |
+| `features/upgrade-files.yaml` | `Setup/*.xml`、`SysLog_config.xml`、`Control/Control_config.xml` | 依结构差异生成 |
 | `features/upgrade-io.yaml` | IO 片段量程/板号、`IO_Platform` 段停用、`IO_Facility` 新点位、`Driver_Facility` 通道模式 | 手写 |
 | `features/upgrade-control.yaml` | 加热器温差、EzZone 校准、互锁/报警、机器人安全互锁 | 依结构差异生成 |
 | `features/upgrade-16196-{setup,io,control}.yaml` | 另一台设备:`Setup/*.xml`(含新建文件)、`IOBridge/*`、`Control/*`(补偿器、PMacro、稳定时间、互锁) | 依结构差异生成 |
 
-`hack/gen_upgrade_files.py` 用同一份 zone/param 列表同时生成 `<Param>` 与 `<Value>` 两组步骤,从构造上
-保证两侧数量与顺序一致。`upgrade-16196-*.yaml` 覆盖了 step 级原语 `new-file`(见
+`upgrade-16196-*.yaml` 覆盖了 step 级原语 `new-file`(见
 [doc/feature-primitives.md](doc/feature-primitives.md) §7.15),并演示"一份声明、逐腔室替换腔室名"的写法
 (同 `features/add-pedcurpos-dataex.yaml`):同 class 的腔室用 `anchor: <Class>/…` + `${<Class>}`,
 根没有 class 的片段(Interlock)用保留占位符 `${Chamber}`。
@@ -200,5 +199,3 @@ config/
 > `N`)。工具**按目标保真**复现该笔误,同时由一致性校验**检出并报错**:`auto-config-update check` 会打印
 > `!! Setup/GasFlowCompens_ChN.xml: 第 1 项 Param=AlONGasFlowPieceCompens 与 Value=AlOGasFlowPieceCompens 不同名`
 > (以及对应的 orphan-param / orphan-value),并以**非零退出码**结束;`apply` 默认也会在结束时跑同样的自检。
-
-设计与原语取舍见 [doc/config-upgrade-design.md](doc/config-upgrade-design.md)。
