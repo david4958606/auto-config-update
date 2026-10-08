@@ -28,6 +28,9 @@ wheels/
 *.tar.gz
 .idea
 
+# 现场功能定义（由交付方单独提供，不纳入仓库）
+/features/
+
 # 本地验证工作区
 /.gocache/
 /.upgrade-work/
