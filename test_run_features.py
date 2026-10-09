@@ -35,9 +35,9 @@ class FeatureMenuTest(unittest.TestCase):
         exe.chmod(0o755)
         self.calls = self.root / "calls"
 
-    def run_menu(self, inputs, **env):
+    def run_menu(self, inputs, *args, **env):
         return subprocess.run(
-            ["bash", str(self.root / SCRIPT.name)], input=inputs,
+            ["bash", str(self.root / SCRIPT.name), *args], input=inputs,
             text=True, capture_output=True, cwd="/", timeout=10,
             env={**os.environ, "CALLS": str(self.calls), **env},
         )
@@ -55,6 +55,11 @@ class FeatureMenuTest(unittest.TestCase):
         self.assertIn("v1.0/aaa.yaml", calls[0])
         self.assertIn("v1.1/bbb.yml", calls[1])
         self.assertNotIn("--chamber", calls[1])
+
+    def test_explicit_config_passed_to_runner(self):
+        result = self.run_menu("1\n\nr\nyes\n", "--config", "config-site")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--config config-site", self.calls.read_text())
 
     def test_cancel_selection_clears_chambers(self):
         result = self.run_menu("2\n1\n\n2\n2\n\nr\nyes\n")

@@ -6,12 +6,14 @@ base_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P) || exit 1
 features_dir=$base_dir/features
 runner=$base_dir/auto-config-update-32
 config_args=()
+config_given=0
 if (($#)); then
     if (($# != 2)) || [[ $1 != --config || -z $2 ]]; then
         printf '用法: %s [--config <目录>]\n' "$0" >&2
         exit 2
     fi
     config_args=(--config "$2")
+    config_given=1
 fi
 if [[ ! -d $features_dir || ! -x $runner ]]; then
     printf '缺少 features/ 目录或可执行文件 auto-config-update-32：%s\n' "$base_dir" >&2
@@ -183,7 +185,11 @@ done
 cd -- "$base_dir" || exit 1
 for ((i=0; i<${#paths[@]}; i++)); do
     ((selected[i])) || continue
-    args=(apply --feature "${paths[i]}" "${config_args[@]}")
+    args=(apply --feature "${paths[i]}")
+    # Bash 4.1 等旧版本在 set -u 下展开空数组会报 unbound variable。
+    if ((config_given)); then
+        args+=("${config_args[@]}")
+    fi
     for chamber in ${chamber_choices[i]}; do
         args+=(--chamber "$chamber")
     done
