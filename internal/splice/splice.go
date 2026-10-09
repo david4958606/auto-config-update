@@ -24,13 +24,33 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 	// 按"父节点闭合标签偏移"聚合插入，保序拼接每个父的新子节点块。
 	insertText := map[int]string{}
 	var insertOrder []int
+	// 自闭合父没有 CloseStart；只展开原开标签末尾的 />，避免重写属性，
+	// 也让同批属性值 Replace 的原始偏移仍然有效。
+	selfClosing := map[int]*xmldoc.Node{}
+	nl := detectNewline(src)
 	var patches []patch
 
 	for _, e := range edits {
 		switch e.Kind {
-		case xmldoc.Insert:
+		case xmldoc.Insert, xmldoc.InsertRaw:
 			if e.Parent.Synthetic {
 				continue // 父是合成节点，文本已在祖先渲染里
+			}
+			var block string
+			if e.Kind == xmldoc.Insert {
+				block = matchNewline(xmldoc.Render(e.Child, xmldoc.RealDepth(e.Parent)+1)+"\n", nl)
+			} else {
+				block = matchNewline(strings.TrimRight(e.Text, "\r\n"), nl) + nl
+			}
+			if e.Parent.SelfClose {
+				// End/OpenEnd 都在 '>' 之后；自闭合父无原文子节点可作为 before。
+				at := e.Parent.OpenEnd - 2
+				if _, ok := insertText[at]; !ok {
+					insertOrder = append(insertOrder, at)
+				}
+				selfClosing[at] = e.Parent
+				insertText[at] += block
+				continue
 			}
 			// 缺省插到父闭合标签前(追加)；指定 before 且其为原节点时，改插到该兄弟节点所在行之前。
 			// 追加时若父末尾是"永远在最后"的实体引用(如 &Simulated_ChN;)，则插到该实体之前，
@@ -42,8 +62,6 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 				anchorOff = ent.Start
 			}
 			at := insertOffset(src, anchorOff)
-			block := xmldoc.Render(e.Child, xmldoc.RealDepth(e.Parent)+1) + "\n"
-			block = matchNewline(block, detectNewline(src))
 			if _, ok := insertText[at]; !ok {
 				insertOrder = append(insertOrder, at)
 			}
@@ -62,27 +80,21 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 				patches = append(patches, patch{start: lo, end: lo, text: e.Open})
 				patches = append(patches, patch{start: hi, end: hi, text: e.Close})
 			}
-		case xmldoc.InsertRaw:
-			if e.Parent.Synthetic {
-				continue
-			}
-			anchorOff := e.Parent.CloseStart
-			if e.Before != nil && e.Before.Start >= 0 {
-				anchorOff = e.Before.Start
-			} else if ent := trailingEntity(e.Parent); ent != nil {
-				anchorOff = ent.Start
-			}
-			at := insertOffset(src, anchorOff)
-			block := matchNewline(strings.TrimRight(e.Text, "\r\n"), detectNewline(src)) + detectNewline(src)
-			if _, ok := insertText[at]; !ok {
-				insertOrder = append(insertOrder, at)
-			}
-			insertText[at] += block
 		case xmldoc.Replace:
 			patches = append(patches, patch{start: e.Start, end: e.End, text: e.Text})
 		}
 	}
 	for _, at := range insertOrder {
+		if parent := selfClosing[at]; parent != nil {
+			indent := strings.Repeat("    ", xmldoc.RealDepth(parent))
+			// 独占一行时，闭标签复用原父节点的缩进(包括 tab)。
+			if lineStart := insertOffset(src, parent.Start); lineStart < parent.Start {
+				indent = string(src[lineStart:parent.Start])
+			}
+			patches = append(patches, patch{start: at, end: parent.OpenEnd,
+				text: ">" + nl + insertText[at] + indent + "</" + parent.Tag + ">"})
+			continue
+		}
 		patches = append(patches, patch{start: at, end: at, text: insertText[at]})
 	}
 
@@ -118,10 +130,11 @@ func detectNewline(src []byte) string {
 
 // matchNewline 把 block 的换行统一成 nl(先归一到 \n 再展开，避免重复 \r)。
 func matchNewline(block, nl string) string {
+	block = strings.ReplaceAll(block, "\r\n", "\n")
 	if nl == "\n" {
 		return block
 	}
-	return strings.ReplaceAll(strings.ReplaceAll(block, "\r\n", "\n"), "\n", nl)
+	return strings.ReplaceAll(block, "\n", nl)
 }
 
 // setTextPatch 生成"把 t 的文本改成 text"的字节替换：

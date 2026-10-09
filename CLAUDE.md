@@ -40,7 +40,7 @@ go test ./...
 - `internal/config`：装配主配置和实体片段，提供逻辑 IO/Control 视图；`internal/anchor`：路径定位、多实例展开和 `where` 筛选。
 - `internal/feature`：YAML 加载、`require` 守卫及变量绑定；`internal/ops`：幂等动作；`internal/engine`：按腔室和步骤编排执行。
 - `internal/splice`：应用字节编辑；`internal/setupcheck`：Setup 一致性校验；`internal/xmlcmp`：语义比对；`internal/simswitch`：模拟开关切换。
-- `steps` 必须按声明顺序执行，后一步能定位和使用前一步的改动；不要把整套步骤改成仅基于初始树求值。
+- `steps` 按执行分组保留各组内的声明顺序：每个腔室先执行腔室步骤，再执行路径含占位符的文件步骤；全部腔室结束后执行字面量路径的全局文件步骤，不保证跨组的全局声明顺序。同组后一步能定位和使用前一步的改动，文件级 `plan`/`apply` 均使用本次执行的虚拟字节状态；不要把整套步骤改成仅基于初始树求值。
 - class 路径支持同类多实例展开，逻辑 `/IO/...` 和 `/Control/...` 路径可跨片段解析；具体定位规则以 [原语参考](doc/feature-primitives.md) 和源码为准。
 - 原语必须幂等：重复执行不得重复插入或产生额外改动；`plan` 不写盘，`apply` 落盘，二者使用一致的动作判定和日志口径。
 - 保留 `&Simulated_Ch1;` 等实体引用原文，实体真名由配置声明解析。不得通过展开实体或重新序列化整个原始文档来实现局部修改。

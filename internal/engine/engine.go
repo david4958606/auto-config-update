@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -139,12 +140,14 @@ func splitTemplatedFiles(steps []feature.Step) (perChamber, global []feature.Ste
 // 文件级步骤分两类：路径含占位符的(如 `file: Setup/Setup_${Chamber}.xml`)在腔室循环内
 // **逐腔室展开**，用该腔室的绑定解析路径与取值；路径为字面量的在腔室循环之后各执行一次。
 func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool, log func(string)) error {
+	// 本次执行的文件级虚拟字节状态；plan/apply 均让后续步骤读取前一步结果。
+	files := map[string][]byte{}
 	chamberSteps, fileSteps := SplitSteps(f.Steps)
 	perChamberFiles, globalFiles := splitTemplatedFiles(fileSteps)
 	// 纯文件级 feature 且没有按腔室展开的步骤(如 Setup/SysLog 的静态升级)：不必加载任何腔室片段，
 	// 省掉对全部 Control/IO/Driver 片段的解析。
 	if len(chamberSteps) == 0 && len(perChamberFiles) == 0 {
-		return e.runFileSteps(globalFiles, nil, false, write, log)
+		return e.runFileSteps(globalFiles, nil, false, write, files, log)
 	}
 	frags, err := config.FragmentFiles(e.controlMaster)
 	if err != nil {
@@ -207,7 +210,7 @@ func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool,
 			e.runStep(&chamberSteps[i], doms, chamberBinds, chamber, log)
 		}
 		// 按腔室展开的文件级步骤：用本腔室绑定解析 `${Chamber}`/{Class} 后各执行一次。
-		if err := e.runFileSteps(perChamberFiles, chamberBinds, true, write, log); err != nil {
+		if err := e.runFileSteps(perChamberFiles, chamberBinds, true, write, files, log); err != nil {
 			return err
 		}
 
@@ -227,19 +230,19 @@ func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool,
 	}
 
 	// 字面量路径的文件级步骤(Setup/*.xml、SysLog_config.xml、Control_config.xml 等)。
-	return e.runFileSteps(globalFiles, nil, false, write, log)
+	return e.runFileSteps(globalFiles, nil, false, write, files, log)
 }
 
-// runFileSteps 逐条执行文件级步骤：每个文件只读一次、改完(可选)写回。
+// runFileSteps 逐条执行文件级步骤：本次执行共享虚拟字节状态，每步解析最新字节、改完(可选)写回。
 //   - tags 非 nil 时为"按腔室展开"，路径与取值里的占位符用该腔室绑定解析；
 //   - 路径含 glob 元字符(*/?/[)时按 Glob 展开，逐个文件执行(字面路径仍是单个文件)；
 //   - perChamber 为真时，文件不存在只告警跳过(不同腔室未必都有该文件)，不影响其它腔室；
 //   - new-file 步骤不走解析：文件不存在才逐字写 Content(存在即幂等 no-op，绝不覆盖)。
-func (e *Engine) runFileSteps(steps []feature.Step, tags map[string]string, perChamber, write bool, log func(string)) error {
+func (e *Engine) runFileSteps(steps []feature.Step, tags map[string]string, perChamber, write bool, files map[string][]byte, log func(string)) error {
 	for i := range steps {
 		step := &steps[i]
 		if step.NewFile != "" {
-			if err := e.createFile(step, tags, write, log); err != nil {
+			if err := e.createFile(step, tags, write, files, log); err != nil {
 				return err
 			}
 			continue
@@ -249,6 +252,25 @@ func (e *Engine) runFileSteps(steps []feature.Step, tags map[string]string, perC
 		if err != nil {
 			return err
 		}
+		// plan 新建的文件也参与 glob，且与磁盘展开采用相同排序。
+		if isGlobPattern(rel) {
+			seen := map[string]bool{}
+			for _, one := range paths {
+				seen[one] = true
+			}
+			for path := range files {
+				one, err := filepath.Rel(e.configDir, path)
+				if err != nil {
+					continue
+				}
+				one = filepath.ToSlash(one)
+				if matched, _ := filepath.Match(filepath.FromSlash(rel), filepath.FromSlash(one)); matched && !seen[one] {
+					paths = append(paths, one)
+					seen[one] = true
+				}
+			}
+			sort.Strings(paths)
+		}
 		if len(paths) == 0 {
 			if isGlobPattern(rel) {
 				log(fmt.Sprintf("[文件 %s] ! 跳过：无匹配文件", rel))
@@ -257,7 +279,7 @@ func (e *Engine) runFileSteps(steps []feature.Step, tags map[string]string, perC
 			paths = []string{rel} // 字面路径：走下面统一的读取逻辑(缺失时报错或按腔室跳过)
 		}
 		for _, one := range paths {
-			if err := e.runOneFileStep(step, one, tags, perChamber, write, log); err != nil {
+			if err := e.runOneFileStep(step, one, tags, perChamber, write, files, log); err != nil {
 				return err
 			}
 		}
@@ -266,9 +288,13 @@ func (e *Engine) runFileSteps(steps []feature.Step, tags map[string]string, perC
 }
 
 // runOneFileStep 对单个文件执行一条文件级步骤。
-func (e *Engine) runOneFileStep(step *feature.Step, rel string, tags map[string]string, perChamber, write bool, log func(string)) error {
+func (e *Engine) runOneFileStep(step *feature.Step, rel string, tags map[string]string, perChamber, write bool, files map[string][]byte, log func(string)) error {
 	path := filepath.Join(e.configDir, filepath.FromSlash(rel))
-	src, err := os.ReadFile(path)
+	src, cached := files[path]
+	var err error
+	if !cached {
+		src, err = os.ReadFile(path)
+	}
 	if err != nil {
 		if perChamber && os.IsNotExist(err) {
 			log(fmt.Sprintf("[文件 %s] ! 跳过：文件不存在", rel))
@@ -276,6 +302,7 @@ func (e *Engine) runOneFileStep(step *feature.Step, rel string, tags map[string]
 		}
 		return fmt.Errorf("读取 %s: %w", rel, err)
 	}
+	files[path] = src
 	doc, err := xmldoc.Parse(src)
 	if err != nil {
 		return fmt.Errorf("解析 %s: %w", rel, err)
@@ -305,12 +332,15 @@ func (e *Engine) runOneFileStep(step *feature.Step, rel string, tags map[string]
 	for _, m := range matches {
 		e.applyActions(step, tg, m, tags, "", croot, log)
 	}
-	if write && len(tg.edits) > 0 {
+	if len(tg.edits) > 0 {
 		outBytes := splice.Apply(tg.doc.Src, tg.edits)
-		if err := os.WriteFile(tg.path, outBytes, 0o644); err != nil {
-			return err
+		files[path] = outBytes
+		if write {
+			if err := os.WriteFile(tg.path, outBytes, 0o644); err != nil {
+				return err
+			}
+			log(fmt.Sprintf("[文件 %s] + 已写回 %s（%d 处编辑，其余字节不动）", rel, rel, len(tg.edits)))
 		}
-		log(fmt.Sprintf("[文件 %s] + 已写回 %s（%d 处编辑，其余字节不动）", rel, rel, len(tg.edits)))
 	}
 	return nil
 }
@@ -346,15 +376,20 @@ func (e *Engine) expandFilePath(rel string) ([]string, error) {
 // createFile 执行 new-file 步骤：config/<new-file> 不存在时按 Content 逐字新建。
 // 幂等判据=文件是否已存在——已存在即 no-op，绝不覆盖(与"外科式补丁"一致)。
 // tags 非 nil 时(按腔室展开)路径里的占位符用该腔室绑定解析；content 始终按字面写入。
-func (e *Engine) createFile(step *feature.Step, tags map[string]string, write bool, log func(string)) error {
+func (e *Engine) createFile(step *feature.Step, tags map[string]string, write bool, files map[string][]byte, log func(string)) error {
 	rel := feature.Format(step.NewFile, tags)
 	path := filepath.Join(e.configDir, filepath.FromSlash(rel))
+	if _, exists := files[path]; exists {
+		log(fmt.Sprintf("[新文件 %s] - 已存在，保持原样(no-op)", rel))
+		return nil
+	}
 	if _, err := os.Stat(path); err == nil {
 		log(fmt.Sprintf("[新文件 %s] - 已存在，保持原样(no-op)", rel))
 		return nil
 	} else if !os.IsNotExist(err) {
 		return fmt.Errorf("检查 %s: %w", rel, err)
 	}
+	files[path] = []byte(step.Content)
 	if !write {
 		log(fmt.Sprintf("[新文件 %s] + 待新建（%d 字节）", rel, len(step.Content)))
 		return nil
