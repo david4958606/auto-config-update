@@ -3,7 +3,7 @@
 // 变量作用域：
 //   - {类名} 由 anchor 逐实例自动绑定(在 engine 完成)。
 //   - add-node 建对象后把 {标签} 绑成 "./标签"，供后续步骤跨步引用(engine 完成)。
-//   - require: 守卫+绑定。exist —— 逻辑路径必须解析得到，否则跳过；命中则绑定为该路径。
+//   - require: 守卫+绑定。exist / non-exist —— 逻辑路径必须存在 / 不存在，否则跳过；满足则绑定为该路径。
 //   - bind:    纯绑定，不做存在性要求。
 package feature
 
@@ -419,17 +419,26 @@ func ResolveBindings(step Step, tags map[string]string, idx config.Indexes) (map
 	var notes []Note
 	for _, item := range step.Require {
 		kind, spec := firstEntry(&item)
-		if kind != "exist" {
+		if kind != "exist" && kind != "non-exist" {
 			return nil, nil, &Skip{Reason: fmt.Sprintf("未知 require 类型: %s", kind)}
 		}
 		v, tmplNode := firstEntry(spec)
+		if v == "" || tmplNode == nil || tmplNode.Kind != yaml.ScalarNode || tmplNode.Tag == "!!null" || strings.TrimSpace(tmplNode.Value) == "" {
+			return nil, nil, &Skip{Reason: fmt.Sprintf("require.%s 格式错误 —— 应为 {变量: 非空逻辑路径}", kind)}
+		}
 		logical := Format(tmplNode.Value, out)
 		fpath, node := config.ResolveLogical(idx, logical)
-		if node == nil {
+		if kind == "exist" && node == nil {
 			return nil, nil, &Skip{Reason: fmt.Sprintf("require.exist 不满足 —— 找不到 %s", logical)}
 		}
+		if kind == "non-exist" && node != nil {
+			return nil, nil, &Skip{Reason: fmt.Sprintf("require.non-exist 不满足 —— 已存在 %s", logical)}
+		}
 		out[v] = logical
-		notes = append(notes, Note{Var: v, Logical: logical, Path: fpath})
+		// 不存在的路径没有命中文件，不生成误导性的“命中于”记录。
+		if kind == "exist" {
+			notes = append(notes, Note{Var: v, Logical: logical, Path: fpath})
+		}
 	}
 	for _, item := range step.Bind {
 		v, tmplNode := firstEntry(&item)

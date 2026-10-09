@@ -41,7 +41,7 @@ steps:                     # 有序步骤列表，见下
 | `name` | 元信息 | 步骤名，仅用于打印。 |
 | `anchor` | 定位 | 一条 **class 路径**，逐层 descendant 定位；leaf 多实例会 fan-out。见 §3。 |
 | `where` | 定位 | leaf 多实例时筛子集 + 插入定位（`before-method`）。见 §4。 |
-| `require` | 守卫/绑定 | `exist` 守卫：路径解析不到则**跳过**该实例；命中则绑定变量。见 §5。 |
+| `require` | 守卫/绑定 | `exist` / `non-exist` 守卫：要求路径存在 / 不存在，不满足则**跳过**该实例；满足则绑定变量。见 §5。 |
 | `bind` | 绑定 | 纯绑定，不做存在性要求。见 §5。 |
 | `add-node` | 动作 | 建对象节点，可内嵌实体引用。见 §7.1。 |
 | `add-data` | 动作 | 建数据点位 `type="data"`。见 §7.2。 |
@@ -150,7 +150,7 @@ where:
 
 ### 5.1 `require`
 
-目前仅支持 `exist` 一种（其它类型报"未知 require 类型"并跳过该实例）：
+支持 `exist` 和 `non-exist`（其它类型报"未知 require 类型"并跳过该实例）；列表中的守卫须全部满足：
 
 ```yaml
 require:
@@ -162,6 +162,57 @@ require:
 
 - 解析**不到** → 该实例**跳过**（打印原因）。
 - 命中 → 把变量（`PedCurPos`）绑成该逻辑路径，并记录"命中于哪个文件"用于语义 diff。
+
+`exist` **也能检测 method 是否存在**：将方法名作为逻辑路径的最后一段。有值方法和
+自闭合的标志型方法都可命中，例如：
+
+```yaml
+steps:
+  - name: 已配置 setOnOffVp 时才启用模式切换
+    anchor: /Control/{ITO}/{PhyGauge}
+    require:
+      - exist: { ExistingMethod: "/Control/{ITO}/{PhyGauge}/setOnOffVp" }
+    add-method:
+      - name: enableModeSwitch
+```
+
+这里 `{ITO}` 和 `{PhyGauge}` 由 anchor 逐实例绑定为实际标签名；目标方法不存在时，
+只跳过当前实例。路径须逐层写全，不按 class 或方法名递归搜索；被注释掉的方法不算存在。
+`exist` 只检查该路径是否有节点，**不校验 `type="method"`，也不匹配方法的参数值**；
+同一路径有多个同名方法时，任意一个存在即可。绑定变量 `ExistingMethod` 的值是完整逻辑路径。
+
+#### `non-exist` —— 不存在时执行
+
+写法与 `exist` 相同：`non-exist: { 变量: "逻辑路径" }`。
+
+- 路径解析不到 → 继续执行，并将变量绑定为替换后的逻辑路径；不生成“命中于哪个文件”记录。
+- 路径已存在 → 跳过当前实例，打印 `require.non-exist 不满足 —— 已存在 ...`。
+- 匹配规则与 `exist` 一致：仅按节点路径，不校验 method 类型或参数值；注释掉的节点算不存在。
+  父节点或腔室缺失也算路径不存在；若要求父对象存在，应先增加一个 `exist` 守卫。
+
+可用两个文件级 step 实现“方法存在 / 不存在时添加不同 Setup 参数”：
+
+```yaml
+steps:
+  - name: 方法存在时添加新参数
+    file: Setup/Setup_${Chamber}.xml
+    require:
+      - exist: { Method: "/Control/${Chamber}/Heater/setTempB4Offset" }
+    add-setup:
+      - { param: TempB4Offset, type: D, default: 0, value: 0 }
+
+  - name: 方法不存在时添加兼容参数
+    file: Setup/Setup_${Chamber}.xml
+    require:
+      - exist: { Heater: "/Control/${Chamber}/Heater" }
+      - non-exist: { Method: "${Heater}/setTempB4Offset" }
+    add-setup:
+      - { param: LegacyTempOffset, type: D, default: 0, value: 0 }
+```
+
+文件级步骤可省略 `anchor`，此时 `add-setup` 作用于文件根元素。`require` 检查的是
+Control/IO 逻辑索引，非目标 Setup 文件。`file` 路径先于 `require`/`bind` 解析，
+因此不能使用同一步中新绑定的变量。以上两分支只添加所需参数，不删除历史上另一分支添加的参数。
 
 ### 5.2 `bind`
 
