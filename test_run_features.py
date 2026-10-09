@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 
-SCRIPT = Path(__file__).with_name("run-features.sh")
+SCRIPT = Path(__file__).with_name("run.sh")
 
 
 class FeatureMenuTest(unittest.TestCase):

@@ -16,6 +16,7 @@ OUTWIN  	:= auto-config-update.exe
 TAR_TARGETS := $(OUT) $(OUT32) $(OUTWIN) features
 TAR_TARGETS += doc
 TAR_TARGETS += README.md
+TAR_TARGETS += run.sh
 TAR_NAME := auto-config-update-$(shell date +%Y%m%d-%H%M%S).tar.gz
 LDFLAGS := -s -w
 
