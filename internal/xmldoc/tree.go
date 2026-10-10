@@ -204,11 +204,15 @@ func (n *Node) hasElementChildren() bool {
 //	仅文本          → <tag attrs>text</tag>
 //	空              → <tag attrs/>(PairedEmpty=true 时改为 <tag attrs></tag>)
 func Render(n *Node, depth int) string {
+	return RenderIndented(n, strings.Repeat("    ", depth), "    ")
+}
+
+// RenderIndented 使用指定首行缩进及每层缩进渲染新增子树，结尾不带换行。
+func RenderIndented(n *Node, indent, unit string) string {
 	// 空行：不带缩进；BlankCount 行空行 = BlankCount-1 个换行(splice 落盘时再补一个)。
 	if n.IsBlank {
 		return strings.Repeat("\n", n.BlankCount-1)
 	}
-	indent := strings.Repeat("    ", depth)
 	// 注释：原样输出(首行按深度缩进)。
 	if n.IsComment {
 		return indent + n.Raw
@@ -224,7 +228,7 @@ func Render(n *Node, depth int) string {
 			if c.Removed {
 				continue
 			}
-			b.WriteString("\n" + Render(c, depth+1))
+			b.WriteString("\n" + RenderIndented(c, indent+unit, unit))
 		}
 		b.WriteString("\n" + indent + "</" + n.Tag + ">")
 		return b.String()

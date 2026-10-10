@@ -38,7 +38,8 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 			}
 			var block string
 			if e.Kind == xmldoc.Insert {
-				block = matchNewline(xmldoc.Render(e.Child, xmldoc.RealDepth(e.Parent)+1)+"\n", nl)
+				indent, unit := insertionIndent(src, e.Parent, e.Before)
+				block = matchNewline(xmldoc.RenderIndented(e.Child, indent, unit)+"\n", nl)
 			} else {
 				block = matchNewline(strings.TrimRight(e.Text, "\r\n"), nl) + nl
 			}
@@ -117,6 +118,55 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 		out = next
 	}
 	return out
+}
+
+// lineIndent 只读取独占一行的原节点缩进，不把内联内容当作缩进。
+func lineIndent(src []byte, n *xmldoc.Node) (string, bool) {
+	if n == nil || n.Synthetic || n.Start < 0 || n.Start > len(src) {
+		return "", false
+	}
+	at := insertOffset(src, n.Start)
+	if at == n.Start && n.Start > 0 && src[n.Start-1] != '\n' {
+		return "", false
+	}
+	return string(src[at:n.Start]), true
+}
+
+// insertionIndent 优先沿用插入点兄弟或既有子节点的缩进；空父节点沿祖先推断
+// 每层缩进。无可用原文格式(如全内联文档)时保持原有的四空格回退。
+func insertionIndent(src []byte, parent, before *xmldoc.Node) (string, string) {
+	base, baseOK := lineIndent(src, parent)
+	childIndent, childOK := lineIndent(src, before)
+	if !childOK {
+		for _, c := range parent.Children {
+			if c.Removed {
+				continue
+			}
+			if childIndent, childOK = lineIndent(src, c); childOK {
+				break
+			}
+		}
+	}
+	unit := "    "
+	if baseOK && childOK && strings.HasPrefix(childIndent, base) && len(childIndent) > len(base) {
+		unit = childIndent[len(base):]
+	} else {
+		for n := parent; n != nil && n.Parent != nil; n = n.Parent {
+			own, ownOK := lineIndent(src, n)
+			outer, outerOK := lineIndent(src, n.Parent)
+			if ownOK && outerOK && strings.HasPrefix(own, outer) && len(own) > len(outer) {
+				unit = own[len(outer):]
+				break
+			}
+		}
+	}
+	if childOK {
+		return childIndent, unit
+	}
+	if baseOK {
+		return base + unit, unit
+	}
+	return strings.Repeat(unit, xmldoc.RealDepth(parent)+1), unit
 }
 
 // detectNewline 返回文件主导换行符(有 CRLF 就是 "\r\n"，否则 "\n")。

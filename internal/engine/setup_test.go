@@ -82,6 +82,13 @@ steps:
 	if !strings.Contains(out, `<Value paramName="SourceDCCurrentMax">70</Value>`) {
 		t.Fatalf("Value 未追加:\n%s", out)
 	}
+	// 新增行沿用原文两空格/层的缩进，其余字节保持不变。
+	want := strings.Replace(setupDoc, "  <Option", "  "+wantParam+"\n  <Option", 1)
+	want = strings.Replace(want, "  </Option>", "    <Value paramName=\"SourceDCCurrentMax\">70</Value>\n  </Option>", 1)
+	if out != want {
+		t.Fatalf("新增内容缩进或原文字节发生变化:\n got %q\nwant %q", out, want)
+	}
+
 	iOldParam := strings.Index(out, `name="MagnetRotateSpeed"`)
 	iNewParam := strings.Index(out, `name="SourceDCCurrentMax"`)
 	iOption := strings.Index(out, "<Option")

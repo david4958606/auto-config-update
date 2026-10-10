@@ -2,11 +2,41 @@ package splice
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
 	"addex/internal/xmldoc"
 )
+
+// TestApplyPreservesInsertionIndent 覆盖不同缩进、换行及空父节点推断。
+func TestApplyPreservesInsertionIndent(t *testing.T) {
+	for _, unit := range []string{"  ", "    ", "\t"} {
+		for _, nl := range []string{"\n", "\r\n"} {
+			for _, empty := range []bool{false, true} {
+				t.Run(fmt.Sprintf("%q/%q/empty=%v", unit, nl, empty), func(t *testing.T) {
+					old := unit + unit + "<Old/>" + nl
+					if empty {
+						old = ""
+					}
+					src := []byte("<R>" + nl + unit + "<P>" + nl + old + unit + "</P>" + nl + "</R>" + nl)
+					doc, err := xmldoc.Parse(src)
+					if err != nil {
+						t.Fatal(err)
+					}
+					p := xmldoc.FindChild(doc.Roots[0], "P")
+					child := xmldoc.NewElement("New")
+					xmldoc.AppendChild(p, child)
+					out := Apply(src, []xmldoc.Edit{{Kind: xmldoc.Insert, Parent: p, Child: child}})
+					want := strings.Replace(string(src), unit+"</P>", unit+unit+"<New/>"+nl+unit+"</P>", 1)
+					if string(out) != want {
+						t.Fatalf("output mismatch:\n got %q\nwant %q", out, want)
+					}
+				})
+			}
+		}
+	}
+}
 
 // TestApplyExpandSelfClosingParent 验证只移除 /> 中的斜杠，属性和外部字节不重渲染。
 func TestApplyExpandSelfClosingParent(t *testing.T) {
@@ -48,7 +78,11 @@ func TestApplyExpandSelfClosingParent(t *testing.T) {
 					xmldoc.AppendChild(parent, child)
 					edits := []xmldoc.Edit{{Kind: kind, Parent: parent, Child: child, Text: "        <C/>\r\n"}}
 					out := Apply(src, edits)
-					want := prefix + strings.TrimSuffix(open, "/>") + ">" + nl + "        <C/>" + nl + indent + "</P>" + suffix
+					childText := "        <C/>"
+					if !inline && kind == xmldoc.Insert {
+						childText = "\t \t <C/>"
+					}
+					want := prefix + strings.TrimSuffix(open, "/>") + ">" + nl + childText + nl + indent + "</P>" + suffix
 					if string(out) != want {
 						t.Fatalf("output mismatch:\n got %q\nwant %q", out, want)
 					}
@@ -88,7 +122,7 @@ func TestApplySelfClosingMixedInsertionsAndSyntheticSubtree(t *testing.T) {
 		{Kind: xmldoc.InsertRaw, Parent: q, Text: "        &Entity;"},
 	}
 	out := Apply(src, edits)
-	want := "<R>\r\n  <P>\r\n        <Branch>\r\n            <Leaf>a &amp; b</Leaf>\r\n        </Branch>\r\n        <Raw>A &amp;&amp; B</Raw>\r\n        <!--keep-->\r\n        <Last/>\r\n  </P>\r\n  <Q>\r\n        &Entity;\r\n  </Q>\r\n</R>\r\n"
+	want := "<R>\r\n  <P>\r\n    <Branch>\r\n      <Leaf>a &amp; b</Leaf>\r\n    </Branch>\r\n        <Raw>A &amp;&amp; B</Raw>\r\n        <!--keep-->\r\n    <Last/>\r\n  </P>\r\n  <Q>\r\n        &Entity;\r\n  </Q>\r\n</R>\r\n"
 	if string(out) != want {
 		t.Fatalf("output mismatch:\n got %q\nwant %q", out, want)
 	}
