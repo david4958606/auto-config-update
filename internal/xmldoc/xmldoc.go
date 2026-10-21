@@ -61,6 +61,10 @@ type Node struct {
 	// 仅作用于合成节点(如 add-io 的空 <Unit>/<Min>/<Max>)，与 IG 片段既有写法保持一致。
 	PairedEmpty bool
 
+	// SpaceBeforeSlash 为 true 时自闭合节点渲染成 <tag ... />（斜杠前保留一个空格）。
+	// 默认 false → <tag .../>；仅 RecipeNamespace 这类既有写法带空格的配置需要置位。
+	SpaceBeforeSlash bool
+
 	Start      int // 元素/实体在源文件的起始字节(指向 '<' 或 '&')；合成节点 = -1
 	End        int // 结束字节(其后第一个字节，半开区间)；合成节点 = -1
 	OpenEnd    int // 开标签 '>' 之后第一个字节；实体/合成 = -1

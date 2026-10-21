@@ -7,6 +7,7 @@ package ops
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"addex/internal/xmldoc"
@@ -733,6 +734,136 @@ func AddSetupPair(anchor *xmldoc.Node, name string, paramAttrs []xmldoc.Attr, va
 		res.Edits = edits
 	}
 	return res
+}
+
+// AddRecipeParam 向 RecipeNamespace 文件中指定 RecipeClass 追加一条 <Param ... /> 声明：
+// 在 anchor(通常=文件根 <RecipeNamespace>)的子树里找 <RecipeClass name=...>；classPattern
+// 支持 path.Match glob(如 "Ch*")，命中多个类时每个类各追加一份。对每个类取首个直接子
+// <RecipeExecutor>，按其下 <Param name=...> 判重(已存在 → 该类 no-op)，缺省把新 Param 追加到
+// Param 序列末尾；beforeName/afterName 非空时按既有参数名插到其前/后(before 优先)。
+//
+// 幂等：同名 <Param> 已存在即 no-op。无匹配 RecipeClass / RecipeClass 无 <RecipeExecutor> /
+// 定位基准找不到 → 不中止，消息里以 ! 告警。多类命中时用 Edits 返回多处编辑。
+func AddRecipeParam(anchor *xmldoc.Node, classPattern, name string, attrs []xmldoc.Attr, beforeName, afterName string) Result {
+	if classPattern == "" {
+		return Result{Changed: false, Message: "! add-recipe 缺少 recipe-class，已忽略"}
+	}
+	if name == "" {
+		return Result{Changed: false, Message: "! add-recipe 缺少 param 名，已忽略"}
+	}
+	classes := findRecipeClasses(anchor, classPattern)
+	if len(classes) == 0 {
+		return Result{Changed: false, Message: fmt.Sprintf("! 未找到 RecipeClass %q，已忽略", classPattern)}
+	}
+
+	var edits []xmldoc.Edit
+	var added, existed, missingExec, missLoc, stepNewLoc []string
+	wantRel := beforeName != "" || afterName != ""
+	for _, cls := range classes {
+		clsName := cls.Attr("name")
+		exec := xmldoc.FindChild(cls, "RecipeExecutor")
+		if exec == nil {
+			missingExec = append(missingExec, clsName)
+			continue
+		}
+		if hasNamedChild(exec, "Param", "name", name) {
+			existed = append(existed, clsName)
+			continue
+		}
+		el := xmldoc.NewElement("Param")
+		el.Attrs = attrs
+		// RecipeNamespace 既有写法是 `<Param ... />`(斜杠前有空格)，新建节点沿用该风格。
+		el.SpaceBeforeSlash = true
+		edit := xmldoc.Edit{Kind: xmldoc.Insert, Parent: exec, Child: el}
+		before, located := setupRelInsert(exec, "Param", "name", beforeName, afterName)
+		switch {
+		case located && before != nil && before.Synthetic:
+			// before 指向本步刚新增的合成节点：它还没有落盘字节位置，按追加末尾处理，
+			// 否则内存树会把它排到基准之前、而落盘只能追加到末尾，二者顺序不一致。
+			stepNewLoc = append(stepNewLoc, clsName)
+			before, located = nil, false
+		case wantRel && !located:
+			missLoc = append(missLoc, clsName) // 该类没有基准参数，退化追加末尾
+		}
+		if located && before != nil {
+			xmldoc.InsertBefore(exec, el, before)
+			edit.Before = before
+		} else {
+			xmldoc.AppendChild(exec, el) // 缺省/退化：落在 Param 序列末尾
+		}
+		edits = append(edits, edit)
+		added = append(added, clsName)
+	}
+
+	if len(edits) == 1 {
+		// 单条编辑用 Edit，保持与其它原语一致的落盘口径。
+		return Result{Changed: true, Message: recipeResultMessage(name, added, existed, missingExec, missLoc, stepNewLoc, beforeName, afterName), Edit: &edits[0]}
+	}
+	if len(edits) > 1 {
+		return Result{Changed: true, Message: recipeResultMessage(name, added, existed, missingExec, missLoc, stepNewLoc, beforeName, afterName), Edits: edits}
+	}
+	return Result{Changed: false, Message: recipeResultMessage(name, added, existed, missingExec, missLoc, stepNewLoc, beforeName, afterName)}
+}
+
+// recipeResultMessage 拼装 add-recipe 的语义 diff 消息(新增/已存在/缺 RecipeExecutor/定位缺失/
+// 定位基准是本步新增节点而退化到末尾)。
+func recipeResultMessage(name string, added, existed, missingExec, missLoc, stepNewLoc []string, beforeName, afterName string) string {
+	var msgs []string
+	if len(added) > 0 {
+		msg := fmt.Sprintf("新增 Recipe Param %s（RecipeClass %s）", name, strings.Join(added, "、"))
+		if len(existed) > 0 {
+			msg += fmt.Sprintf("；已存在：%s", strings.Join(existed, "、"))
+		}
+		msgs = append(msgs, msg)
+	} else if len(existed) > 0 {
+		msgs = append(msgs, fmt.Sprintf("Recipe Param %s 已存在（RecipeClass %s）", name, strings.Join(existed, "、")))
+	}
+	if len(missingExec) > 0 {
+		msgs = append(msgs, fmt.Sprintf("! RecipeClass %s 缺少 <RecipeExecutor>", strings.Join(missingExec, "、")))
+	}
+	loc := beforeName
+	if loc == "" {
+		loc = afterName
+	}
+	if len(missLoc) > 0 {
+		msgs = append(msgs, fmt.Sprintf("! RecipeClass %s 未找到定位参数 %s，已追加到末尾", strings.Join(missLoc, "、"), loc))
+	}
+	if len(stepNewLoc) > 0 {
+		msgs = append(msgs, fmt.Sprintf("! RecipeClass %s 的定位参数 %s 为本步新增，已追加到末尾", strings.Join(stepNewLoc, "、"), loc))
+	}
+	if len(msgs) == 0 {
+		return fmt.Sprintf("Recipe Param %s 无需变更", name)
+	}
+	return strings.Join(msgs, "；")
+}
+
+// findRecipeClasses 在 anchor 子树(含自身)里找 <RecipeClass name=...>；pattern 不含量词时按名字
+// 全等匹配，含量词(*/?/[)时按 path.Match 匹配。跳过已删除节点与实体引用。
+func findRecipeClasses(anchor *xmldoc.Node, pattern string) []*xmldoc.Node {
+	var out []*xmldoc.Node
+	var walk func(n *xmldoc.Node)
+	walk = func(n *xmldoc.Node) {
+		if n == nil || n.Removed || n.IsEntity {
+			return
+		}
+		if n.Tag == "RecipeClass" && recipeClassNameMatches(pattern, n.Attr("name")) {
+			out = append(out, n)
+		}
+		for _, c := range n.Children {
+			walk(c)
+		}
+	}
+	walk(anchor)
+	return out
+}
+
+// recipeClassNameMatches 判断 RecipeClass 的 name 是否匹配 classPattern(支持 glob)。
+func recipeClassNameMatches(pattern, name string) bool {
+	if !strings.ContainsAny(pattern, "*?[") {
+		return pattern == name
+	}
+	ok, err := path.Match(pattern, name)
+	return err == nil && ok
 }
 
 // RemoveSetupPair 删除 Setup 里的一个参数对(按 param 名匹配)：

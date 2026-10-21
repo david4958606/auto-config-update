@@ -53,6 +53,7 @@ steps:                     # 有序步骤列表，见下
 | `add-element` | 动作 | 建普通元素(`<Param>`/`<Value>`/`<FileSize>`/`<spare>`)，可内嵌实体引用。见 §7.8。 |
 | `add-setup` | 动作 | 向 Setup **成对追加** `<Param>` 与 `<Option>/<Value>`。见 §7.16。 |
 | `remove-setup` | 动作 | 从 Setup **成对删除**按 `param` 名匹配的 `<Param>` 与 `<Option>/<Value>`。见 §7.18。 |
+| `add-recipe` | 动作 | 向 `Recipe/RecipeNamespace.xml` 中指定 `RecipeClass` 的 `<RecipeExecutor>` **幂等追加** `<Param ... />`。见 §7.19。 |
 | `add-xml` | 动作 | 插入一段**内联 XML 片段**(整棵子树，逐字保留实体书写)。见 §7.9。 |
 | `set-text` | 动作 | 改写已存在元素的文本。见 §7.10。 |
 | `set-attr` | 动作 | 改写/新增已存在元素的属性。见 §7.10。 |
@@ -64,7 +65,7 @@ steps:                     # 有序步骤列表，见下
 | `new-file:`(step 级) | 动作 | 文件不存在时按 `content` **逐字新建**；已存在即 no-op；路径含占位符则按腔室展开。见 §7.15。 |
 
 同一 step 内动作的**执行顺序固定**（与 YAML 中书写顺序无关）：
-`add-node` → `add-data` → `add-element` → `add-setup` → `add-xml` → `rename-node` →
+`add-node` → `add-data` → `add-element` → `add-setup` → `add-recipe` → `add-xml` → `rename-node` →
 `set-text`/`set-attr`/`remove-node` → `remove-setup` → `wrap` → `uncomment` → `add-blank` →
 `add-comment` → `add-method` → `remove-method` → `add-io`（见 §8）。
 > 需要把注释/空行放到方法块**之后**时，另起一个**同 anchor 的 step**单独写 `add-comment`（追加落在末尾）。
@@ -122,6 +123,38 @@ fan-out。
 
 > 例：`anchor: CVD/PhyGauge`，若腔内有 `Gauge01`/`Gauge02`，动作各执行一次，
 > `{PhyGauge}` 分别取 `Gauge01` / `Gauge02`。
+
+### 3.4 master 正文节点（不属于任何片段的节点）
+
+`Control_config.xml` / `IO_config.xml` 里直接写在 `<Control>` / `<IO>` 下的节点（如
+`CleanRuleRtManager`、`TimeSynchronizer`、`EventLogger`）不属于任何腔室片段，但仍可用
+同形的逻辑路径定位：
+
+```yaml
+steps:
+  - name: CleanRuleRtManager 增加 setMaxCleanTime
+    anchor: /Control/CleanRuleRtManager
+    add-method:
+      - name: setMaxCleanTime
+        value: 10
+```
+
+判定规则：某个**腔室级** step 的 anchor 同时满足
+
+1. 在**所有**腔室片段里都无匹配（只要任一腔室片段能命中，就仍按腔室语义执行，行为不变）；
+2. 能在该域 master 正文根（`<Control>` / `<IO>`）下命中；
+
+时，该 step 自动改为**文件级步骤**，对 `Control/Control_config.xml`（或 `IO_config.xml`）
+**全局执行一次**——等价于显式写 `file: Control/Control_config.xml` + 同一 anchor（见 §7.14）。
+因此：
+
+- master 正文步骤**不随腔室展开**，`--chamber` 不影响它；日志会先打印一行提示
+  `… 命中 Control 正文节点，改为文件级步骤对 Control/Control_config.xml 全局执行一次`。
+- anchor 里的 `${X}`（按腔室绑定解析的标签名）依赖腔室上下文，**不能**用于 master 正文；
+  `{X}` class 段可用，正文里同类多实例同样逐实例 fan-out，且 `{X}` 绑定为该实例标签名。
+- `require.exist` / `non-exist` 的逻辑路径一样支持 master 正文节点（片段优先）。
+- 若同一 class 在片段与 master 正文里都出现，anchor 保持腔室语义；要改 master 正文请写
+  更精确的字面量 tag 路径，或显式用 `file:` 指定目标文件。
 
 ---
 
@@ -243,6 +276,7 @@ bind:
 > `add-element`(tag/attrs/text/include-entity)、`add-xml`(xml)、`add-method`/`remove-method`(name/value/attrs)、
 > `set-text`(tag/child/old/value)、`set-attr`(tag/child/attr/old/name/value)、
 > `remove-node`(tag/child/attr/value/has)、`wrap`(open/close/select)、`uncomment`(find/open/close)、
+> `add-recipe`(recipe-class/param/attrs/before/after，仅路径或 add-recipe 取值含占位符、按腔室展开时才有绑定)、
 > `add-comment`，以及 step 级 `where`(tag-glob/attr)、`require`/`bind` 路径、`before`/`after` 选择器。
 > 回归覆盖见 `internal/engine/placeholder_test.go`（两种写法混用、断言产物不残留占位符）。
 > `file:` / `new-file:` 的**路径**是唯一"作用域由路径自身决定"的位置：不含 `{` 时全局执行一次
@@ -602,6 +636,10 @@ steps:
 **字面量路径**（不含占位符）的步骤不参与腔室循环，在腔室步骤之后按声明顺序各执行一次，
 直接读该文件、改完写回。
 
+> master 正文节点（`Control_config.xml` 里直接写在 `<Control>` 下的节点）也可以省掉
+> `file:`，直接写逻辑路径 `/Control/<节点>`——只要能命中正文且在所有腔室片段里都无匹配，
+> 引擎会自动把它按本节的"文件级步骤"全局执行一次，见 §3.4。
+
 **按腔室展开**：路径里含占位符时（如 `${Chamber}` 或某腔室的 class 名），该步骤改为在腔室
 循环内**逐腔室执行一次**——用该腔室的绑定解析路径、`anchor`/`where` 与各动作的取值字段，
 因此一份声明就能覆盖所有腔室：
@@ -839,6 +877,122 @@ Setup 文件的参数分两处写：根元素下的 `<Param .../>` 声明，与 
 > 提醒：YAML **流式写法**里 `${...}` 的 `}` 会被当作映射结束符
 > （`{ param: P${Chamber} }` 解析报错），请用块式或加引号：`{ param: "P${Chamber}" }`。
 
+### 7.19 `add-recipe` —— 向 RecipeNamespace 的 RecipeClass 追加 Param
+
+Recipe 的参数不在 Control/IO 片段里，而在 `config/Recipe/RecipeNamespace.xml`：按
+`<RecipeClass name="...">` → 直接子 `<RecipeExecutor>` → `<Param ... />` 组织。`add-recipe` 把
+"给某个（或某批）RecipeClass 的 Recipe 增加一个参数"写成**一次声明**，在对应 `RecipeExecutor`
+里幂等追加 `<Param ... />`。
+
+**目标文件**：步骤省略 `file:` 时**自动作用于 `config/Recipe/RecipeNamespace.xml`**；也可显式写
+`file: Recipe/RecipeNamespace.xml`（相对 `config/`，与 `file:` 同口径）。该步骤属于**文件级步骤**，
+按取值里是否含占位符分两种执行方式：
+
+- **字面量 / glob**（所有取值都不含 `{`，如 `recipe-class: Ch1`、`recipe-class: "Ch*"`）：在全部腔室
+  步骤之后**全局执行一次**，`--chamber` 不参与；
+- **按腔室展开**（`add-recipe` 的任一取值含占位符，如 `recipe-class: "${Chamber}"`）：与含占位符的
+  `file:` 同规则（§7.14），在该腔室循环内**逐腔室执行一次**，用该腔室的绑定解析
+  `recipe-class`/`param`/属性值与 `before`/`after`，因此 `--chamber` 生效。可用保留绑定
+  `${Chamber}`（取值字段里 `{Chamber}` 同解），也可用该腔室根的 class 名。目标文件仍是同一份
+  `Recipe/RecipeNamespace.xml`（逐腔室读改写，各腔室只新增自己那一份，幂等）。
+
+`anchor` 通常省略——空 `anchor` 即文件根元素，`recipe-class` 在整棵树里匹配。
+缺省/字面量路径的目标文件不存在时按文件级步骤**报错中止**（仅按腔室展开时，某腔室缺该文件才
+告警跳过）。
+
+**定位与渲染**：
+
+- 在 anchor 子树（缺省 = 文件根元素）里**任意深度**找 `<RecipeClass name="...">`，取其**直接子**
+  `<RecipeExecutor>`（取首个）；glob 命中多个类时，每个类各追加一份。
+- 追加内容形如
+  `<Param name="Pressure" dataObject="" type="D" min="0" max="800" units="Torr" accuracy="0.00001" default="0" />`；
+  属性顺序固定为 `name → dataObject → type → min → max → maxLength → descriptorList → units → accuracy → default`
+  （未配置项跳过）；自闭合且**斜杠前保留一个空格**，与 `RecipeNamespace.xml` 既有写法一致。
+- 新增行的缩进与换行**沿用原文件**（现有文件是 CRLF、每层 2 个空格）；已有内容不重新格式化。
+
+| 字段 | 说明 |
+|------|------|
+| `recipe-class` | 目标 `<RecipeClass>` 的 `name` 属性（必填）；支持 glob（`path.Match` 语义，如 `Ch*`），命中多个类时每个类各追加一份。 |
+| `param` | `<Param name>` 属性值（必填）；**同一 `RecipeExecutor` 下的判重键**。 |
+| `dataObject` / `type` / `min` / `max` / `maxLength` / `descriptorList` / `units` / `accuracy` / `default` | `<Param>` 属性的便捷写法，按设备 Recipe 的规范顺序渲染（见上）；**未配置的项跳过**；写 `""` 或 `null` 渲染成**空值属性**（如 `dataObject=""`）。 |
+| `attrs` | 其它属性（保留书写顺序）；与上面的便捷字段**同名时以 `attrs` 为准**，且仍落在规范顺序的位置。 |
+| `before` / `after` | 可选定位基准：取某个**已存在**的 `<Param name>`，把新参数插到它**之前 / 之后**。两者互斥，同时配置时 `before` 优先；省略则追加到序列末尾。若基准参数不存在，退化为追加末尾并打印 `!` 告警；基准应是文中已有参数，若指向**同一步内先前新增**的参数（尚无落盘位置），同样退化为追加末尾并告警。 |
+
+**判重（幂等）**：同一 `RecipeExecutor` 下已存在同名 `<Param>` → `-` no-op；glob 命中的每个类
+**各自独立**判断（有的类已加、有的没加时，只补缺的那些）。重复 `apply` 不会重复插入。
+
+**告警（打印 `!`，不中止执行）**：
+
+- 未填 `recipe-class` / `param`（该条动作告警并忽略）；
+- `recipe-class` 无匹配的 `<RecipeClass>`；
+- 命中的 `<RecipeClass>` 没有 `<RecipeExecutor>` 直接子节点；
+- `before` / `after` 的基准参数找不到（退化为追加末尾）；基准参数是同一步内先前新增的（同样退化并告警）。
+
+**示例 1：显式 `file:`，给单个类加参数**
+
+```yaml
+steps:
+  - name: Ch1 Recipe 增加 Pressure 参数
+    file: Recipe/RecipeNamespace.xml
+    add-recipe:
+      - recipe-class: Ch1
+        param: Pressure
+        dataObject: ""
+        type: D
+        min: 0
+        max: 800
+        units: Torr
+        accuracy: 0.00001
+        default: 0
+```
+
+生成形式（新增行沿用原文件的缩进与 CRLF；属性顺序固定；斜杠前有空格；若该 `RecipeExecutor` 下
+已有同名 `<Param>` 则判为 no-op，不产生此行）：
+
+```xml
+      <Param name="Pressure" dataObject="" type="D" min="0" max="800" units="Torr" accuracy="0.00001" default="0" />
+```
+
+**示例 2：省略 `file:`，用 glob 一次覆盖多个类，并插到 `Step Name` 之前**
+
+```yaml
+steps:
+  - name: 所有 Ch* Recipe 在 Step Name 之前加 Backside He
+    add-recipe:
+      - recipe-class: "Ch*"        # 命中 Ch1…Ch6，每个类各追加一份
+        param: Backside He
+        dataObject: ""
+        type: D
+        min: 0
+        max: 20
+        units: Torr
+        accuracy: 0.01
+        default: 0
+        before: Step Name          # 插到 <Param name="Step Name"> 之前；找不到则退化为末尾并告警
+```
+
+**示例 3：`${Chamber}` 按腔室展开（`--chamber` 生效）**
+
+```yaml
+steps:
+  - name: 每个腔室给对应 RecipeClass 加参数
+    add-recipe:
+      - recipe-class: "${Chamber}"     # Ch1 → <RecipeClass name="Ch1">
+        param: "P_${Chamber}"          # → P_Ch1 / P_Ch2 …
+        dataObject: "/SETUP/${Chamber}/P"
+        type: D
+        default: 0
+```
+
+执行 `apply --feature … --chamber Ch1 Ch3` 时只处理 Ch1/Ch3 两个腔室（`--chamber` 缺省=全部），
+`recipe-class`/`param`/`dataObject` 里的 `${Chamber}` 分别解析为对应腔室名；某个腔室在
+`RecipeNamespace.xml` 里没有同名 `RecipeClass`（如某些非工艺腔室的根标签）时只打印 `!` 告警并跳过。
+
+> 说明：`RecipeClass` 的 `name` 可以是腔室名（`Ch1`），也可以是装载锁/其它单元（`LA`、`LB`），
+> 它只是文件里的字面名字。字面量/glob 写法不随 `--chamber` 过滤；需要逐腔室替换或受 `--chamber`
+> 限制时，把取值写成 `recipe-class: "${Chamber}"`（见上文"按腔室展开"）；希望一份声明一次覆盖
+> 多个固定类时用 glob。
+
 ---
 
 ## 8. 执行顺序与幂等
@@ -846,13 +1000,16 @@ Setup 文件的参数分两处写：根元素下的 `<Param .../>` 声明，与 
 - **腔室级**：`--chamber` 缺省=全部腔室；限定时逐腔室执行。某腔室 anchor 无匹配 / `require`
   不满足 → 自动跳过并打印原因。
 - **文件级**：路径含占位符的 `file:`/`new-file:` 步骤在该腔室循环内**逐腔室执行**（顺序为
-  腔室步骤之后）；路径为字面量的在全部腔室之后按声明顺序各执行一次。
+  腔室步骤之后）；路径为字面量的在全部腔室之后按声明顺序各执行一次。声明了 `add-recipe` 的步骤
+  即使省略 `file:` 也属于文件级步骤（缺省目标 `config/Recipe/RecipeNamespace.xml`）：路径与
+  `add-recipe` 取值全为字面量时在全部腔室之后全局执行一次，`--chamber` 不影响；路径或
+  `add-recipe` 任一取值含占位符（如 `recipe-class: "${Chamber}"`）时按上面的规则逐腔室展开。
 - **step 级**：上述各执行分组内保持 `steps` 的声明顺序，**不保证跨组的全局声明顺序**。
   同组后一步可见前一步的新节点（跨步引用）；文件步骤在一次 feature 执行中共享虚拟文件字节状态，
   `plan` 与 `apply` 均可定位前一步新增的节点，包括自闭合节点；向自闭合节点添加内容时仅局部展开为成对标签。
   `new-file` 的虚拟文件也供后续文件步骤及 glob 匹配使用，`plan` 不创建文件或目录。
 - **同一 step 内动作顺序**（固定，与书写顺序无关）：
-  `add-node` → `add-data` → `add-element` → `add-setup` → `add-xml` → `rename-node` →
+  `add-node` → `add-data` → `add-element` → `add-setup` → `add-recipe` → `add-xml` → `rename-node` →
   `set-text`/`set-attr`/`remove-node` → `remove-setup` → `wrap` → `uncomment` → `add-blank` →
   `add-comment` → `add-method` → `remove-method` → `add-io`。
 - **幂等**：每个原语先判重，已达目标即 no-op（`-`），不产生字节编辑；重复运行安全。

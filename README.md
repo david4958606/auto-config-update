@@ -103,7 +103,7 @@ steps:
 
 | 字段                           | 含义                                                                                                                                                                                                                                                            |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `anchor`                       | **class 路径**,逐层 descendant 定位(靠 class,不靠实例名)。首段可选域前缀 `Control`/`IO`/`IOBridge`(缺省 `Control`);段写法 `{X}`/裸名=按 class、`${X}`=按标签名。裸名段 class 无果时回退按 tag 名,且**只认自身(仅首段)或直接子元素**——同名深层节点须把路径写全。 |
+| `anchor`                       | **class 路径**,逐层 descendant 定位(靠 class,不靠实例名)。首段可选域前缀 `Control`/`IO`/`IOBridge`(缺省 `Control`);段写法 `{X}`/裸名=按 class、`${X}`=按标签名。裸名段 class 无果时回退按 tag 名,且**只认自身(仅首段)或直接子元素**——同名深层节点须把路径写全。若 anchor 只在 master 正文命中(`Control_config.xml` 里直接写在 `<Control>` 下的节点,如 `/Control/CleanRuleRtManager`),自动按文件级步骤对 `Control/Control_config.xml` 全局执行一次。 |
 | `where`                        | leaf 多实例时筛子集 + 插入定位:`tag-glob`/`attr` 筛选;`before-method: {name}` 把本步方法插到该既有方法之前。                                                                                                                                                    |
 | `require` / `bind`             | `require.exist: {var: 路径}` 守卫+绑定,路径解析不到则跳过;`bind` 纯绑定不校验。                                                                                                                                                                                 |
 | `add-node`                     | 建对象节点;可带 `attrs`、`include-entity`(内嵌声明的实体引用)。                                                                                                                                                                                                 |
@@ -113,6 +113,7 @@ steps:
 | `add-element`                  | 建普通元素(如 Setup 的 `<Param>`/`<Value>`、`<FileSize>`、`<spare>`),可 `before`/`after` 定位,可带 `include-entity`(内嵌声明的实体引用)。                                                                                                                       |
 | `add-setup`                    | 向 Setup **成对追加**一个 `<Param .../>` 声明与对应的 `<Option>/<Value ...>` 取值:默认都加在各自序列末尾,可用 `before`/`after` 按既有参数名把两侧同步插到指定参数之前/之后,按 `param` 名判重(幂等)。                                                            |
 | `remove-setup`                 | 从 Setup **成对删除**按 `param` 名匹配的 `<Param .../>` 与 `<Option>/<Value ...>`(整行删除,幂等)。                                                                                                                                                              |
+| `add-recipe`                   | 向 `Recipe/RecipeNamespace.xml` 的指定 `RecipeClass`(支持 glob) 的 `<RecipeExecutor>` **幂等追加**一个 `<Param .../>`;省略 `file:` 时自动作用于该文件,同一 `RecipeExecutor` 下按 `param` 名判重。                                                                 |
 | `add-xml`                      | 插入一段**内联 XML 片段**(整棵新对象子树),逐字保留 `&amp;&amp;` 等实体书写。                                                                                                                                                                                    |
 | `set-text` / `set-attr`        | 改写已存在元素的文本 / 属性(按 `tag`+`attr`+可选 `old` 定位)。                                                                                                                                                                                                  |
 | `rename-node`                  | 重命名已存在元素的**标签**(开/闭标签同步),可同时增改属性(`to` + `attrs`);选择器全空则作用于 anchor 自身。                                                                                                                                                       |
@@ -126,6 +127,18 @@ steps:
 > 某腔室没有该文件只告警跳过。`file:` 的路径还支持 glob(如 `Setup/*Setup.xml`),匹配到的
 > 每个文件各执行一次(按字典序;无匹配只告警)。路径不含 `{`/glob 元字符时仍全局执行一次。详见
 > [doc/feature-primitives.md](doc/feature-primitives.md) §7.14。
+>
+> `add-recipe` 步骤即便不写 `file:`,也属于**文件级步骤**,缺省作用于
+> `config/Recipe/RecipeNamespace.xml`:取值全为字面量(含 glob)时在全部腔室之后全局执行一次,
+> `--chamber` 不影响;取值含占位符(如 `recipe-class: "${Chamber}"`)或显式 `file:` 含占位符时
+> 按 §7.14 逐腔室展开,`--chamber` 生效。详见
+> [doc/feature-primitives.md](doc/feature-primitives.md) §7.19。
+>
+> 只在 master 正文命中、在所有腔室片段里都匹配不到的 anchor(如
+> `anchor: /Control/CleanRuleRtManager`)会自动当作文件级步骤,对 `Control/Control_config.xml`
+> 全局执行一次,同样不受 `--chamber` 影响;这与显式写
+> `file: Control/Control_config.xml` 等价。`require` 的逻辑路径也支持 master 正文节点。
+> 详见 [doc/feature-primitives.md](doc/feature-primitives.md) §3.4。
 
 **占位符**:两种写法。**anchor 段**里 `{X}`=按 class 匹配并把 `X` 绑定为该实例标签,`${X}`=按"已绑定的标签名"匹配(如腔室 class 绑定 `{ITO}`=Ch1,IOBridge 那层没有 class 只能写 `${ITO}`)。**取值字段**(attr/value/xml/text/old/name/child/where/open/close/find 等)里 `{X}` 与 `${X}` **同解**,都替换为标签/变量值,且**所有原语都支持**。`add-node` 建出的对象登记 `{标签}`→`./标签` 供后续步骤引用;`require`/`bind` 变量同理。另见 [doc/feature-primitives.md](doc/feature-primitives.md) §6。
 
@@ -148,7 +161,7 @@ config/
   Simulated_Ch1                # 共享实体体
 ```
 
-逻辑路径 `/IO/Ch1/...`、`/Control/Ch1/...` 只看**根腔室标签**,不看文件名。片段逐份原地回写,master 与其它片段不动。
+逻辑路径 `/IO/Ch1/...`、`/Control/Ch1/...` 只看**根腔室标签**,不看文件名。片段逐份原地回写;master 只在 step 显式写 `file:` 或 anchor 命中 master 正文节点时才回写。
 
 ## 模块
 
@@ -157,7 +170,7 @@ config/
   - `xmldoc` —— 按字节偏移解析 XML、实体容忍(声明不展开)、外科回写的编辑记录
   - `config` —— master+实体装配、逻辑 IO/Control 视图、实体真名解析
   - `anchor` —— class 路径定位 + 同类多实例 fan-out + `where` 筛选
-  - `ops` —— 幂等原语:`add-node`/`add-method`/`remove-method`/`add-io`/`add-data`/`add-blank`/`add-comment`/`add-entity-ref`/`add-element`/`add-setup`/`remove-setup`/`add-xml`/`set-text`/`set-attr`/`rename-node`/`remove-node`/`wrap`/`uncomment`
+  - `ops` —— 幂等原语:`add-node`/`add-method`/`remove-method`/`add-io`/`add-data`/`add-blank`/`add-comment`/`add-entity-ref`/`add-element`/`add-setup`/`remove-setup`/`add-recipe`/`add-xml`/`set-text`/`set-attr`/`rename-node`/`remove-node`/`wrap`/`uncomment`
   - `xmlcmp` —— 语义比对(忽略空白/注释/属性序,比对元素树+实体+停用区),用于升级验收
   - `feature` —— 功能 YAML 加载 + `require`/`bind` 绑定
   - `setupcheck` —— `Setup/*.xml` 的 Param/Value 按下标一一对应校验

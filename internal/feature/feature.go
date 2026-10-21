@@ -59,6 +59,7 @@ type Step struct {
 	AddElement  []AddElementSpec  `yaml:"add-element"`
 	AddSetup    []AddSetupSpec    `yaml:"add-setup"`    // Setup 的 <Param>/<Value> 成对追加
 	RemoveSetup []RemoveSetupSpec `yaml:"remove-setup"` // Setup 的 <Param>/<Value> 成对删除
+	AddRecipe   []AddRecipeSpec   `yaml:"add-recipe"`   // RecipeNamespace 的 RecipeClass 追加 <Param>
 	AddXML      []AddXMLSpec      `yaml:"add-xml"`
 }
 
@@ -183,7 +184,7 @@ type AddSetupSpec struct {
 	After  string `yaml:"after"`
 }
 
-// setupParamOrder 是 <Param> 属性的规范书写顺序(与设备导出的 Setup 文件一致)：
+// setupParamOrder 是 <Param> 属性的规范书写顺序(与设备导出的 Setup / RecipeNamespace 文件一致)：
 // type="I" 的参数写 min/max/descriptorList/units/default，type="D" 的写 min/max/units/accuracy/default，
 // type="S" 的写 maxLength/default。attrs 里配置的同名键同样落在这个位置。
 var setupParamOrder = []string{
@@ -214,21 +215,28 @@ func (a *AddSetupSpec) ParamAttrs() []xmldoc.Attr {
 			values[f.name] = v
 		}
 	}
+	return renderParamAttrs(a.Param, values, a.Attrs)
+}
+
+// renderParamAttrs 按规范顺序拼装 <Param> 的属性表(供 add-setup 与 add-recipe 复用)：
+// 首属性固定 name，其后按 setupParamOrder 输出 values 里已配置的项；attrs 中同名键覆盖 values
+// 并落回规范位置，规范顺序之外的属性按书写顺序追加。
+func renderParamAttrs(name string, values map[string]string, attrs yaml.Node) []xmldoc.Attr {
 	var extra []xmldoc.Attr // 规范顺序之外的属性，保持书写顺序
-	for _, kv := range mapPairs(&a.Attrs) {
+	for _, kv := range mapPairs(&attrs) {
 		if isSetupParamField(kv.Name) {
 			values[kv.Name] = kv.Value
 			continue
 		}
 		extra = append(extra, kv)
 	}
-	attrs := []xmldoc.Attr{{Name: "name", Value: a.Param}}
+	out := []xmldoc.Attr{{Name: "name", Value: name}}
 	for _, k := range setupParamOrder {
 		if v, ok := values[k]; ok {
-			attrs = append(attrs, xmldoc.Attr{Name: k, Value: v})
+			out = append(out, xmldoc.Attr{Name: k, Value: v})
 		}
 	}
-	return append(attrs, extra...)
+	return append(out, extra...)
 }
 
 // ValueText 返回 <Value> 元素的文本；未配置(value 缺省或 null)→空串(渲染成成对空标签)。
@@ -238,6 +246,52 @@ func (a *AddSetupSpec) ValueText() string { return ScalarText(&a.Value) }
 // anchor 下的 <Param name=...> 声明与 <Option> 里对应的 <Value paramName=...> 取值。
 type RemoveSetupSpec struct {
 	Param string `yaml:"param"` // <Param name> / <Value paramName>(必填)
+}
+
+// AddRecipeSpec 描述一个 add-recipe 动作：向 RecipeNamespace 文件中指定 RecipeClass 的
+// <RecipeExecutor> 追加一条 <Param ... /> 声明(按 param 名判重，幂等)。
+//
+// recipe-class 取 <RecipeClass name=...> 的值，支持 path.Match glob(如 "Ch*")：命中多个类时
+// 各追加一份。dataObject/type 及其余属性用 yaml.Node：字段缺省=不写该属性；写 "" 或 null=
+// 渲染成空值属性(Recipe 参数普遍带 dataObject="")。
+type AddRecipeSpec struct {
+	RecipeClass    string    `yaml:"recipe-class"` // <RecipeClass name=...>(必填，支持 glob)
+	Param          string    `yaml:"param"`        // <Param name=...>(必填，判重键)
+	DataObject     yaml.Node `yaml:"dataObject"`
+	Type           yaml.Node `yaml:"type"`
+	Min            yaml.Node `yaml:"min"`
+	Max            yaml.Node `yaml:"max"`
+	MaxLength      yaml.Node `yaml:"maxLength"`
+	DescriptorList yaml.Node `yaml:"descriptorList"`
+	Units          yaml.Node `yaml:"units"`
+	Accuracy       yaml.Node `yaml:"accuracy"`
+	Default        yaml.Node `yaml:"default"`
+	Attrs          yaml.Node `yaml:"attrs"` // 其它属性(保留书写顺序)；同名覆盖便捷字段
+	// Before/After 为可选定位基准：取该 <RecipeExecutor> 下某个**已存在** Param 名，把新 Param
+	// 插到它之前/之后；缺省追加到 Param 序列末尾。两者互斥，同时配置时 before 优先。
+	Before string `yaml:"before"`
+	After  string `yaml:"after"`
+}
+
+// ParamAttrs 按规范顺序返回 <Param> 的属性表：首属性 name=<param>，其后按 setupParamOrder
+// 输出已配置的 dataObject/type/min/max/maxLength/descriptorList/units/accuracy/default；
+// attrs 同名键覆盖便捷字段并落回规范位置，其余属性按书写顺序追加。
+func (a *AddRecipeSpec) ParamAttrs() []xmldoc.Attr {
+	values := map[string]string{}
+	for _, f := range []struct {
+		name string
+		node *yaml.Node
+	}{
+		{"dataObject", &a.DataObject}, {"type", &a.Type},
+		{"min", &a.Min}, {"max", &a.Max}, {"maxLength", &a.MaxLength},
+		{"descriptorList", &a.DescriptorList}, {"units", &a.Units},
+		{"accuracy", &a.Accuracy}, {"default", &a.Default},
+	} {
+		if v, ok := scalarValue(f.node); ok {
+			values[f.name] = v
+		}
+	}
+	return renderParamAttrs(a.Param, values, a.Attrs)
 }
 
 // scalarValue 返回标量节点的文本与"是否已配置"：

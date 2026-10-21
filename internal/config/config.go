@@ -88,6 +88,11 @@ func FragmentFiles(masterPath string) ([]Frag, error) {
 type Section struct {
 	Path string
 	Root *xmldoc.Node
+	// Master 为 true 表示这是 master 文档【正文】的根(<Control>/<IO>)，不是片段。
+	// 它用于解析直接写在 master 里、不属于任何片段的节点(如 Control_config.xml 的
+	// CleanRuleRtManager)——这些节点的逻辑路径与片段节点同形(/Control/<节点>)，但不能
+	// 按腔室标签在片段里找到。
+	Master bool
 }
 
 // Indexes 是只读逻辑索引：键 = 逻辑根名(IO/Control)。
@@ -116,7 +121,24 @@ func loadSections(masterPath string) ([]Section, error) {
 	return out, nil
 }
 
+// loadMasterSection 解析 master 文档，把其根元素作为"正文段"返回。
+func loadMasterSection(masterPath string) (Section, error) {
+	src, err := os.ReadFile(masterPath)
+	if err != nil {
+		return Section{}, err
+	}
+	doc, err := xmldoc.Parse(src)
+	if err != nil {
+		return Section{}, fmt.Errorf("解析 master %s: %w", masterPath, err)
+	}
+	if len(doc.Roots) == 0 {
+		return Section{}, fmt.Errorf("解析 master %s: 无顶层元素", masterPath)
+	}
+	return Section{Path: masterPath, Root: doc.Roots[0], Master: true}, nil
+}
+
 // BuildIndexes 构造 {IO:..., Control:...} 只读逻辑索引。
+// 每个域 = 片段段(按 master 正文引用顺序) + 末尾一段 master 正文根。
 func BuildIndexes(ioMaster, controlMaster string) (Indexes, error) {
 	io, err := loadSections(ioMaster)
 	if err != nil {
@@ -126,11 +148,30 @@ func BuildIndexes(ioMaster, controlMaster string) (Indexes, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Indexes{"IO": io, "Control": ctrl}, nil
+	ioBody, err := loadMasterSection(ioMaster)
+	if err != nil {
+		return nil, err
+	}
+	ctrlBody, err := loadMasterSection(controlMaster)
+	if err != nil {
+		return nil, err
+	}
+	return Indexes{"IO": append(io, ioBody), "Control": append(ctrl, ctrlBody)}, nil
+}
+
+// MasterSection 返回该域 master 正文段(没有则 ok=false)。
+func MasterSection(idx Indexes, domain string) (Section, bool) {
+	for _, sec := range idx[domain] {
+		if sec.Master {
+			return sec, true
+		}
+	}
+	return Section{}, false
 }
 
 // ResolveLogical 把 '/IO/Ch4/Ped/CurPosDI' 解析成 (来源文件, 节点)。
-// 按首段选索引，其余段在"腔室标签匹配"的片段里逐个 find；命中即返回，否则 ("", nil)。
+// 先按首段选索引、在"腔室标签匹配"的片段里逐个 find；片段里找不到时再按同一路径到
+// master 正文根下找(如 /Control/CleanRuleRtManager)，命中即返回，否则 ("", nil)。
 func ResolveLogical(idx Indexes, logical string) (string, *xmldoc.Node) {
 	parts := splitPath(logical)
 	if len(parts) < 2 {
@@ -138,12 +179,31 @@ func ResolveLogical(idx Indexes, logical string) (string, *xmldoc.Node) {
 	}
 	rootName, chamber, rest := parts[0], parts[1], parts[2:]
 	for _, sec := range idx[rootName] {
-		if sec.Root.Tag != chamber {
+		if sec.Master || sec.Root.Tag != chamber {
 			continue
 		}
 		node := sec.Root
 		ok := true
 		for _, seg := range rest {
+			node = xmldoc.FindChild(node, seg)
+			if node == nil {
+				ok = false
+				break
+			}
+		}
+		if ok && node != nil {
+			return sec.Path, node
+		}
+	}
+	// master 正文兜底：片段之外的节点(直接写在 <Control>/<IO> 下)同样按逻辑路径解析。
+	// 片段优先，故不会改变既有路径的命中来源。
+	for _, sec := range idx[rootName] {
+		if !sec.Master {
+			continue
+		}
+		node := sec.Root
+		ok := true
+		for _, seg := range append([]string{chamber}, rest...) {
 			node = xmldoc.FindChild(node, seg)
 			if node == nil {
 				ok = false

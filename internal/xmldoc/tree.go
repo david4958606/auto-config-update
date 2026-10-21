@@ -239,6 +239,9 @@ func RenderIndented(n *Node, indent, unit string) string {
 	if n.PairedEmpty {
 		return indent + open + "></" + n.Tag + ">"
 	}
+	if n.SpaceBeforeSlash {
+		return indent + open + " />"
+	}
 	return indent + open + "/>"
 }
 

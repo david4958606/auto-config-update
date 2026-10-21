@@ -100,11 +100,16 @@ func loadFragByChamber(master string) (map[string]*target, error) {
 	return out, nil
 }
 
+// recipeNamespaceFile 是 add-recipe 的缺省目标(相对 config/)：所有 RecipeClass 的 Param 都定义
+// 在这一份文件里。step.File 显式给出时以显式路径为准。
+const recipeNamespaceFile = "Recipe/RecipeNamespace.xml"
+
 // SplitSteps 把 steps 分成"腔室级"与"文件级"两组(保持各自声明顺序)。
-// 文件级步骤指声明了 file:(作用于既有文件) 或 new-file:(新建文件) 的步骤。
+// 文件级步骤指声明了 file:(作用于既有文件)、new-file:(新建文件) 或 add-recipe:(缺省作用于
+// Recipe/RecipeNamespace.xml) 的步骤。
 func SplitSteps(steps []feature.Step) (chamber, files []feature.Step) {
 	for _, s := range steps {
-		if s.File != "" || s.NewFile != "" {
+		if s.File != "" || s.NewFile != "" || len(s.AddRecipe) > 0 {
 			files = append(files, s)
 		} else {
 			chamber = append(chamber, s)
@@ -113,15 +118,47 @@ func SplitSteps(steps []feature.Step) (chamber, files []feature.Step) {
 	return
 }
 
-// isTemplatedFileStep 报告文件级步骤的路径里是否含占位符(需按腔室展开)。
+// fileStepPath 返回文件级步骤的实际目标(相对 config/)：add-recipe 步骤未写 file: 时缺省为
+// Recipe/RecipeNamespace.xml(路径为字面量，故作为全局文件级步骤执行一次)。
+func fileStepPath(s *feature.Step) string {
+	if s.File != "" {
+		return s.File
+	}
+	if len(s.AddRecipe) > 0 {
+		return recipeNamespaceFile
+	}
+	return s.File
+}
+
+// isTemplatedFileStep 报告文件级步骤是否需按腔室展开：
+//   - 路径含占位符(file:/new-file:)；或
+//   - add-recipe 的任一取值含占位符(如 recipe-class: "${Chamber}")——目标文件虽为字面量，
+//     也要逐腔室执行，才能用该腔室的绑定解析 recipe-class/param/属性值。
+//
 // `{X}` 与 `${X}` 都含 `{`，故只判断花括号即可。
 func isTemplatedFileStep(s feature.Step) bool {
-	return strings.ContainsRune(s.File, '{') || strings.ContainsRune(s.NewFile, '{')
+	if strings.ContainsRune(s.File, '{') || strings.ContainsRune(s.NewFile, '{') {
+		return true
+	}
+	for i := range s.AddRecipe {
+		rp := &s.AddRecipe[i]
+		if strings.ContainsRune(rp.RecipeClass, '{') || strings.ContainsRune(rp.Param, '{') ||
+			strings.ContainsRune(rp.Before, '{') || strings.ContainsRune(rp.After, '{') {
+			return true
+		}
+		for _, a := range rp.ParamAttrs() {
+			if strings.ContainsRune(a.Value, '{') {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // splitTemplatedFiles 把文件级步骤分成两组：
-//   - perChamber：路径含占位符 → 按腔室展开，逐腔室用该腔室的绑定解析路径与取值，各执行一次；
-//   - global：路径为字面量 → 在腔室循环之后全局执行一次(原有语义)。
+//   - perChamber：路径或 add-recipe 取值含占位符 → 按腔室展开，逐腔室用该腔室的绑定解析
+//     路径与取值，各执行一次；
+//   - global：全为字面量 → 在腔室循环之后全局执行一次(原有语义)。
 func splitTemplatedFiles(steps []feature.Step) (perChamber, global []feature.Step) {
 	for _, s := range steps {
 		if isTemplatedFileStep(s) {
@@ -133,16 +170,95 @@ func splitTemplatedFiles(steps []feature.Step) (perChamber, global []feature.Ste
 	return
 }
 
+// hasNameSeg 报告 anchor 段里是否有 ${X}(需先由腔室绑定解析成标签名)的段。
+func hasNameSeg(segs []anchor.Seg) bool {
+	for _, s := range segs {
+		if s.ByName {
+			return true
+		}
+	}
+	return false
+}
+
+// masterBody 返回该域 master 正文段及其相对 config/ 的路径。
+func (e *Engine) masterBody(domain string) (config.Section, string, bool) {
+	sec, ok := config.MasterSection(e.idx, domain)
+	if !ok {
+		return config.Section{}, "", false
+	}
+	rel, err := filepath.Rel(e.configDir, sec.Path)
+	if err != nil {
+		return config.Section{}, "", false
+	}
+	return sec, filepath.ToSlash(rel), true
+}
+
+// matchesAnyChamber 报告该 anchor 段序列能否在任一腔室片段里命中(与腔室步骤的解析口径一致)。
+func (e *Engine) matchesAnyChamber(domain string, segs []anchor.Seg) bool {
+	for _, sec := range e.idx[domain] {
+		if sec.Master {
+			continue
+		}
+		if len(anchor.Resolve(sec.Root, segs, nil)) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// routeMasterSteps 把"锚到 master 正文节点"的腔室级步骤改写为文件级步骤。
+//
+// 背景：腔室级步骤只在片段(Control_Ch1/Interlock_* 等)里按腔室展开；master 正文——
+// 即直接写在 Control_config.xml 的 <Control> 下、不属于任何片段的节点
+// (CleanRuleRtManager / TimeSynchronizer / EventLogger 等)——不在任何腔室里，逐腔室
+// 执行永远无匹配。此类 anchor 同时满足下面两条时，给步骤补上 file: <master>：
+//   - 在所有腔室片段里都无匹配(既有腔室级 anchor 的行为完全不受影响)；
+//   - 能在该域 master 正文根下命中。
+//
+// 改写后由 SplitSteps 归入文件级步骤、全局执行一次，与手写 file: 等价：同一套动作、
+// 同样的幂等判定与虚拟字节状态。含 ${X} 的 anchor 依赖腔室绑定，保持原样。
+func (e *Engine) routeMasterSteps(steps []feature.Step, log func(string)) []feature.Step {
+	out := make([]feature.Step, len(steps))
+	copy(out, steps)
+	for i := range out {
+		s := &out[i]
+		if s.File != "" || s.NewFile != "" || len(s.AddRecipe) > 0 {
+			continue
+		}
+		domain, segs := parseAnchor(s.Anchor)
+		if len(segs) == 0 || hasNameSeg(segs) {
+			continue
+		}
+		body, rel, ok := e.masterBody(domain)
+		if !ok || e.matchesAnyChamber(domain, segs) {
+			continue
+		}
+		if len(anchor.Resolve(body.Root, segs, nil)) == 0 {
+			continue
+		}
+		s.File = rel
+		log(fmt.Sprintf("步[%s] anchor %s 命中 %s 正文节点，改为文件级步骤对 %s 全局执行一次（不随腔室展开）",
+			s.Name, s.Anchor, domain, rel))
+	}
+	return out
+}
+
 // ApplyFeature 对选定腔室(nil=全部)应用 feature；write=true 才落盘。
 // 每个腔室同时持有 Control 与 IOBridge(Driver) 两个域的片段，按 anchor 首段路由；
 // 跨域共享 chamberBinds(如 Control 侧绑定的 {ITO}=Ch1 供 IOBridge 步骤的 ${ITO} 使用)。
 //
-// 文件级步骤分两类：路径含占位符的(如 `file: Setup/Setup_${Chamber}.xml`)在腔室循环内
-// **逐腔室展开**，用该腔室的绑定解析路径与取值；路径为字面量的在腔室循环之后各执行一次。
+// 文件级步骤分两类：路径或 add-recipe 取值含占位符的(如 `file: Setup/Setup_${Chamber}.xml`、
+// `recipe-class: "${Chamber}"`)在腔室循环内**逐腔室展开**，用该腔室的绑定解析路径与取值；
+// 全为字面量的在腔室循环之后各执行一次。
+//
+// 只在 master 正文命中、在腔室里匹配不到的 anchor(如 /Control/CleanRuleRtManager)由
+// routeMasterSteps 自动改写为文件级步骤，全局执行一次(见该函数注释)。
 func (e *Engine) ApplyFeature(f *feature.Feature, selected []string, write bool, log func(string)) error {
 	// 本次执行的文件级虚拟字节状态；plan/apply 均让后续步骤读取前一步结果。
 	files := map[string][]byte{}
-	chamberSteps, fileSteps := SplitSteps(f.Steps)
+	// 先把只在 master 正文命中、在腔室里永远匹配不到的步骤改写为文件级步骤。
+	steps := e.routeMasterSteps(f.Steps, log)
+	chamberSteps, fileSteps := SplitSteps(steps)
 	perChamberFiles, globalFiles := splitTemplatedFiles(fileSteps)
 	// 纯文件级 feature 且没有按腔室展开的步骤(如 Setup/SysLog 的静态升级)：不必加载任何腔室片段，
 	// 省掉对全部 Control/IO/Driver 片段的解析。
@@ -247,7 +363,7 @@ func (e *Engine) runFileSteps(steps []feature.Step, tags map[string]string, perC
 			}
 			continue
 		}
-		rel := feature.Format(step.File, tags)
+		rel := feature.Format(fileStepPath(step), tags)
 		paths, err := e.expandFilePath(rel)
 		if err != nil {
 			return err
@@ -707,6 +823,17 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		results = append(results, ops.AddSetupPair(m.Node, feature.Format(sp.Param, tags),
 			attrs, feature.Format(sp.ValueText(), tags),
 			feature.Format(sp.Before, tags), feature.Format(sp.After, tags)))
+	}
+	// add-recipe：向 RecipeNamespace 的指定 RecipeClass 追加 <Param ... />。
+	for i := range step.AddRecipe {
+		rp := &step.AddRecipe[i]
+		attrs := make([]xmldoc.Attr, 0, 9)
+		for _, a := range rp.ParamAttrs() {
+			attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
+		}
+		results = append(results, ops.AddRecipeParam(m.Node,
+			feature.Format(rp.RecipeClass, tags), feature.Format(rp.Param, tags), attrs,
+			feature.Format(rp.Before, tags), feature.Format(rp.After, tags)))
 	}
 	// add-xml：内联 XML 片段(新对象/新方法块)，按结构判重。
 	for i := range step.AddXML {
