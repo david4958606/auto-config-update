@@ -336,8 +336,9 @@ type AddNodeSpec struct {
 	Class         string    `yaml:"class"`
 	Attrs         yaml.Node `yaml:"attrs"` // 保留书写顺序
 	IncludeEntity string    `yaml:"include-entity"`
-	Before        *SelSpec  `yaml:"before"` // 可选：插到该兄弟之前
-	After         *SelSpec  `yaml:"after"`  // 可选：插到该兄弟之后
+	Before        *SelSpec  `yaml:"before"`   // 可选：插到该兄弟之前
+	After         *SelSpec  `yaml:"after"`    // 可选：插到该兄弟之后
+	Position      string    `yaml:"position"` // 可选：first = 插到 anchor 开标签之后(首个位置，先于既有子节点/&实体; 引用)；缺省末尾
 }
 
 // AttrPairs 按书写顺序返回 attrs 的键值对。

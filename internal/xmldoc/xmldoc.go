@@ -57,6 +57,11 @@ type Node struct {
 	Removed   bool // 标记删除(落盘时删掉其字节区间)
 	SelfClose bool // 原文是自闭合 <tag .../>
 
+	// VirtualRoot 为 true 表示这是"多根片段文件"的合成伪根：Children 是文件的全部顶层
+	// 元素，逻辑上它们是 master 根元素(<Control>/<IO>/<IOBridge>)的直接子节点。
+	// 对它的插入落盘为在文件里新增一个顶层元素(见 splice)，不会写进某个顶层元素内部。
+	VirtualRoot bool
+
 	// PairedEmpty 为 true 时，空文本节点渲染成成对标签 <tag></tag> 而非自闭合 <tag/>。
 	// 仅作用于合成节点(如 add-io 的空 <Unit>/<Min>/<Max>)，与 IG 片段既有写法保持一致。
 	PairedEmpty bool

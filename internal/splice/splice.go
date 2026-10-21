@@ -3,7 +3,8 @@
 // 不重排整棵树，只在插入点/删除点改动原文，其余字节逐字保留 → 真正 clean diff。
 // 相比 Python 的按行 splice，这里用 xmldoc 给出的精确字节偏移：
 //   - 插入：新子节点渲染成文本，插到其父节点闭合标签(CloseStart)之前；
-//     父本身是合成节点则跳过(其文本已含在祖先渲染里)。
+//     父本身是合成节点则跳过(其文本已含在祖先渲染里)；父是片段文件伪根
+//     (VirtualRoot)时，改为在文件里新增一个顶层元素(追加到最后一个顶层元素之后)。
 //   - 删除：删掉原节点所在的整行(含缩进与行尾换行)，与 Python 按行删除一致。
 package splice
 
@@ -33,15 +34,54 @@ func Apply(src []byte, edits []xmldoc.Edit) []byte {
 	for _, e := range edits {
 		switch e.Kind {
 		case xmldoc.Insert, xmldoc.InsertRaw:
-			if e.Parent.Synthetic {
+			if e.Parent.Synthetic && !e.Parent.VirtualRoot {
 				continue // 父是合成节点，文本已在祖先渲染里
+			}
+			if e.First && !e.Parent.VirtualRoot && !e.Parent.SelfClose {
+				// 首位置：插到父开标签 '>' 之后，成为第一个子节点(先于既有子节点与 &实体;)。
+				// 新节点独占一行并沿用既有首个子节点的缩进；这里刻意不补行尾换行——原文紧跟的
+				// 换行/空行保持不动，通常正好成为新节点与后继兄弟之间的分隔。
+				var body string
+				if e.Kind == xmldoc.Insert {
+					indent, unit := insertionIndent(src, e.Parent, e.Before)
+					body = xmldoc.RenderIndented(e.Child, indent, unit)
+				} else {
+					body = strings.TrimRight(e.Text, "\r\n")
+				}
+				at := e.Parent.OpenEnd
+				if at < 0 || at > len(src) {
+					continue
+				}
+				text := nl + matchNewline(body, nl)
+				if at < len(src) && src[at] != '\n' && src[at] != '\r' {
+					// 开标签后紧跟内容(如内联空元素)：补一个换行，避免新节点与后文挤在同一行。
+					text += nl
+				}
+				if _, ok := insertText[at]; !ok {
+					insertOrder = append(insertOrder, at)
+				}
+				insertText[at] += text
+				continue
 			}
 			var block string
 			if e.Kind == xmldoc.Insert {
 				indent, unit := insertionIndent(src, e.Parent, e.Before)
+				if e.Parent.VirtualRoot {
+					indent, unit = docRootIndent(src, e.Parent, e.Before)
+				}
 				block = matchNewline(xmldoc.RenderIndented(e.Child, indent, unit)+"\n", nl)
 			} else {
 				block = matchNewline(strings.TrimRight(e.Text, "\r\n"), nl) + nl
+			}
+			if e.Parent.VirtualRoot {
+				// 伪根没有闭合标签：新顶层元素插到 before 所在行之前；否则追加到最后一个
+				// 顶层元素所在行之后(前置一个换行，与既有顶层元素之间保留空行分隔)。
+				at, prefix := docRootInsertPos(src, e.Parent, e.Before, nl)
+				if _, ok := insertText[at]; !ok {
+					insertOrder = append(insertOrder, at)
+				}
+				insertText[at] += prefix + block
+				continue
 			}
 			if e.Parent.SelfClose {
 				// End/OpenEnd 都在 '>' 之后；自闭合父无原文子节点可作为 before。
@@ -167,6 +207,69 @@ func insertionIndent(src []byte, parent, before *xmldoc.Node) (string, string) {
 		return base + unit, unit
 	}
 	return strings.Repeat(unit, xmldoc.RealDepth(parent)+1), unit
+}
+
+// docRootIndent 给出向"多根片段伪根"追加顶层元素时的缩进与每层缩进单位：
+// 顶层元素通常顶格(缩进空串)，单位缩进沿用既有顶层元素与其首个子元素的差值。
+func docRootIndent(src []byte, parent, before *xmldoc.Node) (string, string) {
+	indent := ""
+	if s, ok := lineIndent(src, before); ok {
+		indent = s
+	} else {
+		for _, c := range parent.Children {
+			if c.Removed || c.Synthetic {
+				continue
+			}
+			if s, ok := lineIndent(src, c); ok {
+				indent = s
+				break
+			}
+		}
+	}
+	unit := "    "
+	for _, c := range parent.Children {
+		if c.Removed || c.Synthetic {
+			continue
+		}
+		ci, ciOK := lineIndent(src, c)
+		for _, gc := range c.Children {
+			if gc.Removed || gc.Synthetic {
+				continue
+			}
+			gi, giOK := lineIndent(src, gc)
+			if ciOK && giOK && strings.HasPrefix(gi, ci) && len(gi) > len(ci) {
+				unit = gi[len(ci):]
+			}
+			break
+		}
+		break
+	}
+	return indent, unit
+}
+
+// docRootInsertPos 返回新增顶层元素在片段文件里的写入偏移与需前置的文本：
+// before 是原顶层元素时插到其所在行行首；否则追加到最后一个顶层元素所在行之后，
+// 并前置一个换行，让新旧顶层元素之间保留一个空行(与片段既有写法一致)。
+func docRootInsertPos(src []byte, parent, before *xmldoc.Node, nl string) (int, string) {
+	if before != nil && !before.Synthetic && before.Start >= 0 {
+		return insertOffset(src, before.Start), ""
+	}
+	var last *xmldoc.Node
+	for _, c := range parent.Children {
+		if c.Removed || c.Synthetic || c.Start < 0 || c.End < 0 {
+			continue
+		}
+		last = c
+	}
+	if last == nil {
+		at := len(src)
+		if at > 0 && src[at-1] != '\n' {
+			return at, nl
+		}
+		return at, ""
+	}
+	_, end := lineSpan(src, last.Start, last.End)
+	return end, nl
 }
 
 // detectNewline 返回文件主导换行符(有 CRLF 就是 "\r\n"，否则 "\n")。

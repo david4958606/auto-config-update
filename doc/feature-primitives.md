@@ -114,6 +114,8 @@ anchor: /IOBridge/${ITO}/{DnVacuumGauge}   # IOBridge 域(文件顶层节点是 
 - `anchor: LoadRack/Plc` → 只命中 (1)。回退若仍深入子孙，(2) 会被一并命中，动作被误加到不该改的分支。
 - `anchor: LoadRack/Dnstatus/Plc` → 命中 (2)。需要更深的同名节点就把路径逐层写全。
 - 首段的自身匹配不能少：文件级步骤的根元素（如 `<LoadRack>` / `<Motor>` / `<EFEM>`）正是靠它命中。
+  片段文件（master 用实体引入、可含多个顶层元素）则由 master 根（`<Control>` / `<IO>`）合成伪根，
+  各顶层元素是它的直接子节点，见 §7.14。
 
 ### 3.3 fan-out（同类多实例）
 
@@ -332,6 +334,7 @@ bind:
 | `class` | class 属性值（渲染为首属性 `class="..."`）。 |
 | `attrs` | 额外属性，**保留书写顺序**，值支持占位符。 |
 | `include-entity` | 可选。glob（先占位符替换）匹配 `Control_config.xml` 声明的实体真名，命中则把 `&实体名;` 内嵌为该对象**最后一个子节点**；未匹配到则打印告警 `!`。 |
+| `position` | 可选。`first` = 插到 anchor 的**首个位置**（紧接开标签 `>` 之后，先于任何既有子节点与 `&实体;` 引用）；缺省（或 `last`）= 追加末尾。`position: first` 优先于 `before`/`after`。 |
 
 ```yaml
 add-node:
@@ -342,6 +345,25 @@ add-node:
 ```
 
 生成：`<IonGauge class="PhyGauge" type="instance" alias="/Control/Ch1Exports/IonGauge"> &Simulated_Ch1; </IonGauge>`
+
+**首位置插入**用于"新节点必须排在一串 `&实体;` 引用之前"的场景（典型是
+`Control_config.xml` 的 `<Control>` 正文）。`position: first` 把开标签后的换行留给新节点，
+原有空行保持不变，因此新节点紧接开标签、其余字节逐字不动：
+
+```yaml
+steps:
+  - name: Control 开头新建 SystemMonitor 节点
+    file: Control/Control_config.xml
+    anchor: Control
+    add-node:
+      - tag: SystemMonitor
+        class: SystemMonitor
+        attrs: { type: instance, alias: "" }
+        position: first        # → <Control> 后、&Ctrl_Platform; 之前
+```
+
+新节点先以自闭合形式落盘；后续用 `anchor: Control/SystemMonitor` 的 `add-method` 步追加方法即可
+展开成完整块（同组后一步能使用前一步的改动，重复执行按 tag/方法名幂等）。
 
 ### 7.2 `add-data` —— 建数据点位
 
@@ -635,6 +657,29 @@ steps:
 
 **字面量路径**（不含占位符）的步骤不参与腔室循环，在腔室步骤之后按声明顺序各执行一次，
 直接读该文件、改完写回。
+
+**片段文件（master 用实体引入的文件）**：`file:` 也可以直接指向 `Control_config.xml` /
+`IO_config.xml` / `Driver_config.xml` 里用 `&实体;` 引入的片段（如 `Control/Control_Platform`）。
+片段文件的多个顶层元素在装配后其实是 master 根（`<Control>` / `<IO>` / `<IOBridge>`）的
+**直接子节点**，因此这类文件按"master 根"解析：
+
+- 空 `anchor` = master 根自身。`add-node` / `add-element` / `add-io` / `add-data` 会在片段文件里
+  **追加一个新的顶层元素**（装配后 `<Control>` 的又一个子节点），不会写进某个既有顶层元素内部；
+  追加位置在最后一个顶层元素之后，沿用该片段的换行（如 CRLF）与缩进，其余字节逐字保留。
+  配 `position: first` 则插到**第一个顶层元素之前**（装配后仍是 master 根的首个子节点）。
+- 非空 `anchor` 相对 master 根解析：首段既可以直接写顶层元素标签（`ATR`），也可以带 master
+  根名（`Control/ATR`）；要改某个顶层元素内部就写它的标签或更深路径。
+- 片段原有的"多根"写法保持不变（新增后仍是多根片段），整体装配与解析行为不受影响。
+
+```yaml
+steps:
+  - name: 新建 SystemMonitor 节点
+    file: Control/Control_Platform
+    add-node:
+      - tag: SystemMonitor
+        class: SystemMonitor
+        attrs: { type: instance, alias: "" }
+```
 
 > master 正文节点（`Control_config.xml` 里直接写在 `<Control>` 下的节点）也可以省掉
 > `file:`，直接写逻辑路径 `/Control/<节点>`——只要能命中正文且在所有腔室片段里都无匹配，

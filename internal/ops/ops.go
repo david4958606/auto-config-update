@@ -26,17 +26,30 @@ type Result struct {
 
 // AddNode 确保 parent 下存在 <tag class=cls ...>；按 tag 判重(幂等)。
 // attrs 为有序键值对，值已由上层做过占位符替换。
-func AddNode(parent *xmldoc.Node, tag, cls string, attrs []xmldoc.Attr, before *xmldoc.Node) Result {
+// first=true 时新节点插到 parent 开标签之后(成为首个位置，先于既有子节点/实体引用)，
+// 此时忽略 before；否则 before 非 nil 时插到该既有兄弟之前，nil 则追加末尾。
+func AddNode(parent *xmldoc.Node, tag, cls string, attrs []xmldoc.Attr, before *xmldoc.Node, first bool) Result {
 	if xmldoc.FindChild(parent, tag) != nil {
 		return Result{Changed: false, Message: fmt.Sprintf("对象 <%s> 已存在", tag), Edit: nil}
 	}
 	el := xmldoc.NewElement(tag)
 	el.Attrs = append([]xmldoc.Attr{{Name: "class", Value: cls}}, attrs...)
 	edit := &xmldoc.Edit{Kind: xmldoc.Insert, Parent: parent, Child: el}
-	if before != nil {
+	switch {
+	case first:
+		edit.First = true
+		if len(parent.Children) > 0 {
+			// 同时记录首个子节点：片段伪根(VirtualRoot)落盘时据此插到首个顶层元素之前；
+			// 普通父节点的 First 落盘位置由 splice 按开标签计算，Before 只用于推断缩进。
+			edit.Before = parent.Children[0]
+			xmldoc.InsertBefore(parent, el, edit.Before)
+		} else {
+			xmldoc.AppendChild(parent, el)
+		}
+	case before != nil:
 		xmldoc.InsertBefore(parent, el, before)
 		edit.Before = before
-	} else {
+	default:
 		xmldoc.AppendChild(parent, el)
 	}
 	return Result{Changed: true, Message: fmt.Sprintf("新增对象 <%s class=%s>", tag, cls), Edit: edit}

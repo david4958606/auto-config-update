@@ -24,11 +24,15 @@ const (
 //   - Replace：把原文 [Start,End) 替换为 Text。
 //   - InsertRaw：把 Text(已带缩进的整段 XML 原文)插到 Parent 的 Before 之前；
 //     不经过渲染器，故 &amp;&amp; 这类混合内容逐字保留。Text 已含缩进，不带行尾换行。
+//
+// Before 与 First 互斥：First=true 时不按 Before 定位，而是插到父开标签之后
+// (成为父的第一个子节点，先于既有子节点与 &实体; 引用)，见 splice。
 type Edit struct {
 	Kind    EditKind
 	Parent  *Node   // Insert 用
 	Child   *Node   // Insert 用
 	Before  *Node   // Insert 用(可选)：插到该既有兄弟节点之前；nil = 父闭合标签之前(追加)
+	First   bool    // Insert 用(可选)：插到父开标签之后(首个子节点位置)
 	Targets []*Node // Delete / SetText / Wrap 用
 	Open    string  // Wrap 用：区间前插入的文本
 	Close   string  // Wrap 用：区间后插入的文本

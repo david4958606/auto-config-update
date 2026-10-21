@@ -37,6 +37,9 @@ type Engine struct {
 	ioMaster      string // IO_config.xml(根 <IO>)；不存在时 IO 步骤跳过
 	idx           config.Indexes
 	declared      []string
+	// fragParent 把 master 正文引用的片段路径映射到其逻辑父根标签
+	// (<Control>/<IO>/<IOBridge>)。file: 直接指向片段时，片段顶层元素是这些根的子节点。
+	fragParent map[string]string
 }
 
 // New 用 configDir 构造引擎。目录由 CLI 决定：--config 指定，
@@ -53,7 +56,11 @@ func New(configDir string) (*Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Engine{configDir: configDir, controlMaster: controlMaster, driverMaster: driverMaster, ioMaster: ioMaster, idx: idx, declared: declared}, nil
+	fragParent, err := config.FragmentParents(controlMaster, ioMaster, driverMaster)
+	if err != nil {
+		return nil, err
+	}
+	return &Engine{configDir: configDir, controlMaster: controlMaster, driverMaster: driverMaster, ioMaster: ioMaster, idx: idx, declared: declared, fragParent: fragParent}, nil
 }
 
 // target 是一个域(Control/IOBridge)在某腔室的落点：一份片段文档 + 累积的字节编辑。
@@ -431,10 +438,21 @@ func (e *Engine) runOneFileStep(step *feature.Step, rel string, tags map[string]
 	tg := &target{doc: doc, path: path, roots: doc.Roots}
 	segs := parseAnchorPlain(feature.Format(step.Anchor, tags))
 	where := buildWhere(step.Where, tags)
+	// 片段文件由 master 用实体引入，其多个顶层元素在装配后其实是 <Control>/<IO>/<IOBridge>
+	// 的直接子节点。用伪根包起来后，空 anchor 表示"master 根"：add-node 会新增一个顶层元素，
+	// 而不是把同名节点塞进每一个既有顶层元素里。普通单根文件(Setup 等)保持原语义。
+	roots := doc.Roots
+	if parentTag, ok := e.fragParent[filepath.Clean(path)]; ok {
+		vroot := xmldoc.NewElement(parentTag)
+		vroot.VirtualRoot = true
+		vroot.Children = append(vroot.Children, doc.Roots...)
+		roots = []*xmldoc.Node{vroot}
+	}
 	var matches []anchor.Match
-	for _, root := range doc.Roots {
+	for _, root := range roots {
 		if len(segs) == 0 {
-			// 空 anchor = 文件根元素本身(整份文件级操作，如 add-setup 的 Param/Option)。
+			// 空 anchor = 文件根元素本身(整份文件级操作，如 add-setup 的 Param/Option)；
+			// 片段文件则是 master 根(伪根)，见上。
 			matches = append(matches, anchor.Match{Node: root, Tags: map[string]string{}})
 			continue
 		}
@@ -684,9 +702,31 @@ func resolveBefore(anchorNode *xmldoc.Node, sel *feature.SelSpec, after bool, ta
 	return ops.InsertBeforeNode(anchorNode, os, "")
 }
 
+// parseNodePosition 解析 add-node 的 position：仅 "first" 表示插到 anchor 开标签之后的
+// 首个位置(先于既有子节点与 &实体; 引用)；空/"last" 为缺省追加末尾。未知取值告警后按缺省处理。
+func parseNodePosition(pos, stepName, inst string, log func(string)) bool {
+	switch pos {
+	case "first":
+		return true
+	case "", "last":
+		return false
+	default:
+		log(fmt.Sprintf("  步[%s] %s: ! 未知 position=%q，按缺省(末尾)处理", stepName, inst, pos))
+		return false
+	}
+}
+
 // applyActions 对一个 anchor 命中实例执行该步的全部动作。
 func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, chamberBinds map[string]string, chamber string, croot *xmldoc.Node, log func(string)) {
 	inst := fmt.Sprintf("%s(class=%s)", m.Node.Tag, m.Node.Class())
+	if m.Node.VirtualRoot {
+		// 片段文件的空 anchor 命中 master 根伪根；日志里点明"片段根"比打印一个空 class 更清楚。
+		inst = fmt.Sprintf("片段根 <%s>", m.Node.Tag)
+	}
+	// 全局文件级步骤没有腔室绑定(传入 nil)；补成空表，后续登记 {标签} → ./标签 时才不会 panic。
+	if chamberBinds == nil {
+		chamberBinds = map[string]string{}
+	}
 	// 并入跨步对象引用；anchor 绑定优先。
 	tags := make(map[string]string, len(chamberBinds)+len(m.Tags))
 	for k, v := range chamberBinds {
@@ -725,11 +765,15 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		for _, a := range nd.AttrPairs() {
 			attrs = append(attrs, xmldoc.Attr{Name: a.Name, Value: feature.Format(a.Value, tags)})
 		}
-		before := resolveBefore(m.Node, nd.Before, false, tags)
-		if before == nil && nd.After != nil {
-			before = resolveBefore(m.Node, nd.After, true, tags)
+		first := parseNodePosition(nd.Position, step.Name, inst, log)
+		var before *xmldoc.Node
+		if !first {
+			before = resolveBefore(m.Node, nd.Before, false, tags)
+			if before == nil && nd.After != nil {
+				before = resolveBefore(m.Node, nd.After, true, tags)
+			}
 		}
-		results = append(results, ops.AddNode(m.Node, feature.Format(nd.Tag, tags), feature.Format(nd.Class, tags), attrs, before))
+		results = append(results, ops.AddNode(m.Node, feature.Format(nd.Tag, tags), feature.Format(nd.Class, tags), attrs, before, first))
 		chamberBinds[feature.Format(nd.Tag, tags)] = "./" + feature.Format(nd.Tag, tags) // 登记对象引用，供后续步骤 {标签}
 
 		if nd.IncludeEntity != "" {
@@ -856,6 +900,11 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 	// 排在 set-text/set-attr/remove-node 之前，便于同一步里"先改名、再按新名字改写"。
 	for i := range step.RenameNode {
 		rn := &step.RenameNode[i]
+		if m.Node.VirtualRoot && rn.Tag == "" && rn.Child == "" && len(rn.Attr) == 0 && rn.Value == nil && rn.Has == nil {
+			// 选择器全空 = 作用于 anchor 自身；片段伪根没有可改写的原文标签，明确告警而不是假报 +。
+			results = append(results, ops.Result{Message: "空 anchor 指向片段伪根，无可改名标签；请把 anchor 写成具体顶层元素"})
+			continue
+		}
 		sel := ops.Sel{Tag: feature.Format(rn.Tag, tags), Attrs: formatAttrs(rn.Attr, tags), Has: toSel(rn.Has, tags)}
 		if rn.Value != nil {
 			v := feature.Format(*rn.Value, tags)

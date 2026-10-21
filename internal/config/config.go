@@ -84,6 +84,37 @@ func FragmentFiles(masterPath string) ([]Frag, error) {
 	return out, nil
 }
 
+// FragmentParents 返回 master 正文引用片段的"逻辑父根标签"映射：片段文件的顶层元素在
+// 装配后是 master 根元素(如 <Control>/<IO>/<IOBridge>)的直接子节点，故其逻辑父根即该根标签。
+// 键为 filepath.Clean 后的片段路径；不存在的 master 直接跳过(与可选 master 的容忍一致)。
+func FragmentParents(masterPaths ...string) (map[string]string, error) {
+	out := map[string]string{}
+	for _, masterPath := range masterPaths {
+		if _, err := os.Stat(masterPath); err != nil {
+			continue
+		}
+		src, err := os.ReadFile(masterPath)
+		if err != nil {
+			return nil, err
+		}
+		doc, err := xmldoc.Parse(src)
+		if err != nil {
+			return nil, fmt.Errorf("解析 master %s: %w", masterPath, err)
+		}
+		if len(doc.Roots) == 0 {
+			continue
+		}
+		frags, err := FragmentFiles(masterPath)
+		if err != nil {
+			return nil, err
+		}
+		for _, f := range frags {
+			out[filepath.Clean(f.Path)] = doc.Roots[0].Tag
+		}
+	}
+	return out, nil
+}
+
 // Section 是逻辑索引里的一段：来源文件 + 顶层元素。
 type Section struct {
 	Path string

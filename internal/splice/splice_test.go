@@ -192,3 +192,24 @@ func TestApplyInsertAndDeleteSameOffset(t *testing.T) {
 		t.Fatalf("被删除的节点仍在:\n%s", out)
 	}
 }
+
+// TestApplyInsertFirstAfterOpenTag 回归 Edit.First：新节点紧接父开标签之后插入(成为首个子节点)，
+// 不额外堆空行，并沿用原文换行与既有子节点缩进。
+func TestApplyInsertFirstAfterOpenTag(t *testing.T) {
+	for _, nl := range []string{"\n", "\r\n"} {
+		t.Run(fmt.Sprintf("%q", nl), func(t *testing.T) {
+			src := []byte("<R>" + nl + "    <Old/>" + nl + "" + nl + "</R>" + nl)
+			doc, err := xmldoc.Parse(src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			root := doc.Roots[0]
+			child := xmldoc.NewElement("New")
+			out := Apply(src, []xmldoc.Edit{{Kind: xmldoc.Insert, Parent: root, Child: child, First: true}})
+			want := "<R>" + nl + "    <New/>" + nl + "    <Old/>" + nl + "" + nl + "</R>" + nl
+			if string(out) != want {
+				t.Fatalf("首位置插入结果不符:\n got %q\nwant %q", out, want)
+			}
+		})
+	}
+}
