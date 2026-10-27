@@ -8,9 +8,10 @@
 
 ```bash
 make          # 本机 + linux/386 静态 + windows/amd64
-make native   # 本机二进制 -> auto-config-update
-make cross    # linux/386 静态 -> auto-config-update-32(CentOS6/内核2.6.32)
+make amd64    # 本机二进制 -> auto-config-update
+make i386     # linux/386 静态 -> auto-config-update-32(CentOS6/内核2.6.32)
 make win64    # windows/amd64 -> auto-config-update.exe
+make tar      # 打包二进制、features、doc、README、run.sh、prepare-onsite.sh 及已生成的一键脚本
 ```
 
 约束:工具链须为 Go **1.23.x**;`CGO_ENABLED=0` 纯静态、`GOPROXY=off` 离线可构建。
@@ -52,18 +53,83 @@ make win64    # windows/amd64 -> auto-config-update.exe
   也可单独跑 `check` 作为上线前的硬闸门。
 - 原语速查见 [doc/feature-primitives.md](doc/feature-primitives.md)。
 
-### 现场交互选择功能
+### 工程师预置 · 现场一键执行（推荐）
 
-交付时把 `run-features.sh`、`auto-config-update-32` 和整个 `features/`（保留子目录结构）放在同一目录，并在该目录放置待升级的 `config/`（也可通过 `--config` 指定）。执行：
+现场操作人员直接在功能/腔室列表里选择容易选错。推荐流程：工程师先在办公机用
+`prepare-onsite.sh` 选好功能与腔室，生成一个**只含“应用升级配置 / 退出”两个选项**的
+现场脚本；现场人员按一次 `1` 即可执行，功能、腔室、顺序都不可再改。
+
+**第一步：工程师生成**（在含 `features/` 的交付目录运行）
 
 ```bash
-bash run-features.sh
-bash run-features.sh --config config-14346
+bash prepare-onsite.sh                             # 生成 updateConfig-<日期>.sh
+bash prepare-onsite.sh --config config-14346       # 预置非缺省 config 目录
+bash prepare-onsite.sh -o updateConfig-site-a.sh     # 指定输出文件（相对当前目录）
+```
+
+按编号勾选功能（勾选后进入腔室页：编号切换、回车保存，全不选 = 全部腔室），输入
+`g` 生成。生成前会再次确认执行顺序、腔室、生成人/工位/备注，并把每个功能 YAML 的
+`sha256`、配置目录和方案指纹写进生成的脚本。输出名以 `updateConfig-` 开头时，`make tar`
+会自动把它一起打包；自定义输出名需手动放进交付包。
+
+**第二步：部署到现场**（以下内容放在同一目录，`features/` 保留子目录结构）
+
+```
+auto-config-update-32
+features/
+config/                 # 或生成时 --config 指定的目录
+updateConfig-<日期>.sh
+```
+
+**第三步：现场执行**
+
+```bash
+bash updateConfig-<日期>.sh
+```
+
+界面只有两个选项（与工程师预置的方案摘要一并显示，供操作人员核对）：
+
+```
+===== 自动升级脚本 =====
+    1) 应用升级配置
+    2) 退出
+========================
+```
+
+选 `1` 立即按预置顺序执行，选 `2` 直接退出。开始前会：
+
+- 获取本目录的升级锁（`.updateConfig.lock`），同一目录同时只允许一个升级进程，避免并行写盘；
+- 校验 `auto-config-update-32`、`config/` 和每个功能 YAML 是否存在，功能 YAML 的
+  `sha256` 是否与生成时一致；不一致立即中止并提示联系工程师（防止脚本与功能包版本错配）；
+- 运行一次只读的 `check` 预检（Setup 自检 + 确认二进制能在本机运行）。config 按二进制
+  **真实路径**解析并以绝对路径传给 `check`/`apply`，二进制被软链到别处时也不会检查/修改错目录；
+- 默认**不**自动备份 `config/`（现场人员会手工备份）；工程师需要时可在现场脚本上加
+  `--backup`，由脚本备份到 `logs/config-backup-<时间>-<pid>.tar.gz`（权限 600）。启用备份后
+  若备份失败会**中止**且不修改配置。
+
+执行中每个功能的命令、开始/结束时间、耗时、退出码和完整输出都会写入
+`logs/upgrade-<时间>-<pid>.log`，日志头部包含执行环境、生成人/工位/备注、方案指纹；
+结束后还会对比执行前后配置文件的 `sha256`，列出新增/修改/删除的文件。某项失败时
+停止后续功能并以原退出码退出，同时提示回传日志。按 `Ctrl-C`、关闭终端或 SSH 断开时
+也会尽量补写“执行到哪一步、已改哪些文件、备份位置”。日志（以及启用 `--backup` 时的备份）
+默认权限为 `600`。日志与备份路径会打印在最后，排查问题时把日志（及备份）回传给工程师即可。
+
+现场脚本还支持（工程师远程指导时用）：`--yes` 跳过菜单直接执行、`--force` 功能定义
+不一致仍继续（危险）、`--backup` 执行前自动备份 config、`--log-dir <目录>` 指定日志目录。
+现场操作人员正常不需要这些参数。
+
+### 现场交互选择功能（调试/临时使用）
+
+交付时把 `run.sh`、`auto-config-update-32` 和整个 `features/`（保留子目录结构）放在同一目录，并在该目录放置待升级的 `config/`（也可通过 `--config` 指定）。执行：
+
+```bash
+bash run.sh
+bash run.sh --config config-14346
 ```
 
 入口递归列出 `.yaml` / `.yml`，显示 YAML 顶层单行 `id`、`description`；列表前缀取自 **features 下的相对目录**，不取 YAML 的 `version`。输入功能编号勾选后立即进入腔室选择页，输入腔室编号切换，回车保存返回一级菜单。二级页面不勾选任何腔室时表示**全部腔室**；取消勾选功能会清除对应的腔室选择。输入 `r` 查看执行摘要，再输入 `yes` 确认实际修改；`q` 退出。依列表顺序逐个调用 `auto-config-update-32 apply`，若某项失败则停止，不执行后续功能。声明了 `file:` 的文件级步骤由程序处理，不受腔室选项限制。
 
-脚本仅依赖 Bash、`find`、`sort`、`awk`，不要求 `dialog`、Python 或联网；终端中按数字勾选。交互终端中切换页面或勾选后会刷新屏幕；非交互输入或重定向输出时不清屏，以便保留日志。运行前建议备份配置；多份功能之间如有依赖，请注意列表按文件路径排序。
+脚本仅依赖 Bash、`find`、`sort`、`awk`，不要求 `dialog`、Python 或联网；终端中按数字勾选。交互终端中切换页面或勾选后会刷新屏幕；非交互输入或重定向输出时不清屏，以便保留日志。运行前建议备份配置；多份功能之间如有依赖，请注意列表按文件路径排序。现场若已用 `prepare-onsite.sh` 生成一键脚本，优先使用一键脚本。
 
 ## Feature 怎么写
 
