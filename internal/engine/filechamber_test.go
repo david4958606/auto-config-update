@@ -22,9 +22,16 @@ func setupFileFor(name string) string {
 // TestFileStepExpandsPerChamber 覆盖 `file:` 按腔室展开：
 // 路径含占位符的步骤逐腔室解析后各执行一次；缺失的文件只告警跳过；字面量步骤仍全局一次。
 func TestFileStepExpandsPerChamber(t *testing.T) {
-	work := t.TempDir()
-	copyTree(t, "../../config", filepath.Join(work, "config"))
-	setupDir := filepath.Join(work, "config", "Setup")
+	configDir := writeChamberConfig(t,
+		chamberSpec{Tag: "Ch1"},
+		chamberSpec{Tag: "Ch2"},
+		chamberSpec{Tag: "Ch3"},
+		chamberSpec{Tag: "Ch4"},
+		chamberSpec{Tag: "ChC"},
+		chamberSpec{Tag: "ChD"},
+	)
+	work := filepath.Dir(configDir)
+	setupDir := filepath.Join(configDir, "Setup")
 	// 只给 Ch1/Ch2 准备文件；Ch3/Ch4/ChC/ChD 缺失 → 应告警跳过。
 	writeFile(t, filepath.Join(setupDir, "Setup_Ch1.xml"), setupFileFor("Ch1"))
 	writeFile(t, filepath.Join(setupDir, "Setup_Ch2.xml"), setupFileFor("Ch2"))
@@ -59,7 +66,7 @@ steps:
 		t.Fatal(err)
 	}
 
-	eng, err := New(filepath.Join(work, "config"))
+	eng, err := New(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +109,7 @@ steps:
 
 	// 二次 apply 逐字节幂等。
 	before1, _ := os.ReadFile(filepath.Join(setupDir, "Setup_Ch1.xml"))
-	eng, err = New(filepath.Join(work, "config"))
+	eng, err = New(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,9 +124,12 @@ steps:
 
 // TestFileStepPerChamberRespectsSelection 校验 --chamber 限定同样作用于按腔室展开的文件步骤。
 func TestFileStepPerChamberRespectsSelection(t *testing.T) {
-	work := t.TempDir()
-	copyTree(t, "../../config", filepath.Join(work, "config"))
-	setupDir := filepath.Join(work, "config", "Setup")
+	configDir := writeChamberConfig(t,
+		chamberSpec{Tag: "Ch1"},
+		chamberSpec{Tag: "Ch2"},
+	)
+	work := filepath.Dir(configDir)
+	setupDir := filepath.Join(configDir, "Setup")
 	writeFile(t, filepath.Join(setupDir, "Setup_Ch1.xml"), setupFileFor("Ch1"))
 	writeFile(t, filepath.Join(setupDir, "Setup_Ch2.xml"), setupFileFor("Ch2"))
 
@@ -137,7 +147,7 @@ steps:
 		t.Fatal(err)
 	}
 
-	eng, err := New(filepath.Join(work, "config"))
+	eng, err := New(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,8 +170,15 @@ steps:
 
 // TestNewFileStepExpandsPerChamber 校验 new-file 路径也能按腔室展开；content 仍按字面写入。
 func TestNewFileStepExpandsPerChamber(t *testing.T) {
-	work := t.TempDir()
-	copyTree(t, "../../config", filepath.Join(work, "config"))
+	configDir := writeChamberConfig(t,
+		chamberSpec{Tag: "Ch1"},
+		chamberSpec{Tag: "Ch2"},
+		chamberSpec{Tag: "Ch3"},
+		chamberSpec{Tag: "Ch4"},
+		chamberSpec{Tag: "ChC"},
+		chamberSpec{Tag: "ChD"},
+	)
+	work := filepath.Dir(configDir)
 
 	const content = "<New>\n  <Option index=\"1\"></Option>\n</New>\n"
 	featPath := filepath.Join(work, "up.yaml")
@@ -180,7 +197,7 @@ steps:
 		t.Fatal(err)
 	}
 
-	eng, err := New(filepath.Join(work, "config"))
+	eng, err := New(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +205,7 @@ steps:
 		t.Fatal(err)
 	}
 	for _, ch := range []string{"Ch1", "Ch2", "Ch3", "Ch4", "ChC", "ChD"} {
-		p := filepath.Join(work, "config", "Setup", "New_"+ch+".xml")
+		p := filepath.Join(configDir, "Setup", "New_"+ch+".xml")
 		got, err := os.ReadFile(p)
 		if err != nil {
 			t.Fatalf("未按腔室新建 %s: %v", ch, err)
@@ -200,9 +217,9 @@ steps:
 	}
 
 	// 已存在 → no-op(不覆盖)：改写其中一个再跑一遍。
-	target := filepath.Join(work, "config", "Setup", "New_Ch1.xml")
+	target := filepath.Join(configDir, "Setup", "New_Ch1.xml")
 	writeFile(t, target, "KEEP\n")
-	eng, err = New(filepath.Join(work, "config"))
+	eng, err = New(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}

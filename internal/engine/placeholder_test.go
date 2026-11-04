@@ -17,31 +17,15 @@ import (
 //   - 其余所有取值字段（tag/class/attrs/xml/text/value/old/name/child/where/open/close/find…）：
 //     两者**同解**，都替换为 tags[X]。
 //
-// 本用例把 Demo 配置的 Degas 腔室（ChC/ChD）当靶子，两种写法混用，最后断言：期望的替换结果都
-// 出现，且产物里**不残留**任何 `{Degas}` / `${Degas}`。
+// 本用例用 degasConfig 构造的最小夹具（ChC 腔室 class Degas，含 PhyHeater/探针节点与自定义
+// 标记注释块）当靶子，两种写法混用，最后断言：期望的替换结果都出现，且产物里**不残留**任何
+// `{Degas}` / `${Degas}`。
 func TestPlaceholdersAllPrimitives(t *testing.T) {
-	work := t.TempDir()
-	copyTree(t, "../../config", filepath.Join(work, "config"))
-
-	// 给 Control_ChC 注入：一个带 class/id 的探针节点（测 where 的 tag-glob/attr 占位符），
-	// 以及一段自定义标记的"注释块"（测 uncomment 的 find/open/close 占位符）。
-	target := filepath.Join(work, "config", "Control", "Control_ChC")
-	src, err := os.ReadFile(target)
-	if err != nil {
-		t.Fatal(err)
-	}
-	injected := strings.Replace(string(src), "</ChC>",
-		"    <TChC class=\"PhyPlaceholderProbe\" type=\"instance\" id=\"ChC\">\n"+
-			"        <seed type=\"method\">1</seed>\n"+
-			"    </TChC>\n"+
-			"    <!~ChC-uc-ChC-ChC~>\n"+
-			"</ChC>", 1)
-	if injected == string(src) {
-		t.Fatal("夹具注入失败：未找到 </ChC>")
-	}
-	if err := os.WriteFile(target, []byte(injected), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	configDir := degasConfig(t)
+	work := filepath.Dir(configDir)
+	// 靶子：探针节点(TChC，测 where 的 tag-glob/attr 占位符)与自定义标记注释块
+	// (<!~ChC-uc-ChC-ChC~>，测 uncomment 的 find/open/close 占位符)都由 degasConfig 提供。
+	target := filepath.Join(configDir, "Control", "Control_ChC")
 
 	// 两种写法刻意混用：有的字段用 {X}，有的用 ${X}。
 	featYAML := `id: placeholder-probe
@@ -163,7 +147,7 @@ steps:
 	if err != nil {
 		t.Fatal(err)
 	}
-	eng, err := New(filepath.Join(work, "config"))
+	eng, err := New(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}

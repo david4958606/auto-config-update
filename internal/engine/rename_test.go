@@ -9,22 +9,6 @@ import (
 	"addex/internal/feature"
 )
 
-// injectBeforeClose 把 snippet 插到 fragment 的根闭合标签之前(供夹具注入探针节点)。
-func injectBeforeClose(t *testing.T, path, closeTag, snippet string) {
-	t.Helper()
-	src, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	out := strings.Replace(string(src), closeTag, snippet+closeTag, 1)
-	if out == string(src) {
-		t.Fatalf("夹具注入失败：%s 里未找到 %s", path, closeTag)
-	}
-	if err := os.WriteFile(path, []byte(out), 0o644); err != nil {
-		t.Fatal(err)
-	}
-}
-
 // TestRenameNodePrimitive 端到端覆盖 rename-node：与需求里的例子逐字对照——
 //
 //	<Edge class="FuncEdge" type="instance">                      <Edge class="FuncEdge" type="instance">
@@ -34,16 +18,15 @@ func injectBeforeClose(t *testing.T, path, closeTag, snippet string) {
 // 即 outer 节点不动(标签与属性原样保留)，只把子方法改名；同时校验同一步里 rename 后的
 // 新名字可被后续动作选中、二次 apply 幂等。
 func TestRenameNodePrimitive(t *testing.T) {
-	work := t.TempDir()
-	copyTree(t, "../../config", filepath.Join(work, "config"))
-	target := filepath.Join(work, "config", "Control", "Control_ChC")
-	injectBeforeClose(t, target, "</ChC>",
-		"    <Edge class=\"FuncEdge\" type=\"instance\">\n"+
-			"        <setValve type=\"method\">111</setValve>\n"+
-			"    </Edge>\n"+
-			"    <Edge2>\n"+
-			"        <setValve2 type=\"method\">1</setValve2>\n"+
-			"    </Edge2>\n")
+	const body = "    <Edge class=\"FuncEdge\" type=\"instance\">\n" +
+		"        <setValve type=\"method\">111</setValve>\n" +
+		"    </Edge>\n" +
+		"    <Edge2>\n" +
+		"        <setValve2 type=\"method\">1</setValve2>\n" +
+		"    </Edge2>\n"
+	configDir := writeChamberConfig(t, chamberSpec{Tag: "ChC", Body: body})
+	work := filepath.Dir(configDir)
+	target := filepath.Join(configDir, "Control", "Control_ChC")
 
 	featPath := filepath.Join(work, "rename.yaml")
 	writeFile(t, featPath, `id: rename-demo
@@ -66,7 +49,7 @@ steps:
 		t.Fatal(err)
 	}
 
-	eng, err := New(filepath.Join(work, "config"))
+	eng, err := New(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +82,7 @@ steps:
 
 	// 二次 apply：逐字节幂等 + 报告 no-op。
 	before := out
-	eng, err = New(filepath.Join(work, "config"))
+	eng, err = New(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,10 +100,10 @@ steps:
 
 // TestRenameNodeAnchorSelf 校验 anchor 自身改名：`anchor: Edge` + 空选择器 → 标签改名。
 func TestRenameNodeAnchorSelf(t *testing.T) {
-	work := t.TempDir()
-	copyTree(t, "../../config", filepath.Join(work, "config"))
-	target := filepath.Join(work, "config", "Control", "Control_ChC")
-	injectBeforeClose(t, target, "</ChC>", "    <Edge>\n        <seed type=\"method\">1</seed>\n    </Edge>\n")
+	const body = "    <Edge>\n        <seed type=\"method\">1</seed>\n    </Edge>\n"
+	configDir := writeChamberConfig(t, chamberSpec{Tag: "ChC", Body: body})
+	work := filepath.Dir(configDir)
+	target := filepath.Join(configDir, "Control", "Control_ChC")
 
 	featPath := filepath.Join(work, "rename.yaml")
 	writeFile(t, featPath, `id: rename-self
@@ -135,7 +118,7 @@ steps:
 	if err != nil {
 		t.Fatal(err)
 	}
-	eng, err := New(filepath.Join(work, "config"))
+	eng, err := New(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -358,9 +358,13 @@ steps:
 // TestRemoveSetupPerChamberFile 把 remove-setup 与按腔室展开的 file: 组合：一份声明逐腔室删除
 // 各自文件里的参数(带 ${Chamber} 占位符)，缺失文件的腔室告警跳过。
 func TestRemoveSetupPerChamberFile(t *testing.T) {
-	work := t.TempDir()
-	copyTree(t, "../../config", filepath.Join(work, "config"))
-	setupDir := filepath.Join(work, "config", "Setup")
+	configDir := writeChamberConfig(t,
+		chamberSpec{Tag: "Ch1"},
+		chamberSpec{Tag: "Ch2"},
+		chamberSpec{Tag: "Ch3"},
+	)
+	work := filepath.Dir(configDir)
+	setupDir := filepath.Join(configDir, "Setup")
 	writeFile(t, filepath.Join(setupDir, "Setup_Ch1.xml"),
 		"<Ch1Setup>\n  <Param name=\"PCh1\" dataObject=\"/Ch1/P\" type=\"I\" min=\"0\" max=\"1\" units=\"\" default=\"0\"/>\n"+
 			"  <Option index=\"1\">\n    <Value paramName=\"PCh1\">1</Value>\n  </Option>\n</Ch1Setup>\n")
@@ -381,7 +385,7 @@ steps:
 	if err != nil {
 		t.Fatal(err)
 	}
-	eng, err := New(filepath.Join(work, "config"))
+	eng, err := New(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -25,8 +25,8 @@ func TestAddDataUnitDescriptorList(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			work := t.TempDir()
-			copyTree(t, "../../config", filepath.Join(work, "config"))
+			configDir := degasConfig(t)
+			work := filepath.Dir(configDir)
 
 			featYAML := `id: adddata-unit-probe
 version: 1
@@ -59,7 +59,7 @@ steps:
 			if err != nil {
 				t.Fatal(err)
 			}
-			eng, err := New(filepath.Join(work, "config"))
+			eng, err := New(configDir)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -67,8 +67,8 @@ steps:
 				t.Fatal(err)
 			}
 
-			// temp-diff 家族 anchor 命中 ChC/ChD。检查 Control_ChC 写盘结果。
-			out, err := os.ReadFile(filepath.Join(work, "config", "Control", "Control_ChC"))
+			// degasConfig 的 Degas 腔室锚点命中 ChC。检查 Control_ChC 写盘结果。
+			out, err := os.ReadFile(filepath.Join(configDir, "Control", "Control_ChC"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -91,8 +91,8 @@ steps:
 // add-data 的 include-entity：按 glob 从顶层声明解析真名，于数据点位内部末尾追加 &真名;
 // (与 add-io / add-node 一致)。此处 SimulatedFlag*{Degas} → &SimulatedFlag_ChC;，在 ProbeVp 内部末尾。
 func TestAddDataIncludeEntity(t *testing.T) {
-	work := t.TempDir()
-	copyTree(t, "../../config", filepath.Join(work, "config"))
+	configDir := degasConfig(t)
+	work := filepath.Dir(configDir)
 
 	featYAML := `id: adddata-entity-probe
 version: 1
@@ -115,7 +115,7 @@ steps:
 	if err != nil {
 		t.Fatal(err)
 	}
-	eng, err := New(filepath.Join(work, "config"))
+	eng, err := New(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ steps:
 		t.Fatal(err)
 	}
 
-	out, err := os.ReadFile(filepath.Join(work, "config", "Control", "Control_ChC"))
+	out, err := os.ReadFile(filepath.Join(configDir, "Control", "Control_ChC"))
 	if err != nil {
 		t.Fatal(err)
 	}

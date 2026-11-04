@@ -31,7 +31,7 @@ go test ./...
 
 - 构建使用 `CGO_ENABLED=0 GOFLAGS=-mod=vendor GOPROXY=off`；修改依赖时保持离线构建可用。
 - `make` 的工具链检查目前只打印警告，不会阻止错误版本继续构建；出包前必须自行确认 `go env GOVERSION` 为 Go 1.23.x。
-- 部分 `internal/engine` 和 `internal/xmldoc` 测试依赖仓库根目录的 `config/` 夹具。缺少夹具时应明确报告失败原因，不要通过跳过或删除测试掩盖问题；新增用例优先在 `t.TempDir()` 中构造最小配置。
+- 测试**不得**依赖仓库根目录的 `config/`：该目录是现场夹具，已被 `.gitignore` 忽略、不入库，新检出的工作区没有它。需要配置的用例一律在 `t.TempDir()` 中构造最小 `config/`（可复用 `internal/engine/engine_test.go` 的 `writeChamberConfig`/`degasConfig`、`internal/xmldoc` 的 `writeFixture`），保证任何环境都可复现；不要通过跳过或删除测试掩盖缺失夹具。
 - Python 参照实现与旧金标准产物已移除，当前以 Go 测试为准。重点覆盖幂等、跨步骤可见性、实体保留、字节偏移与写盘正确性、筛选与多实例匹配，以及 Setup 参数序列校验。
 
 ## 架构与行为约束

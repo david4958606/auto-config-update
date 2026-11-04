@@ -243,4 +243,4 @@ config/
   - `simswitch` —— 批量切换 `config/*Simulated*` 的 `<setSimulated>` 开关
   - `splice` —— 外科式字节拼接写盘
   - `engine` —— steps 编排:逐腔室、逐步、逐实例执行并落盘
-- `features/*.yaml` —— 功能定义 · `config/` —— 演示夹具 · `Makefile` —— 出包脚本
+- `features/*.yaml` —— 功能定义 · `config/` —— 现场配置(不入库,由交付方提供) · `Makefile` —— 出包脚本

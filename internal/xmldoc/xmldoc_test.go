@@ -2,6 +2,7 @@ package xmldoc
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -44,8 +45,30 @@ func mustParse(t *testing.T, path string) *Document {
 	return doc
 }
 
+// writeFixture 在 t.TempDir() 下写一份自包含夹具并返回文件路径，
+// 避免依赖仓库根目录的 config/（该目录被 .gitignore 的 /config* 忽略）。
+func writeFixture(t *testing.T, name, content string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), name)
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("写入夹具 %s: %v", path, err)
+	}
+	return path
+}
+
 func TestParseControlCh1(t *testing.T) {
-	doc := mustParse(t, "../../config/Control/Control_Ch1")
+	// 自包含夹具：根为 ITO 实例，内含 36 处 &Simulated_Ch1; 实体引用
+	// (首个子节点即实体)、一个自闭合方法与一个带文本方法。
+	var b strings.Builder
+	b.WriteString(`<Ch1 class="ITO" type="instance" alias="/Control/Ch1Exports/Ch1">` + "\n")
+	for i := 0; i < 36; i++ {
+		b.WriteString("    &Simulated_Ch1;\n")
+	}
+	b.WriteString(`    <enableITO type="method"/>` + "\n")
+	b.WriteString(`    <exportState type="method">/IO/Ch1Exports/State</exportState>` + "\n")
+	b.WriteString("</Ch1>\n")
+
+	doc := mustParse(t, writeFixture(t, "Control_Ch1", b.String()))
 
 	if len(doc.Roots) != 1 {
 		t.Fatalf("顶层元素数 = %d, 期望 1", len(doc.Roots))
@@ -77,12 +100,12 @@ func TestParseControlCh1(t *testing.T) {
 		t.Errorf("CloseStart 未指向 </Ch1>")
 	}
 
-	// 实体容忍：36 处 &Simulated_Ch1; 应全部作为实体节点保留(与源文件 grep 一致)。
+	// 实体容忍：夹具里 36 处 &Simulated_Ch1; 应全部作为实体节点保留。
 	if got := countEntities(doc.Roots, "Simulated_Ch1"); got != 36 {
 		t.Errorf("Simulated_Ch1 实体节点数 = %d, 期望 36", got)
 	}
 
-	// 首个子节点即实体引用(源文件第 2 行 &Simulated_Ch1;)。
+	// 首个子节点即实体引用(夹具第 2 行 &Simulated_Ch1;)。
 	if len(root.Children) == 0 || !root.Children[0].IsEntity || root.Children[0].EntName != "Simulated_Ch1" {
 		t.Errorf("根首个子节点应为实体 Simulated_Ch1")
 	}
@@ -112,11 +135,18 @@ func TestParseControlCh1(t *testing.T) {
 	}
 }
 
-// IO_Motor 是"多顶层元素"片段(实体体，非独立文档)：应解析出 Ch1 与 Ch4 两个根。
+// 多顶层元素片段(实体体)：应解析出 Ch1 与 Ch4 两个根。
 func TestParseMultiRootFragment(t *testing.T) {
-	doc := mustParse(t, "../../config/IOBridge/IO_Motor")
+	src := `<Ch1 class="ITO" type="instance" alias="/Control/Ch1Exports/Ch1">
+    &Simulated_Ch1;
+</Ch1>
+<Ch4 class="ITO" type="instance" alias="/Control/Ch4Exports/Ch4">
+    &Simulated_Ch4;
+</Ch4>
+`
+	doc := mustParse(t, writeFixture(t, "IO_Motor", src))
 	if len(doc.Roots) != 2 {
-		t.Fatalf("IO_Motor 顶层元素数 = %d, 期望 2", len(doc.Roots))
+		t.Fatalf("多顶层片段顶层元素数 = %d, 期望 2", len(doc.Roots))
 	}
 	if doc.Roots[0].Tag != "Ch1" || doc.Roots[1].Tag != "Ch4" {
 		t.Errorf("顶层标签 = [%s %s], 期望 [Ch1 Ch4]", doc.Roots[0].Tag, doc.Roots[1].Tag)

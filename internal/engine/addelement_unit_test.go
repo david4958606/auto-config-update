@@ -13,8 +13,8 @@ import (
 // 同一 anchor 下并存多个同 tag 元素时，实体必须落在 attrs/text 匹配的那一个上
 // (不能用 FindChild 按 tag 取首个)，且二次执行幂等(实体不重复)。
 func TestAddElementIncludeEntity(t *testing.T) {
-	work := t.TempDir()
-	copyTree(t, "../../config", filepath.Join(work, "config"))
+	configDir := degasConfig(t)
+	work := filepath.Dir(configDir)
 
 	featYAML := `id: addelement-entity-probe
 version: 1
@@ -40,7 +40,7 @@ steps:
 	}
 	apply := func() {
 		t.Helper()
-		eng, err := New(filepath.Join(work, "config"))
+		eng, err := New(configDir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -50,7 +50,7 @@ steps:
 	}
 	apply()
 
-	out, err := os.ReadFile(filepath.Join(work, "config", "Control", "Control_ChC"))
+	out, err := os.ReadFile(filepath.Join(configDir, "Control", "Control_ChC"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ steps:
 
 	// 二次 apply：add-element 与实体追加都应幂等，实体只出现一次。
 	apply()
-	out2, err := os.ReadFile(filepath.Join(work, "config", "Control", "Control_ChC"))
+	out2, err := os.ReadFile(filepath.Join(configDir, "Control", "Control_ChC"))
 	if err != nil {
 		t.Fatal(err)
 	}

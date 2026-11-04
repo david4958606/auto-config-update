@@ -140,9 +140,12 @@ steps:
 
 // TestFileStepGlobPerChamber 校验 glob 与按腔室展开组合：先按腔室替换占位符，再对结果做 glob。
 func TestFileStepGlobPerChamber(t *testing.T) {
-	work := t.TempDir()
-	copyTree(t, "../../config", filepath.Join(work, "config"))
-	dir := filepath.Join(work, "config", "Setup")
+	configDir := writeChamberConfig(t,
+		chamberSpec{Tag: "Ch1"},
+		chamberSpec{Tag: "Ch2"},
+	)
+	work := filepath.Dir(configDir)
+	dir := filepath.Join(configDir, "Setup")
 	writeFile(t, filepath.Join(dir, "Setup_Ch1.xml"), globSetupDoc("Ch1Setup"))
 	writeFile(t, filepath.Join(dir, "Setup_Ch1Extra.xml"), globSetupDoc("Ch1ExtraSetup"))
 	writeFile(t, filepath.Join(dir, "Setup_Ch2.xml"), globSetupDoc("Ch2Setup"))
@@ -168,7 +171,7 @@ steps:
 	if err != nil {
 		t.Fatal(err)
 	}
-	eng, err := New(filepath.Join(work, "config"))
+	eng, err := New(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}
