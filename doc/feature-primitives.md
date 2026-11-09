@@ -276,7 +276,7 @@ bind:
 > 取值字段的替换覆盖**全部原语**：`add-node`(tag/class/attrs/include-entity)、
 > `add-data`/`add-io`(name/attrs/Bd/Ch/Min/Max/Accuracy/DescriptorList/Unit)、
 > `add-element`(tag/attrs/text/include-entity)、`add-xml`(xml)、`add-method`/`remove-method`(name/value/attrs)、
-> `set-text`(tag/child/old/value)、`set-attr`(tag/child/attr/old/name/value)、
+> `set-text`(tag/child/attr/attr-glob/old/value)、`set-attr`(tag/child/attr/attr-glob/old/name/value)、
 > `remove-node`(tag/child/attr/value/has)、`wrap`(open/close/select)、`uncomment`(find/open/close)、
 > `add-recipe`(recipe-class/param/attrs/before/after，仅路径或 add-recipe 取值含占位符、按腔室展开时才有绑定)、
 > `add-comment`，以及 step 级 `where`(tag-glob/attr)、`require`/`bind` 路径、`before`/`after` 选择器。
@@ -594,11 +594,24 @@ set-attr:
 |------|------|
 | `tag` / `child` | 目标元素(或再下沉一层到 `child`)。 |
 | `attr` | 目标元素须**存在且相等**的属性(用 `{alias: ""}` 可区分"空值"与"没有该属性")。 |
+| `attr-glob` | 目标元素须**存在**且取值**匹配通配**的属性，如 `{alias: "*CG_PressureAI*"}`。`*` 匹配任意长度任意字符(**含 `/`**)，`?` 匹配单个字符，`\` 转义；不支持 `[...]`。与 `attr` 同写时须都满足。 |
 | `old` | 可选：只命中"当前文本/当前属性值 == old"的节点。 |
 | `value` | 新文本 / 新属性值(支持占位符)。 |
 | `name` | `set-attr` 专有：要改写的属性名(不存在则插入到开标签 `>` 之前)。 |
 
 判重：文本/属性已是目标值即 no-op。文本比较用元素内部**全部**字符数据（含实体之后的文本）。
+
+选择器在 anchor 的**整棵子树**里查找，`tag` 可省略（任意标签）。按属性通配批量改写、不依赖具体腔室名：
+
+```yaml
+- name: CG_PressureAI 的 Accuracy 改为 1e-10
+  file: IOBridge/IO_*            # 覆盖全部 IO 片段
+  set-text:
+    - { attr-glob: { alias: "*CG_PressureAI*" }, child: Accuracy, value: "1e-10" }
+```
+
+> `attr-glob` 同样适用于 `set-attr`、`remove-node`、`rename-node`、`wrap` 的 `select`、`has`
+> 以及 `before`/`after` 选择器；值支持占位符（先替换再匹配）。
 
 ### 7.11 `remove-node` —— 删除已存在元素
 
@@ -875,11 +888,11 @@ Setup 文件的参数分两处写：根元素下的 `<Param .../>` 声明，与 
 
 | 字段 | 说明 |
 |------|------|
-| `tag` / `child` / `attr` / `value` / `has` | 选择器，口径同 §7.10/§7.11（`child` 再下沉一层，`has` 要求含指定直接子元素）。在 anchor 的**整棵子树**里选，可命中多个，全部处理。 |
+| `tag` / `child` / `attr` / `attr-glob` / `value` / `has` | 选择器，口径同 §7.10/§7.11（`child` 再下沉一层，`has` 要求含指定直接子元素）。在 anchor 的**整棵子树**里选，可命中多个，全部处理。 |
 | `to` | 新标签名（支持占位符）；开/闭标签同步改，自闭合只改开标签。省略=不改标签。 |
 | `attrs` | 可选：要设置/新增的属性（保留书写顺序，值支持占位符；已有同名属性则原位替换其值）。 |
 
-**选择器全空**（`tag`/`child`/`attr`/`value`/`has` 都没写）时，作用对象是 **anchor 自身**——
+**选择器全空**（`tag`/`child`/`attr`/`attr-glob`/`value`/`has` 都没写）时，作用对象是 **anchor 自身**——
 用于直接改 anchor 的标签名，或给它补属性（`set-attr` 只能改子孙，补 anchor 自身属性时用它）：
 
 ```yaml

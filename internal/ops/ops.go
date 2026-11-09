@@ -8,6 +8,7 @@ package ops
 import (
 	"fmt"
 	"path"
+	"sort"
 	"strings"
 
 	"addex/internal/xmldoc"
@@ -239,10 +240,11 @@ func RemoveMethod(anchor *xmldoc.Node, name, value string) Result {
 // Sel 是一个元素选择器：tag 相同(空=不限) + attrs 全等 + Value 文本相等(非 nil 时) +
 // Has 指定的直接子元素必须存在(用于区分同名但内部不同的节点)。
 type Sel struct {
-	Tag   string
-	Attrs map[string]string
-	Value *string
-	Has   *Sel
+	Tag      string
+	Attrs    map[string]string
+	AttrGlob map[string]string // 属性须存在且取值匹配通配(见 GlobMatch，如 "*CG_PressureAI*")
+	Value    *string
+	Has      *Sel
 }
 
 // Match 报告 n 是否满足选择器。
@@ -257,6 +259,14 @@ func (s Sel) Match(n *xmldoc.Node) bool {
 		// 必须"存在该属性且取值相等"：attr: {alias: ""} 不应命中"根本没有 alias"的节点，
 		// 否则 add-xml 新增的节点会被 remove-node 的旧选择器反复误删(破坏幂等)。
 		if !n.HasAttr(k) || n.Attr(k) != v {
+			return false
+		}
+	}
+	for k, pat := range s.AttrGlob {
+		if !n.HasAttr(k) {
+			return false
+		}
+		if !GlobMatch(pat, n.Attr(k)) {
 			return false
 		}
 	}
@@ -276,6 +286,43 @@ func (s Sel) Match(n *xmldoc.Node) bool {
 		}
 	}
 	return true
+}
+
+// GlobMatch 报告 s 是否整体匹配通配模式 pat：`*` 匹配任意长度(含 0)的任意字符，
+// `?` 匹配任意单个字符，`\` 转义下一个字符，其余字符按字面比较。
+// 与 path.Match 不同，`*` 也匹配 `/`——属性值常是 `/IO/...` 这类路径，
+// 需要 "*CG_PressureAI*" 这样的子串匹配；也不支持 `[...]` 字符类，避免与字面方括号混淆。
+func GlobMatch(pat, s string) bool {
+	p, v := []rune(pat), []rune(s)
+	pi, vi := 0, 0
+	star, mark := -1, 0
+	for vi < len(v) {
+		if pi < len(p) {
+			switch c := p[pi]; {
+			case c == '*':
+				star, mark = pi, vi
+				pi++
+				continue
+			case c == '\\' && pi+1 < len(p):
+				if p[pi+1] == v[vi] {
+					pi, vi = pi+2, vi+1
+					continue
+				}
+			case c == '?' || c == v[vi]:
+				pi, vi = pi+1, vi+1
+				continue
+			}
+		}
+		if star < 0 {
+			return false
+		}
+		mark++
+		pi, vi = star+1, mark
+	}
+	for pi < len(p) && p[pi] == '*' {
+		pi++
+	}
+	return pi == len(p)
 }
 
 // SelectNodes 在 anchor 的**整棵子树**里按 s 选；child 非空时再下沉一层到匹配 child 的孙子。
@@ -511,7 +558,7 @@ func RenameNode(anchor *xmldoc.Node, s Sel, child, to string, attrs []xmldoc.Att
 // selectForRename 返回 rename-node 的作用节点与"是否作用在 anchor 自身"。
 // 选择器字段全空 → 作用于 anchor 自身；否则常规子树选择。
 func selectForRename(anchor *xmldoc.Node, s Sel, child string) ([]*xmldoc.Node, bool) {
-	if s.Tag == "" && child == "" && len(s.Attrs) == 0 && s.Value == nil && s.Has == nil {
+	if s.Tag == "" && child == "" && len(s.Attrs) == 0 && len(s.AttrGlob) == 0 && s.Value == nil && s.Has == nil {
 		return []*xmldoc.Node{anchor}, true
 	}
 	return SelectNodes(anchor, s, child), false
@@ -993,6 +1040,19 @@ func attrsEqual(a, b []xmldoc.Attr) bool {
 // selDesc 生成选择器的人类可读描述。
 func selDesc(s Sel, child string) string {
 	d := s.Tag
+	if len(s.AttrGlob) > 0 {
+		keys := make([]string, 0, len(s.AttrGlob))
+		for k := range s.AttrGlob {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		if d == "" {
+			d = "*"
+		}
+		for _, k := range keys {
+			d += fmt.Sprintf("[%s~%s]", k, s.AttrGlob[k])
+		}
+	}
 	if child != "" {
 		d += "/" + child
 	}

@@ -73,42 +73,46 @@ type AddXMLSpec struct {
 
 // SelSpec 是一个元素选择器：tag 相同 + attr 全等 + value 文本相等(可选)。
 type SelSpec struct {
-	Tag   string            `yaml:"tag"`
-	Attr  map[string]string `yaml:"attr"`
-	Value *string           `yaml:"value"`
+	Tag      string            `yaml:"tag"`
+	Attr     map[string]string `yaml:"attr"`
+	AttrGlob map[string]string `yaml:"attr-glob"` // 属性值 glob 匹配(path.Match)，与 attr 同时写需都满足
+	Value    *string           `yaml:"value"`
 }
 
 // SetTextSpec 描述一个 set-text 动作：把 anchor 下 tag(可选再下沉 child)的元素文本改成 value。
 // Old 非 nil 时只匹配"当前文本 == old"的元素。
 type SetTextSpec struct {
-	Tag   string            `yaml:"tag"`
-	Child string            `yaml:"child"`
-	Attr  map[string]string `yaml:"attr"`
-	Old   *string           `yaml:"old"`
-	Value string            `yaml:"value"`
+	Tag      string            `yaml:"tag"`
+	Child    string            `yaml:"child"`
+	Attr     map[string]string `yaml:"attr"`
+	AttrGlob map[string]string `yaml:"attr-glob"` // 属性值 glob 匹配(path.Match)，与 attr 同时写需都满足
+	Old      *string           `yaml:"old"`
+	Value    string            `yaml:"value"`
 }
 
 // SetAttrSpec 描述一个 set-attr 动作：把 anchor 下匹配元素的 name 属性设为 value。
 type SetAttrSpec struct {
-	Tag   string            `yaml:"tag"`
-	Child string            `yaml:"child"`
-	Attr  map[string]string `yaml:"attr"`
-	Old   *string           `yaml:"old"` // 可选：当前 name 属性值须等于 old
-	Name  string            `yaml:"name"`
-	Value string            `yaml:"value"`
+	Tag      string            `yaml:"tag"`
+	Child    string            `yaml:"child"`
+	Attr     map[string]string `yaml:"attr"`
+	AttrGlob map[string]string `yaml:"attr-glob"` // 属性值 glob 匹配(path.Match)，与 attr 同时写需都满足
+	Old      *string           `yaml:"old"`       // 可选：当前 name 属性值须等于 old
+	Name     string            `yaml:"name"`
+	Value    string            `yaml:"value"`
 }
 
 // RenameNodeSpec 描述一个 rename-node 动作：把选中元素的标签改名(`to`)并/或增改属性(`attrs`)。
 // 选择器字段(tag/child/attr/value/has)与 set-text/remove-node 同口径，在 anchor 的子树里选；
 // 全部留空则作用于 **anchor 自身**(用于给 anchor 补 class/type 或直接改名)。
 type RenameNodeSpec struct {
-	Tag   string            `yaml:"tag"`
-	Child string            `yaml:"child"`
-	Attr  map[string]string `yaml:"attr"`
-	Value *string           `yaml:"value"`
-	Has   *SelSpec          `yaml:"has"`
-	To    string            `yaml:"to"`    // 新标签名(开/闭标签同步改)；空=不改标签
-	Attrs yaml.Node         `yaml:"attrs"` // 要增改的属性(保留书写顺序；同名覆盖旧值)
+	Tag      string            `yaml:"tag"`
+	Child    string            `yaml:"child"`
+	Attr     map[string]string `yaml:"attr"`
+	AttrGlob map[string]string `yaml:"attr-glob"` // 属性值 glob 匹配(path.Match)，与 attr 同时写需都满足
+	Value    *string           `yaml:"value"`
+	Has      *SelSpec          `yaml:"has"`
+	To       string            `yaml:"to"`    // 新标签名(开/闭标签同步改)；空=不改标签
+	Attrs    yaml.Node         `yaml:"attrs"` // 要增改的属性(保留书写顺序；同名覆盖旧值)
 }
 
 // AttrPairs 按书写顺序返回 rename-node 要设置的属性键值对。
@@ -117,11 +121,12 @@ func (r *RenameNodeSpec) AttrPairs() []xmldoc.Attr { return mapPairs(&r.Attrs) }
 // RemoveNodeSpec 描述一个 remove-node 动作：删除 anchor 下匹配的元素(含子树)。
 // Has 是附加条件：该元素须含有匹配此选择器的直接子元素(用于区分同名但内容不同的节点)。
 type RemoveNodeSpec struct {
-	Tag   string            `yaml:"tag"`
-	Child string            `yaml:"child"`
-	Attr  map[string]string `yaml:"attr"`
-	Value *string           `yaml:"value"`
-	Has   *SelSpec          `yaml:"has"`
+	Tag      string            `yaml:"tag"`
+	Child    string            `yaml:"child"`
+	Attr     map[string]string `yaml:"attr"`
+	AttrGlob map[string]string `yaml:"attr-glob"` // 属性值 glob 匹配(path.Match)，与 attr 同时写需都满足
+	Value    *string           `yaml:"value"`
+	Has      *SelSpec          `yaml:"has"`
 }
 
 // WrapSpec 描述一个 wrap 动作：用 open/close 把 select 命中的节点区间包起来。

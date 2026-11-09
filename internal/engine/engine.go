@@ -682,7 +682,7 @@ func toSel(s *feature.SelSpec, tags map[string]string) *ops.Sel {
 	for k, v := range s.Attr {
 		attrs[k] = feature.Format(v, tags)
 	}
-	sel := &ops.Sel{Tag: feature.Format(s.Tag, tags), Attrs: attrs}
+	sel := &ops.Sel{Tag: feature.Format(s.Tag, tags), Attrs: attrs, AttrGlob: formatAttrs(s.AttrGlob, tags)}
 	if s.Value != nil {
 		val := feature.Format(*s.Value, tags)
 		sel.Value = &val
@@ -900,12 +900,12 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 	// 排在 set-text/set-attr/remove-node 之前，便于同一步里"先改名、再按新名字改写"。
 	for i := range step.RenameNode {
 		rn := &step.RenameNode[i]
-		if m.Node.VirtualRoot && rn.Tag == "" && rn.Child == "" && len(rn.Attr) == 0 && rn.Value == nil && rn.Has == nil {
+		if m.Node.VirtualRoot && rn.Tag == "" && rn.Child == "" && len(rn.Attr) == 0 && len(rn.AttrGlob) == 0 && rn.Value == nil && rn.Has == nil {
 			// 选择器全空 = 作用于 anchor 自身；片段伪根没有可改写的原文标签，明确告警而不是假报 +。
 			results = append(results, ops.Result{Message: "空 anchor 指向片段伪根，无可改名标签；请把 anchor 写成具体顶层元素"})
 			continue
 		}
-		sel := ops.Sel{Tag: feature.Format(rn.Tag, tags), Attrs: formatAttrs(rn.Attr, tags), Has: toSel(rn.Has, tags)}
+		sel := ops.Sel{Tag: feature.Format(rn.Tag, tags), Attrs: formatAttrs(rn.Attr, tags), AttrGlob: formatAttrs(rn.AttrGlob, tags), Has: toSel(rn.Has, tags)}
 		if rn.Value != nil {
 			v := feature.Format(*rn.Value, tags)
 			sel.Value = &v
@@ -920,7 +920,7 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 	// set-text / set-attr / remove-node：原地改写已存在节点。
 	for i := range step.SetText {
 		st := &step.SetText[i]
-		sel := ops.Sel{Tag: feature.Format(st.Tag, tags), Attrs: formatAttrs(st.Attr, tags)}
+		sel := ops.Sel{Tag: feature.Format(st.Tag, tags), Attrs: formatAttrs(st.Attr, tags), AttrGlob: formatAttrs(st.AttrGlob, tags)}
 		old := ""
 		hasOld := st.Old != nil
 		if hasOld {
@@ -930,7 +930,7 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 	}
 	for i := range step.SetAttr {
 		sa := &step.SetAttr[i]
-		sel := ops.Sel{Tag: feature.Format(sa.Tag, tags), Attrs: formatAttrs(sa.Attr, tags)}
+		sel := ops.Sel{Tag: feature.Format(sa.Tag, tags), Attrs: formatAttrs(sa.Attr, tags), AttrGlob: formatAttrs(sa.AttrGlob, tags)}
 		old := ""
 		hasOld := sa.Old != nil
 		if hasOld {
@@ -941,7 +941,7 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 	}
 	for i := range step.RemoveNode {
 		rn := &step.RemoveNode[i]
-		sel := ops.Sel{Tag: feature.Format(rn.Tag, tags), Attrs: formatAttrs(rn.Attr, tags), Has: toSel(rn.Has, tags)}
+		sel := ops.Sel{Tag: feature.Format(rn.Tag, tags), Attrs: formatAttrs(rn.Attr, tags), AttrGlob: formatAttrs(rn.AttrGlob, tags), Has: toSel(rn.Has, tags)}
 		if rn.Value != nil {
 			v := feature.Format(*rn.Value, tags)
 			sel.Value = &v
@@ -969,7 +969,7 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		open, close = feature.Format(open, tags), feature.Format(close, tags)
 		sels := make([]ops.Sel, 0, len(wr.Select))
 		for j := range wr.Select {
-			sel := ops.Sel{Tag: feature.Format(wr.Select[j].Tag, tags), Attrs: formatAttrs(wr.Select[j].Attr, tags)}
+			sel := ops.Sel{Tag: feature.Format(wr.Select[j].Tag, tags), Attrs: formatAttrs(wr.Select[j].Attr, tags), AttrGlob: formatAttrs(wr.Select[j].AttrGlob, tags)}
 			if wr.Select[j].Value != nil {
 				v := feature.Format(*wr.Select[j].Value, tags)
 				sel.Value = &v
