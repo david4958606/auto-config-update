@@ -229,6 +229,20 @@ config/
 
 逻辑路径 `/IO/Ch1/...`、`/Control/Ch1/...` 只看**根腔室标签**,不看文件名。片段逐份原地回写;master 只在 step 显式写 `file:` 或 anchor 命中 master 正文节点时才回写。
 
+## 导出互锁总表
+
+`tools/export_interlocks.py` 把 `config/Control/Interlock_*` 中未被注释的 VInterlock（监控型）和
+SInterlock（设置型）导出成一张表，每个互锁一行，包含名称、逻辑路径、Trigger、Checker、Action 和告警等。
+脚本只依赖 Python 3 标准库：
+
+```bash
+python3 tools/export_interlocks.py                     # 输出 interlocks.xlsx
+python3 tools/export_interlocks.py -o interlocks.csv   # 按扩展名输出 CSV
+python3 tools/export_interlocks.py --config /path/to/config
+```
+
+`--config` 默认为仓库根目录下的 `config/`，输出路径以当前工作目录为基准。
+
 ## 模块
 
 - `main.go` —— CLI 入口(`plan` / `apply` / `check` / `switch`)

@@ -25,6 +25,7 @@ wheels/
 /auto-config-update
 /auto-config-update-*
 *.exe
+*.tar
 *.tar.gz
 .idea
 
@@ -35,6 +36,10 @@ wheels/
 /updateConfig-*.sh
 /.updateConfig.lock
 /logs/
+
+# 互锁总表导出结果（含现场配置内容）
+/interlocks.xlsx
+/interlocks.csv
 
 # 本地验证工作区
 /.gocache/
