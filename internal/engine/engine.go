@@ -1088,17 +1088,29 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 	}
 }
 
-// indentBlock 给多行XML原文的每一行加上 depth 层缩进(4 空格/层)，首尾空行去掉。
+// indentBlock 给多行XML原文重排缩进：先去掉各非空行共有的前导空白，再统一加上 depth 层
+// 缩进(4 空格/层)，片段内部的相对缩进(子元素比父元素多缩进的部分)原样保留；首尾空行去掉。
 func indentBlock(raw string, depth int) string {
 	pad := strings.Repeat("    ", depth)
 	lines := strings.Split(strings.Trim(raw, "\r\n"), "\n")
+	common := -1
 	for i, l := range lines {
 		l = strings.TrimRight(l, "\r")
+		lines[i] = l
+		if strings.TrimSpace(l) == "" {
+			continue
+		}
+		n := len(l) - len(strings.TrimLeft(l, " \t"))
+		if common < 0 || n < common {
+			common = n
+		}
+	}
+	for i, l := range lines {
 		if strings.TrimSpace(l) == "" {
 			lines[i] = ""
 			continue
 		}
-		lines[i] = pad + strings.TrimLeft(l, " \t")
+		lines[i] = pad + l[common:]
 	}
 	return strings.Join(lines, "\n")
 }

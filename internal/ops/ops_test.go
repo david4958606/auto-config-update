@@ -525,3 +525,17 @@ func TestRenameNode(t *testing.T) {
 		t.Fatalf("空动作不应改动: %s", empty.Message)
 	}
 }
+
+// TestAddMethodValueWithEscapedCharsIdempotent 方法值含 > / & 时，回写为 &gt; / &amp; 后
+// 再次执行应按解码后的值判重为 no-op。
+func TestAddMethodValueWithEscapedCharsIdempotent(t *testing.T) {
+	src := "<R>\n    <addChecker type=\"method\">(a &gt;= b)&amp;&amp;(c == d),X</addChecker>\n</R>"
+	doc, err := xmldoc.Parse([]byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := AddMethod(doc.Roots[0], "addChecker", "(a >= b)&&(c == d),X", true, nil, nil)
+	if r.Changed {
+		t.Fatalf("已存在同值方法应为 no-op: %s", r.Message)
+	}
+}

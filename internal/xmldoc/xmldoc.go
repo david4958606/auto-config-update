@@ -13,6 +13,7 @@ package xmldoc
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -175,6 +176,18 @@ func Parse(src []byte) (*Document, error) {
 			if err != nil {
 				return nil, err
 			}
+			// XML 预定义实体/字符引用(&amp; &gt; &#62; …)是文本的一部分：解码进 Text/InnerText，
+			// 不建实体节点，否则 "a &gt;= b" 的 Text 只剩 "a "，方法值判重永远失配。
+			// 设备外部实体(&SimulatedFlag_Ch1;)仍作为不透明实体节点保留。
+			if ch, ok := predefinedEntity(node.EntName); ok {
+				if t := top(); t != doc {
+					if len(t.Children) == 0 {
+						t.Text += ch
+					}
+					t.InnerText += ch
+				}
+				continue
+			}
 			node.Parent = top()
 			top().Children = append(top().Children, node)
 		default:
@@ -254,6 +267,32 @@ func (p *parser) readEntity() (*Node, error) {
 		IsEntity: true, EntName: name,
 		Start: start, End: end, OpenEnd: -1, CloseStart: -1,
 	}, nil
+}
+
+// predefinedEntity 解码 XML 预定义实体与数字字符引用；非这两类(设备外部实体)返回 false。
+func predefinedEntity(name string) (string, bool) {
+	switch name {
+	case "amp":
+		return "&", true
+	case "lt":
+		return "<", true
+	case "gt":
+		return ">", true
+	case "quot":
+		return `"`, true
+	case "apos":
+		return "'", true
+	}
+	if strings.HasPrefix(name, "#") {
+		num, base := name[1:], 10
+		if strings.HasPrefix(num, "x") || strings.HasPrefix(num, "X") {
+			num, base = num[1:], 16
+		}
+		if v, err := strconv.ParseInt(num, base, 32); err == nil && v > 0 {
+			return string(rune(v)), true
+		}
+	}
+	return "", false
 }
 
 // readEndTag 读 </name> 返回 (name, endOffset)。调用时 pos 指向 '<'。

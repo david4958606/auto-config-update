@@ -187,3 +187,25 @@ func TestCDATATolerance(t *testing.T) {
 		}
 	}
 }
+
+// TestPredefinedEntitiesDecodedIntoText 预定义实体/字符引用解码进文本，不建实体节点；
+// 设备外部实体仍保留为实体节点。
+func TestPredefinedEntitiesDecodedIntoText(t *testing.T) {
+	src := "<R>\n  <m type=\"method\">(a &gt;= b)&amp;&amp;(c &lt; d)&#62;&#x3e;</m>\n  &SimulatedFlag_Ch2;\n</R>"
+	doc, err := Parse([]byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := doc.Roots[0]
+	m := FindChild(r, "m")
+	want := "(a >= b)&&(c < d)>>"
+	if m.Text != want || m.InnerText != want {
+		t.Fatalf("Text=%q InnerText=%q, want %q", m.Text, m.InnerText, want)
+	}
+	if len(m.Children) != 0 {
+		t.Fatalf("预定义实体不应建节点，got %d 个子节点", len(m.Children))
+	}
+	if countEntities(r.Children, "SimulatedFlag_Ch2") != 1 {
+		t.Fatal("外部实体 &SimulatedFlag_Ch2; 应保留为实体节点")
+	}
+}
