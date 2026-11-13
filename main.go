@@ -7,6 +7,7 @@
 //	addex plan  --feature features/ig-auto-close.yaml
 //	addex apply --feature features/ig-auto-close.yaml --chamber Ch1
 //	addex apply --feature features/ig-auto-close.yaml --config config-14346
+//	addex version [--config <dir>]       # 打印版本号和实际配置目录
 //	addex check                          # Setup 的 Param/Value 一致性自检
 //	addex switch <true|false>            # 切换 config/*Simulated* 的 setSimulated 开关
 //
@@ -47,6 +48,7 @@ func run(argv []string) int {
 	fs.Var(&chambers, "c", "限定腔室，可连续指定或重复；缺省=全部（如 -c Ch1 Ch2 Ch3）")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "用法: auto-config-update <plan|apply> --feature <path> [--chamber Ch1 Ch2 ...] [--no-verify] [--config <dir>]")
+		fmt.Fprintln(os.Stderr, "     auto-config-update version [--config <dir>] # 打印版本号和实际配置目录")
 		fmt.Fprintln(os.Stderr, "     auto-config-update check                  # 校验 <config>/Setup 的 Param/Value 一一对应")
 		fmt.Fprintln(os.Stderr, "     auto-config-update switch <true|false>    # 切换 <config>/*Simulated* 的 setSimulated 开关")
 		fs.PrintDefaults()
@@ -57,8 +59,8 @@ func run(argv []string) int {
 		return 2
 	}
 	mode := argv[0]
-	if mode != "plan" && mode != "apply" && mode != "check" && mode != "switch" {
-		fmt.Fprintf(os.Stderr, "未知模式 %q（应为 plan / apply / check / switch）\n", mode)
+	if mode != "plan" && mode != "apply" && mode != "check" && mode != "switch" && mode != "version" {
+		fmt.Fprintf(os.Stderr, "未知模式 %q（应为 plan / apply / check / switch / version）\n", mode)
 		fs.Usage()
 		return 2
 	}
@@ -69,6 +71,14 @@ func run(argv []string) int {
 		return 2
 	}
 	configDir := resolveConfigDir(*configPath, executableDir())
+	if mode == "version" {
+		if len(fs.Args()) != 0 {
+			fmt.Fprintln(os.Stderr, "version 不接受位置参数；指定配置目录请用 --config <dir>")
+			return 2
+		}
+		fmt.Printf("auto-config-update %s\nconfig: %s\n", strings.TrimSpace(version), configDir)
+		return 0
+	}
 	if mode == "check" {
 		fmt.Print("Setup 检查\n\n")
 		return verifySetup(configDir, true)

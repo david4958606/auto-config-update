@@ -28,6 +28,49 @@ func captureStdout(t *testing.T, f func()) string {
 	return <-done
 }
 
+// TestRunVersionCLI 查询不依赖配置存在，并沿用其他命令的配置目录解析规则。
+func TestRunVersionCLI(t *testing.T) {
+	absolute := filepath.Join(t.TempDir(), "尚不存在的配置目录")
+	cases := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{"默认目录", []string{"version"}, filepath.Join(executableDir(), "config")},
+		{"相对目录", []string{"version", "--config", "config-14346"}, filepath.Join(executableDir(), "config-14346")},
+		{"绝对目录", []string{"version", "--config", absolute}, absolute},
+		{"等号形式", []string{"version", "--config=" + absolute}, absolute},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := captureStdout(t, func() {
+				if code := run(tc.args); code != 0 {
+					t.Errorf("run(%v) = %d，期望 0", tc.args, code)
+				}
+			})
+			want := "auto-config-update " + strings.TrimSpace(version) + "\nconfig: " + tc.want + "\n"
+			if out != want {
+				t.Errorf("输出 = %q，期望 %q", out, want)
+			}
+		})
+	}
+	if _, err := os.Stat(absolute); !os.IsNotExist(err) {
+		t.Fatalf("version 不应创建配置目录：%v", err)
+	}
+}
+
+func TestRunVersionInvalidArgs(t *testing.T) {
+	for _, args := range [][]string{
+		{"version", "extra"},
+		{"version", "--config"},
+		{"version", "--unknown"},
+	} {
+		if code := run(args); code != 2 {
+			t.Errorf("run(%v) = %d，期望 2", args, code)
+		}
+	}
+}
+
 // TestRunSwitchCLI 校验 switch 子命令的接线：目标值校验、切换落盘、幂等。
 func TestRunSwitchCLI(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "config")

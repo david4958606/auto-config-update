@@ -37,9 +37,11 @@ wheels/
 /.updateConfig.lock
 /logs/
 
-# 互锁总表导出结果（含现场配置内容）
+# tools/ 导出结果（含现场配置内容）
 /interlocks.xlsx
 /interlocks.csv
+/io_aliases.xlsx
+/io_aliases.csv
 
 # 本地验证工作区
 /.gocache/

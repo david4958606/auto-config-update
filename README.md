@@ -16,12 +16,21 @@ make tar      # 打包二进制、features、doc、README、run.sh、prepare-ons
 
 约束:工具链须为 Go **1.23.x**;`CGO_ENABLED=0` 纯静态、`GOPROXY=off` 离线可构建。
 
+### 程序版本
+
+程序版本独立维护在 [VERSION](VERSION)，本次新增 `version` 命令的版本为 **1.0.0**。
+发布新版本时修改该文件中的版本号（如 `1.0.1`），再重新构建即可；无需修改 Go 源码或构建参数。
+Go 的 `go:embed` 会在编译时自动将版本号嵌入二进制，`make` 和直接 `go build` 均生效，
+运行时无需携带 `VERSION` 文件。程序版本与功能 YAML 内的 `version` 分开管理。
+
 ## 运行
 
 `features/` 按**当前工作目录**解析；`config/` 缺省取**可执行文件同目录**下的 `config`，
 也可用 `--config <dir>` 指定（相对路径同样以可执行文件所在目录为基准，绝对路径原样使用）：
 
 ```bash
+./auto-config-update version                                        # 打印程序版本和默认配置目录
+./auto-config-update version --config config-14346                  # 打印版本和实际使用的配置目录
 ./auto-config-update plan  --feature features/ig-auto-close.yaml    # dry-run,不写盘
 ./auto-config-update apply --feature features/ig-auto-close.yaml    # 写盘
 ./auto-config-update apply --feature features/... --chamber Ch1 Ch4 # 限定腔室(缺省=全部)
@@ -34,7 +43,10 @@ make tar      # 打包二进制、features、doc、README、run.sh、prepare-ons
 
 - `--config <dir>` 指定 config 文件夹：缺省为**可执行文件同目录**的 `config`；传相对路径时以
   可执行文件所在目录为基准（`--config config-14346` = 该目录下的 `config-14346/`），传绝对路径则原样使用。
-  该 flag 对 `plan` / `apply` / `check` / `switch` 全部生效。
+  该 flag 对 `plan` / `apply` / `check` / `switch` / `version` 全部生效。
+
+- `version` 输出两行：`auto-config-update 1.0.0` 和 `config: <实际解析后的目录>`。
+  不需要 `--feature`，不读取、校验或修改配置目录；目录不存在也可查询。
 
 - `switch <true|false>` 批量改写 `config/*Simulated*` 里
   `<setSimulated type="method">true|false</setSimulated>` 的取值，替代手工的
@@ -243,9 +255,26 @@ python3 tools/export_interlocks.py --config /path/to/config
 
 `--config` 默认为仓库根目录下的 `config/`，输出路径以当前工作目录为基准。
 
+## 导出 IO 别名对照表
+
+`tools/export_io_aliases.py` 扫描 `config/IOBridge/IO_*` 中带 `alias` 的信号，把别名里的腔室名归一成
+`ChX`（如 `/IO/Ch2Exports/CG_PressureAI` → `/IO/ChXExports/CG_PressureAI`），按“通用别名 + 腔室”每个信号一行，
+列出物理路径、来源文件、片段是否在 `IO_config.xml` 中启用，以及 `dataType`、`accessMode`、`Bd`、`Ch`、`Min`、`Max`、
+`Accuracy`、`Unit`、`DescriptorList` 等字段，供人工比对；脚本只导出，不判断差异。默认只导出至少出现在两个腔室的别名：
+
+```bash
+python3 tools/export_io_aliases.py                              # 输出 io_aliases.xlsx
+python3 tools/export_io_aliases.py -o io_aliases.csv            # 按扩展名输出 CSV
+python3 tools/export_io_aliases.py --alias CG_PressureAI        # 子串匹配，可重复；含 * ? [ 时按通配匹配
+python3 tools/export_io_aliases.py --chamber-regex 'Ch[0-9A-Z]|LA|LB'   # 调整参与归一的腔室名
+python3 tools/export_io_aliases.py --include-single             # 也导出只在一个腔室出现的别名
+```
+
+`--config` 同样默认为仓库根目录下的 `config/`（也接受外层再包一层 `config/` 的目录）。
+
 ## 模块
 
-- `main.go` —— CLI 入口(`plan` / `apply` / `check` / `switch`)
+- `main.go` —— CLI 入口(`plan` / `apply` / `check` / `switch` / `version`)
 - `internal/`
   - `xmldoc` —— 按字节偏移解析 XML、实体容忍(声明不展开)、外科回写的编辑记录
   - `config` —— master+实体装配、逻辑 IO/Control 视图、实体真名解析
