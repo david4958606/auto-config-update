@@ -20,7 +20,8 @@ TAR_TARGETS += run.sh
 TAR_TARGETS += prepare-onsite.sh
 # 工程师用 prepare-onsite.sh 生成的一键脚本（updateConfig-*.sh，如存在）一并打包。
 TAR_TARGETS += $(wildcard updateConfig-*.sh)
-TAR_NAME := auto-config-update-$(shell date +%Y%m%d-%H%M%S).tar.gz
+VERSION := $(shell cat VERSION)
+TAR_NAME := auto-config-update-$(VERSION)-$(shell date +%Y%m%d-%H%M%S).tar.gz
 LDFLAGS := -s -w
 
 # 离线 + 静态 构建环境。
