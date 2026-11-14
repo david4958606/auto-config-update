@@ -464,7 +464,7 @@ func (e *Engine) runOneFileStep(step *feature.Step, rel string, tags map[string]
 	}
 	croot := doc.Roots[0]
 	for _, m := range matches {
-		e.applyActions(step, tg, m, tags, "", croot, log)
+		e.applyActions(step, tg, m, tags, "", croot, e.idx, log)
 	}
 	if len(tg.edits) > 0 {
 		outBytes := splice.Apply(tg.doc.Src, tg.edits)
@@ -655,8 +655,35 @@ func (e *Engine) runStep(step *feature.Step, doms map[string]*target, chamberBin
 		return
 	}
 	croot := tg.roots[0] // 腔室根:供 include-entity 实体解析(Control 域 1 腔室 1 root)
+	// 守卫读取当前各域的工作树，而非初始化索引中的旧副本；保证同组后一步可见前一步改动。
+	idx := make(config.Indexes, len(e.idx))
+	for name, sections := range e.idx {
+		idx[name] = append([]config.Section(nil), sections...)
+	}
+	for name, current := range doms {
+		var sections []config.Section
+		replaced := false
+		for _, sec := range idx[name] {
+			if filepath.Clean(sec.Path) != filepath.Clean(current.path) {
+				sections = append(sections, sec)
+				continue
+			}
+			if !replaced {
+				for _, root := range current.doc.Roots {
+					sections = append(sections, config.Section{Path: current.path, Root: root})
+				}
+				replaced = true
+			}
+		}
+		if !replaced {
+			for _, root := range current.doc.Roots {
+				sections = append(sections, config.Section{Path: current.path, Root: root})
+			}
+		}
+		idx[name] = sections
+	}
 	for _, m := range matches {
-		e.applyActions(step, tg, m, chamberBinds, chamber, croot, log)
+		e.applyActions(step, tg, m, chamberBinds, chamber, croot, idx, log)
 	}
 }
 
@@ -717,7 +744,7 @@ func parseNodePosition(pos, stepName, inst string, log func(string)) bool {
 }
 
 // applyActions 对一个 anchor 命中实例执行该步的全部动作。
-func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, chamberBinds map[string]string, chamber string, croot *xmldoc.Node, log func(string)) {
+func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, chamberBinds map[string]string, chamber string, croot *xmldoc.Node, idx config.Indexes, log func(string)) {
 	inst := fmt.Sprintf("%s(class=%s)", m.Node.Tag, m.Node.Class())
 	if m.Node.VirtualRoot {
 		// 片段文件的空 anchor 命中 master 根伪根；日志里点明"片段根"比打印一个空 class 更清楚。
@@ -736,7 +763,7 @@ func (e *Engine) applyActions(step *feature.Step, tg *target, m anchor.Match, ch
 		tags[k] = v
 	}
 
-	tags, notes, err := feature.ResolveBindings(*step, tags, e.idx)
+	tags, notes, err := feature.ResolveBindings(*step, tags, idx)
 	if err != nil {
 		log(fmt.Sprintf("  步[%s] %s 跳过：%s", step.Name, inst, err.Error()))
 		return

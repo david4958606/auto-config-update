@@ -487,17 +487,17 @@ func ResolveBindings(step Step, tags map[string]string, idx config.Indexes) (map
 			return nil, nil, &Skip{Reason: fmt.Sprintf("require.%s 格式错误 —— 应为 {变量: 非空逻辑路径}", kind)}
 		}
 		logical := Format(tmplNode.Value, out)
-		fpath, node := config.ResolveLogical(idx, logical)
+		fpath, node, resolved := config.ResolveRequirePath(idx, logical)
 		if kind == "exist" && node == nil {
 			return nil, nil, &Skip{Reason: fmt.Sprintf("require.exist 不满足 —— 找不到 %s", logical)}
 		}
 		if kind == "non-exist" && node != nil {
-			return nil, nil, &Skip{Reason: fmt.Sprintf("require.non-exist 不满足 —— 已存在 %s", logical)}
+			return nil, nil, &Skip{Reason: fmt.Sprintf("require.non-exist 不满足 —— 已存在 %s", resolved)}
 		}
-		out[v] = logical
+		out[v] = resolved
 		// 不存在的路径没有命中文件，不生成误导性的“命中于”记录。
 		if kind == "exist" {
-			notes = append(notes, Note{Var: v, Logical: logical, Path: fpath})
+			notes = append(notes, Note{Var: v, Logical: resolved, Path: fpath})
 		}
 	}
 	for _, item := range step.Bind {
